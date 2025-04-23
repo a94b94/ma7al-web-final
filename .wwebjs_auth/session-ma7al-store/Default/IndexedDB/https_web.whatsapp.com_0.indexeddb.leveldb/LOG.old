@@ -1,0 +1,31 @@
+2025/04/17-23:29:15.976 9de0 Reusing MANIFEST C:\Users\Abdullah\Desktop\ma7al-web-final\.wwebjs_auth\session-ma7al-store\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
+2025/04/17-23:29:15.977 9de0 Recovering log #347
+2025/04/17-23:29:16.034 9de0 Reusing old log C:\Users\Abdullah\Desktop\ma7al-web-final\.wwebjs_auth\session-ma7al-store\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/000347.log 
+2025/04/17-23:29:18.226 980 Level-0 table #361: started
+2025/04/17-23:29:18.233 980 Level-0 table #361: 110442 bytes OK
+2025/04/17-23:29:18.235 980 Delete type=0 #347
+2025/04/17-23:29:18.236 980 Manual compaction at level-0 from '\x002\x00\x00\x00' @ 72057594037927935 : 1 .. '\x003\x00\x00\x00' @ 0 : 0; will stop at (end)
+2025/04/17-23:29:20.524 2f78 Compacting 1@1 + 10@2 files
+2025/04/17-23:29:20.618 2f78 Generated table #362@1: 28012 keys, 2180142 bytes
+2025/04/17-23:29:20.658 2f78 Generated table #363@1: 3440 keys, 2146647 bytes
+2025/04/17-23:29:20.704 2f78 Generated table #364@1: 3541 keys, 2146862 bytes
+2025/04/17-23:29:20.744 2f78 Generated table #365@1: 2643 keys, 2139283 bytes
+2025/04/17-23:29:20.776 2f78 Generated table #366@1: 2282 keys, 2135495 bytes
+2025/04/17-23:29:20.843 2f78 Generated table #367@1: 35108 keys, 2214189 bytes
+2025/04/17-23:29:20.907 2f78 Generated table #368@1: 33633 keys, 2207567 bytes
+2025/04/17-23:29:21.003 2f78 Generated table #369@1: 73571 keys, 2217096 bytes
+2025/04/17-23:29:21.198 2f78 Generated table #370@1: 107159 keys, 2257630 bytes
+2025/04/17-23:29:21.233 2f78 Generated table #371@1: 16359 keys, 357568 bytes
+2025/04/17-23:29:21.233 2f78 Compacted 1@1 + 10@2 files => 20002479 bytes
+2025/04/17-23:29:21.235 2f78 compacted to: files[ 0 0 10 0 0 0 0 ]
+2025/04/17-23:29:21.235 2f78 Delete type=2 #349
+2025/04/17-23:29:21.235 2f78 Delete type=2 #350
+2025/04/17-23:29:21.235 2f78 Delete type=2 #351
+2025/04/17-23:29:21.235 2f78 Delete type=2 #352
+2025/04/17-23:29:21.236 2f78 Delete type=2 #353
+2025/04/17-23:29:21.236 2f78 Delete type=2 #354
+2025/04/17-23:29:21.236 2f78 Delete type=2 #355
+2025/04/17-23:29:21.236 2f78 Delete type=2 #356
+2025/04/17-23:29:21.236 2f78 Delete type=2 #357
+2025/04/17-23:29:21.236 2f78 Delete type=2 #358
+2025/04/17-23:29:21.236 2f78 Delete type=2 #361

@@ -1,0 +1,31 @@
+2025/04/18-13:59:37.995 5e54 Reusing MANIFEST C:\Users\Abdullah\Desktop\ma7al-web-final\.wwebjs_auth\session-ma7al-store\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
+2025/04/18-13:59:38.025 5e54 Recovering log #360
+2025/04/18-13:59:38.288 5e54 Reusing old log C:\Users\Abdullah\Desktop\ma7al-web-final\.wwebjs_auth\session-ma7al-store\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/000360.log 
+2025/04/18-13:59:46.655 2534 Level-0 table #374: started
+2025/04/18-13:59:46.727 2534 Level-0 table #374: 481358 bytes OK
+2025/04/18-13:59:46.732 2534 Delete type=0 #360
+2025/04/18-13:59:46.737 2534 Manual compaction at level-0 from '\x003\x00\x00\x00' @ 72057594037927935 : 1 .. '\x004\x00\x00\x00' @ 0 : 0; will stop at (end)
+2025/04/18-13:59:52.292 4ab4 Compacting 1@1 + 10@2 files
+2025/04/18-13:59:52.655 4ab4 Generated table #375@1: 31900 keys, 2183442 bytes
+2025/04/18-13:59:52.884 4ab4 Generated table #376@1: 3459 keys, 2145747 bytes
+2025/04/18-13:59:53.138 4ab4 Generated table #377@1: 3529 keys, 2145629 bytes
+2025/04/18-13:59:53.761 4ab4 Generated table #378@1: 2760 keys, 2141625 bytes
+2025/04/18-13:59:54.285 4ab4 Generated table #379@1: 2257 keys, 2138097 bytes
+2025/04/18-13:59:54.690 4ab4 Generated table #380@1: 32472 keys, 2205960 bytes
+2025/04/18-13:59:55.728 4ab4 Generated table #381@1: 35173 keys, 2215755 bytes
+2025/04/18-13:59:56.468 4ab4 Generated table #382@1: 65935 keys, 2206000 bytes
+2025/04/18-13:59:57.078 4ab4 Generated table #383@1: 107610 keys, 2258721 bytes
+2025/04/18-13:59:57.192 4ab4 Generated table #384@1: 25211 keys, 549245 bytes
+2025/04/18-13:59:57.193 4ab4 Compacted 1@1 + 10@2 files => 20190221 bytes
+2025/04/18-13:59:57.195 4ab4 compacted to: files[ 0 0 10 0 0 0 0 ]
+2025/04/18-13:59:57.196 4ab4 Delete type=2 #362
+2025/04/18-13:59:57.196 4ab4 Delete type=2 #363
+2025/04/18-13:59:57.196 4ab4 Delete type=2 #364
+2025/04/18-13:59:57.196 4ab4 Delete type=2 #365
+2025/04/18-13:59:57.197 4ab4 Delete type=2 #366
+2025/04/18-13:59:57.197 4ab4 Delete type=2 #367
+2025/04/18-13:59:57.198 4ab4 Delete type=2 #368
+2025/04/18-13:59:57.198 4ab4 Delete type=2 #369
+2025/04/18-13:59:57.198 4ab4 Delete type=2 #370
+2025/04/18-13:59:57.198 4ab4 Delete type=2 #371
+2025/04/18-13:59:57.198 4ab4 Delete type=2 #374
