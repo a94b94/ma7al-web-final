@@ -41,7 +41,7 @@ export default function AddProductPage() {
           setBarcode(result.getText());
           checkBarcode(result.getText());
           setScanning(false);
-          codeReader.stopContinuousDecode(); // ✅ الحل الصحيح
+          codeReader.reset(); // ✅
         }
       });
     }
