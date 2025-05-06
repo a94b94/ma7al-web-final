@@ -17,6 +17,7 @@ type InvoicePreviewProps = {
   storeName: string;
   storeLogo?: string;
   storeStamp?: string;
+  showActions?: boolean; // ✅ مضافة حديثًا
 };
 
 export default function InvoicePreview({
@@ -24,10 +25,11 @@ export default function InvoicePreview({
   storeName,
   storeLogo,
   storeStamp,
+  showActions,
 }: InvoicePreviewProps) {
   const invoiceTypeLabel =
     order.type === "installment" ? "🧾 فاتورة بيع أقساط" : "🧾 فاتورة بيع نقد";
-  const typeColor = order.type === "installment" ? "#d97706" : "#10b981"; // برتقالي أو أخضر
+  const typeColor = order.type === "installment" ? "#d97706" : "#10b981";
 
   return (
     <div
@@ -136,7 +138,6 @@ export default function InvoicePreview({
   );
 }
 
-// ✅ مكون لعرض كل حقل بجانب التسمية
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div style={{ flex: "1 1 200px", display: "flex", gap: "8px" }}>
