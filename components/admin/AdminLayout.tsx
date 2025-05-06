@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { user } = useUser();
+  const { user, logout } = useUser();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -42,12 +42,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       icon: <ShieldCheck size={18} />,
     });
   }
-
-  const handleLogout = () => {
-    localStorage.removeItem("user");
-    localStorage.removeItem("token");
-    router.push("/login");
-  };
 
   return (
     <div className="min-h-screen flex font-sans text-gray-900 bg-gray-50">
@@ -95,7 +89,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <div className="mt-2 bg-gray-100 p-3 rounded-lg text-sm text-gray-800">
               <p className="mb-2">مرحباً، {user?.name}</p>
               <button
-                onClick={handleLogout}
+                onClick={() => {
+                  logout();
+                  router.push("/login");
+                }}
                 className="w-full flex items-center gap-2 px-3 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"
               >
                 <LogOut size={18} />

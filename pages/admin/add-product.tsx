@@ -2,15 +2,22 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/router";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, ArrowLeft, Upload, Camera, Smartphone, Laptop, Headphones } from "lucide-react";
+import {
+  ArrowLeft,
+  Upload,
+  Camera,
+  Smartphone,
+  Laptop,
+  Headphones,
+} from "lucide-react";
 import toast from "react-hot-toast";
 import * as uploadcare from "uploadcare-widget";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 
 const categories = [
-  { value: "mobiles", label: "\ud83d\udcf1 هواتف", icon: Smartphone },
-  { value: "laptops", label: "\ud83d\udcbb لابتوبات", icon: Laptop },
-  { value: "accessories", label: "\ud83c\udfa7 إكسسوارات", icon: Headphones },
+  { value: "mobiles", label: "📱 هواتف", icon: Smartphone },
+  { value: "laptops", label: "💻 لابتوبات", icon: Laptop },
+  { value: "accessories", label: "🎧 إكسسوارات", icon: Headphones },
 ];
 
 export default function AddProductPage() {
@@ -20,7 +27,7 @@ export default function AddProductPage() {
   const [price, setPrice] = useState(0);
   const [category, setCategory] = useState("");
   const [image, setImage] = useState("");
-  const [discount, setDiscount] = useState(0); // ✅ نسبة الخصم
+  const [discount, setDiscount] = useState(0);
   const [checking, setChecking] = useState(false);
   const [loading, setLoading] = useState(false);
   const [scanning, setScanning] = useState(false);
@@ -34,13 +41,13 @@ export default function AddProductPage() {
           setBarcode(result.getText());
           checkBarcode(result.getText());
           setScanning(false);
-          codeReader.reset();
+          codeReader.stopContinuousDecode(); // ✅ الحل الصحيح
         }
       });
     }
   }, [scanning]);
 
-  const handleScan = (e) => {
+  const handleScan = (e: any) => {
     const code = e.target.value;
     setBarcode(code);
     if (code.length >= 5) {
@@ -48,7 +55,7 @@ export default function AddProductPage() {
     }
   };
 
-  const checkBarcode = async (code) => {
+  const checkBarcode = async (code: string) => {
     setChecking(true);
     try {
       const res = await fetch(`/api/products/barcode-check?barcode=${code}`);
@@ -101,7 +108,7 @@ export default function AddProductPage() {
   const openUploadWidget = () => {
     // @ts-ignore
     uploadcare.openDialog(null, { publicKey: "767dc761271f23d1f796" })
-      .done((file) => file.done((info) => setImage(info.cdnUrl)));
+      .done((file) => file.done((info: any) => setImage(info.cdnUrl)));
   };
 
   return (
@@ -168,17 +175,20 @@ export default function AddProductPage() {
           <div>
             <label className="block text-sm font-medium mb-1">🗂️ القسم</label>
             <div className="grid grid-cols-3 gap-3">
-              {categories.map((cat) => (
-                <button
-                  key={cat.value}
-                  onClick={() => setCategory(cat.value)}
-                  className={`flex items-center justify-center gap-2 border p-2 rounded text-sm ${
-                    category === cat.value ? "bg-blue-100 border-blue-500" : "hover:bg-gray-50"
-                  }`}
-                >
-                  <cat.icon className="w-4 h-4" /> {cat.label}
-                </button>
-              ))}
+              {categories.map((cat) => {
+                const Icon = cat.icon;
+                return (
+                  <button
+                    key={cat.value}
+                    onClick={() => setCategory(cat.value)}
+                    className={`flex items-center justify-center gap-2 border p-2 rounded text-sm ${
+                      category === cat.value ? "bg-blue-100 border-blue-500" : "hover:bg-gray-50"
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" /> {cat.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
