@@ -1,3 +1,4 @@
+// pages/admin/add-customer.tsx
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import AdminLayout from "@/components/admin/AdminLayout";
@@ -34,12 +35,6 @@ const formStyles = [
     className:
       "p-6 max-w-xl mx-auto bg-gray-800 text-white shadow-xl rounded-xl border border-gray-700",
   },
-];
-
-const categories = [
-  { value: "mobiles", label: "📱 هواتف", icon: Smartphone },
-  { value: "laptops", label: "💻 لابتوبات", icon: Laptop },
-  { value: "accessories", label: "🎧 إكسسوارات", icon: Headphones },
 ];
 
 export default function AddCustomerPage() {
@@ -90,7 +85,15 @@ export default function AddCustomerPage() {
         link.href = "/admin/customers";
         link.className =
           "flex items-center gap-2 px-4 py-2 hover:bg-gray-100 text-gray-700";
-        link.innerHTML = `${Users({ className: "w-4 h-4" }).outerHTML}<span>قائمة الزبائن</span>`;
+
+        const icon = document.createElement("span");
+        icon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 14a4 4 0 1 0-8 0M12 10a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" /></svg>`;
+
+        const text = document.createElement("span");
+        text.textContent = "قائمة الزبائن";
+
+        link.appendChild(icon);
+        link.appendChild(text);
         sidebar.appendChild(link);
       }
     }
