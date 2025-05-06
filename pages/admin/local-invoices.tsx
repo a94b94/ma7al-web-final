@@ -44,9 +44,7 @@ export default function LocalInvoicesPage({ invoices }: { invoices: LocalInvoice
   };
 
   const handleDelete = async (id: string) => {
-    const confirm = window.confirm("هل أنت متأكد أنك تريد حذف هذه الفاتورة؟");
-    if (!confirm) return;
-
+    if (!window.confirm("هل أنت متأكد أنك تريد حذف هذه الفاتورة؟")) return;
     try {
       const res = await fetch(`/api/local-sale/delete?id=${id}`, { method: "DELETE" });
       const data = await res.json();
@@ -56,7 +54,7 @@ export default function LocalInvoicesPage({ invoices }: { invoices: LocalInvoice
       } else {
         toast.error("❌ فشل في الحذف");
       }
-    } catch (error) {
+    } catch {
       toast.error("حدث خطأ أثناء الحذف");
     }
   };
@@ -71,7 +69,7 @@ export default function LocalInvoicesPage({ invoices }: { invoices: LocalInvoice
       } else {
         toast.error("❌ لم يتم العثور على الفاتورة");
       }
-    } catch (err) {
+    } catch {
       toast.error("❌ فشل في تحميل الفاتورة");
     }
   };
@@ -88,7 +86,6 @@ export default function LocalInvoicesPage({ invoices }: { invoices: LocalInvoice
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "فواتير");
-
     const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
     const dataBlob = new Blob([excelBuffer], { type: "application/octet-stream" });
     saveAs(dataBlob, "الفواتير_المحلية.xlsx");
@@ -153,9 +150,7 @@ export default function LocalInvoicesPage({ invoices }: { invoices: LocalInvoice
                 <td className="p-2 border">{inv.phone}</td>
                 <td className="p-2 border">{inv.total.toLocaleString("ar-EG")} د.ع</td>
                 <td className="p-2 border">{inv.type === "installment" ? "أقساط" : "نقد"}</td>
-                <td className="p-2 border">
-                  {new Date(inv.createdAt).toLocaleDateString("ar-EG")}
-                </td>
+                <td className="p-2 border">{new Date(inv.createdAt).toLocaleDateString("ar-EG")}</td>
                 <td className="p-2 border text-center flex flex-wrap gap-2 justify-center">
                   <button
                     onClick={() => handleView(inv._id)}
@@ -193,14 +188,7 @@ export default function LocalInvoicesPage({ invoices }: { invoices: LocalInvoice
               ✖
             </button>
             <InvoicePreview
-              order={{
-                _id: selectedInvoice._id,
-                phone: selectedInvoice.phone,
-                address: selectedInvoice.address,
-                cart: selectedInvoice.cart || [],
-                total: selectedInvoice.total,
-                createdAt: selectedInvoice.createdAt,
-              }}
+              order={selectedInvoice}
               storeName="Ma7al Store"
               storeLogo="/logo.png"
               showActions={true}
@@ -229,20 +217,19 @@ export const getServerSideProps: GetServerSideProps = async ({ query }) => {
     }
   }
 
-  // ✅ تم إصلاح هذا السطر باستخدام as any
-  const invoices = await (LocalInvoice.find(filter) as any).sort({ createdAt: -1 }).lean();
+  const rawInvoices = await LocalInvoice.find(filter, null, { lean: true }).sort({ createdAt: -1 });
 
-  const safeInvoices = invoices.map((inv: any) => ({
+  const invoices: LocalInvoiceType[] = rawInvoices.map((inv: any) => ({
     _id: inv._id.toString(),
     phone: inv.phone,
     address: inv.address,
     total: inv.total,
     type: inv.type,
     createdAt: inv.createdAt.toString(),
-    cart: [],
+    cart: inv.cart || [],
   }));
 
   return {
-    props: { invoices: safeInvoices },
+    props: { invoices },
   };
 };
