@@ -41,8 +41,6 @@ export default function AddProductPage() {
           setBarcode(result.getText());
           checkBarcode(result.getText());
           setScanning(false);
-          codeReader.stopDecoding(); // 
-
         }
       });
     }
