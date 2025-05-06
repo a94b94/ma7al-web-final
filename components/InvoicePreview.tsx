@@ -141,7 +141,7 @@ function Field({ label, value }: { label: string; value: string }) {
   return (
     <div style={{ flex: "1 1 200px", display: "flex", gap: "8px" }}>
       <strong>{label}:</strong>
-      <span>{value}</span>
+      <span>{value || "—"}</span>
     </div>
   );
 }
