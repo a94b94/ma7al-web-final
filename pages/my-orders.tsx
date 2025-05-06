@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from "react";
-import { useUser } from "./_app";
+import { useUser } from "@/context/UserContext";
 
 export default function MyOrdersPage() {
   const { user } = useUser();
