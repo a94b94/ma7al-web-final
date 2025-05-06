@@ -17,7 +17,7 @@ type InvoicePreviewProps = {
   storeName: string;
   storeLogo?: string;
   storeStamp?: string;
-  showActions?: boolean; // ✅ مضافة حديثًا
+  showActions?: boolean; // ✅ أضف هذا
 };
 
 export default function InvoicePreview({
