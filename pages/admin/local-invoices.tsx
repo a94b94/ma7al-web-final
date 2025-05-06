@@ -98,7 +98,6 @@ export default function LocalInvoicesPage({ invoices }: { invoices: LocalInvoice
     <div className="max-w-6xl mx-auto p-6">
       <h1 className="text-2xl font-bold mb-6 text-center">📋 قائمة الفواتير المحلية</h1>
 
-      {/* 🔍 الفلاتر + زر التصدير */}
       <div className="flex flex-wrap gap-4 mb-6 justify-between items-center">
         <select
           className="border p-2 rounded"
@@ -135,7 +134,6 @@ export default function LocalInvoicesPage({ invoices }: { invoices: LocalInvoice
         </button>
       </div>
 
-      {/* جدول الفواتير */}
       <div className="overflow-x-auto">
         <table className="w-full border text-sm text-right">
           <thead className="bg-gray-100">
@@ -185,7 +183,6 @@ export default function LocalInvoicesPage({ invoices }: { invoices: LocalInvoice
         </table>
       </div>
 
-      {/* المودال */}
       {showModal && selectedInvoice && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg max-w-4xl w-full p-4 relative overflow-y-auto max-h-[90vh]">
@@ -232,7 +229,8 @@ export const getServerSideProps: GetServerSideProps = async ({ query }) => {
     }
   }
 
-  const invoices = await LocalInvoice.find(filter).sort({ createdAt: -1 }).lean();
+  // ✅ تم إصلاح هذا السطر باستخدام as any
+  const invoices = await (LocalInvoice.find(filter) as any).sort({ createdAt: -1 }).lean();
 
   const safeInvoices = invoices.map((inv: any) => ({
     _id: inv._id.toString(),
