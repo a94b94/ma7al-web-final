@@ -1,17 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, ArrowLeft, Upload, Camera, Smartphone, Laptop, Headphones, Users } from "lucide-react";
+import { CheckCircle, ArrowLeft } from "lucide-react";
 import toast from "react-hot-toast";
-import * as uploadcare from "uploadcare-widget";
-import { BrowserMultiFormatReader } from "@zxing/browser";
-
-const categories = [
-  { value: "mobiles", label: "📱 هواتف", icon: Smartphone },
-  { value: "laptops", label: "💻 لابتوبات", icon: Laptop },
-  { value: "accessories", label: "🎧 إكسسوارات", icon: Headphones },
-];
 
 export default function AddCustomerPage() {
   const router = useRouter();
@@ -46,21 +38,6 @@ export default function AddCustomerPage() {
     }
     setLoading(false);
   };
-
-  useEffect(() => {
-    const sidebar = document.getElementById("admin-sidebar-links");
-    if (sidebar) {
-      const existing = document.getElementById("customers-link");
-      if (!existing) {
-        const link = document.createElement("a");
-        link.id = "customers-link";
-        link.href = "/admin/customers";
-        link.className = "flex items-center gap-2 px-4 py-2 hover:bg-gray-100 text-gray-700";
-        link.innerHTML = `${Users({ className: "w-4 h-4" }).outerHTML}<span>قائمة الزبائن</span>`;
-        sidebar.appendChild(link);
-      }
-    }
-  }, []);
 
   return (
     <AdminLayout>
