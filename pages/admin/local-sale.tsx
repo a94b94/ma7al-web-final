@@ -3,15 +3,19 @@ import { useRouter } from "next/router";
 import dynamic from "next/dynamic";
 import toast from "react-hot-toast";
 
-const InvoicePreview = dynamic(() => import("@/components/InvoicePreview"), {
-  ssr: false,
-});
+const InvoicePreview = dynamic(() => import("@/components/InvoicePreview"), { ssr: false });
+
+interface CartItem {
+  name: string;
+  quantity: number;
+  price: number;
+}
 
 export default function LocalSalePage() {
   const router = useRouter();
   const { id, print } = router.query;
 
-  const [cart, setCart] = useState([{ name: "", quantity: 1, price: 0 }]);
+  const [cart, setCart] = useState<CartItem[]>([{ name: "", quantity: 1, price: 0 }]);
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [invoiceType, setInvoiceType] = useState<"cash" | "installment">("cash");
@@ -29,9 +33,10 @@ export default function LocalSalePage() {
   useEffect(() => {
     const fetchInvoice = async () => {
       if (id && typeof id === "string") {
-        const res = await fetch(`/api/local-sale/get?id=${id}`);
-        const data = await res.json();
-        if (data.success) {
+        try {
+          const res = await fetch(`/api/local-sale/get?id=${id}`);
+          const data = await res.json();
+          if (!res.ok || !data.success) throw new Error();
           const inv = data.invoice;
           setCustomerName(inv.address);
           setCustomerPhone(inv.phone);
@@ -41,25 +46,23 @@ export default function LocalSalePage() {
           setInstallmentsCount(inv.installmentsCount || 0);
           setDueDate(inv.dueDate?.substring(0, 10) || "");
           setShowInvoice(true);
+        } catch {
+          toast.error("❌ فشل في تحميل الفاتورة");
         }
       }
     };
-
     fetchInvoice();
   }, [id]);
 
   useEffect(() => {
     if (print === "true" && showInvoice) {
-      setTimeout(() => {
-        window.print();
-      }, 1000);
+      setTimeout(() => window.print(), 1000);
     }
   }, [print, showInvoice]);
 
-  const handleChange = (index: number, field: string, value: string | number) => {
+  const handleChange = (index: number, field: keyof CartItem, value: string | number) => {
     const updated = [...cart];
-    // @ts-ignore
-    updated[index][field] = field === "quantity" || field === "price" ? Number(value) : value;
+    updated[index][field] = field === "quantity" || field === "price" ? Number(value) : String(value);
     setCart(updated);
   };
 
@@ -68,6 +71,7 @@ export default function LocalSalePage() {
   };
 
   const fakeOrder = {
+    _id: typeof id === "string" ? id : undefined,
     phone: customerPhone || "غير مذكور",
     address: customerName || "زبون محلي",
     cart,
@@ -81,6 +85,7 @@ export default function LocalSalePage() {
   };
 
   const handleSaveInvoice = async () => {
+    if (showInvoice) return;
     try {
       const res = await fetch("/api/local-sale/create", {
         method: "POST",
@@ -93,7 +98,7 @@ export default function LocalSalePage() {
       } else {
         toast.error("❌ فشل في حفظ الفاتورة");
       }
-    } catch (err) {
+    } catch {
       toast.error("حدث خطأ أثناء حفظ الفاتورة");
     }
   };
@@ -125,14 +130,10 @@ export default function LocalSalePage() {
             .join("\n")}\n\n💰 الإجمالي: ${total.toLocaleString("ar-IQ")} د.ع\n\nشكراً لك\n${storeName}`,
         }),
       });
-
       const data = await res.json();
-      if (data.success) {
-        toast.success("✅ تم إرسال الفاتورة عبر واتساب");
-      } else {
-        toast.error("❌ فشل في إرسال الرسالة");
-      }
-    } catch (error) {
+      if (data.success) toast.success("✅ تم إرسال الفاتورة عبر واتساب");
+      else toast.error("❌ فشل في إرسال الرسالة");
+    } catch {
       toast.error("⚠️ حدث خطأ أثناء الإرسال");
     }
   };
@@ -145,13 +146,11 @@ export default function LocalSalePage() {
 
       {showActions && (
         <>
-          {/* بيانات الزبون */}
           <div className="grid sm:grid-cols-2 gap-4 mb-4">
             <input className="border p-2" placeholder="👤 اسم الزبون" value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
             <input className="border p-2" placeholder="📞 رقم الهاتف" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} />
           </div>
 
-          {/* نوع الفاتورة */}
           <div className="mb-4">
             <select className="border p-2 w-full" value={invoiceType} onChange={(e) => setInvoiceType(e.target.value as "cash" | "installment")}>
               <option value="cash">💵 نقد</option>
@@ -167,7 +166,6 @@ export default function LocalSalePage() {
             </div>
           )}
 
-          {/* تفاصيل المنتجات */}
           {cart.map((item, idx) => (
             <div key={idx} className="flex gap-2 mb-2">
               <input className="border p-2 flex-1" placeholder="اسم المنتج" value={item.name} onChange={(e) => handleChange(idx, "name", e.target.value)} />
@@ -186,7 +184,6 @@ export default function LocalSalePage() {
         </>
       )}
 
-      {/* عرض الفاتورة */}
       {showInvoice && (
         <>
           <div id="invoice-print-area" className="mt-10 border p-4 bg-white shadow">

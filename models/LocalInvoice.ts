@@ -1,9 +1,29 @@
-import mongoose from "mongoose";
+import mongoose, { Document, Schema, Model } from "mongoose";
 
-const LocalInvoiceSchema = new mongoose.Schema(
+export interface CartItem {
+  name: string;
+  quantity: number;
+  price: number;
+}
+
+export interface LocalInvoiceDocument extends Document {
+  phone: string;
+  address: string;
+  cart: CartItem[];
+  total: number;
+  type: "cash" | "installment";
+  downPayment?: number;
+  installmentsCount?: number;
+  dueDate?: string;
+  remaining?: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const LocalInvoiceSchema = new Schema<LocalInvoiceDocument>(
   {
-    phone: String,
-    address: String,
+    phone: { type: String, required: true },
+    address: { type: String, required: true },
     cart: [
       {
         name: String,
@@ -11,7 +31,7 @@ const LocalInvoiceSchema = new mongoose.Schema(
         price: Number,
       },
     ],
-    total: Number,
+    total: { type: Number, required: true },
     type: { type: String, enum: ["cash", "installment"], default: "cash" },
     downPayment: Number,
     installmentsCount: Number,
@@ -21,5 +41,8 @@ const LocalInvoiceSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-export default mongoose.models.LocalInvoice ||
-  mongoose.model("LocalInvoice", LocalInvoiceSchema);
+const LocalInvoice: Model<LocalInvoiceDocument> =
+  mongoose.models.LocalInvoice ||
+  mongoose.model<LocalInvoiceDocument>("LocalInvoice", LocalInvoiceSchema);
+
+export default LocalInvoice;
