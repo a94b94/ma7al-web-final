@@ -1,4 +1,3 @@
-// الاستيرادات كما هي...
 import React, { useState } from "react";
 import { useRouter } from "next/router";
 import toast from "react-hot-toast";
@@ -9,7 +8,6 @@ import dynamic from "next/dynamic";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 
-// المعاينة
 const InvoicePreview = dynamic(() => import("@/components/InvoicePreview"), {
   ssr: false,
 });
@@ -217,7 +215,6 @@ export default function LocalInvoicesPage({ invoices }: { invoices: LocalInvoice
   );
 }
 
-// الفلترة من الخادم
 export const getServerSideProps: GetServerSideProps = async ({ query }) => {
   await dbConnect();
 
