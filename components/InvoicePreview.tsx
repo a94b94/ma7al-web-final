@@ -17,7 +17,7 @@ type InvoicePreviewProps = {
   storeName: string;
   storeLogo?: string;
   storeStamp?: string;
-  showActions?: boolean; // ✅ أضف هذا
+  showActions?: boolean; // ✅ أضفنا هذا
 };
 
 export default function InvoicePreview({
@@ -123,6 +123,18 @@ export default function InvoicePreview({
           💰 الإجمالي: {order.total.toLocaleString("ar-EG")} دينار
         </h3>
       </div>
+
+      {/* أزرار إضافية إذا showActions=true */}
+      {showActions && (
+        <div style={{ textAlign: "left", marginTop: 20, display: "flex", gap: 10 }}>
+          <button style={{ padding: "8px 12px", background: "#10b981", color: "#fff", border: "none", borderRadius: 5 }}>
+            🖨️ طباعة
+          </button>
+          <button style={{ padding: "8px 12px", background: "#3b82f6", color: "#fff", border: "none", borderRadius: 5 }}>
+            ✉️ إرسال
+          </button>
+        </div>
+      )}
 
       {/* ختم */}
       {storeStamp && (
