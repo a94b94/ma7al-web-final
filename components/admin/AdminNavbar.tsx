@@ -1,7 +1,6 @@
 import { Bell, Search } from "lucide-react";
 import Image from "next/image";
-import { useUser } from "@/context/UserContext";
-
+import { useUser } from "@/context/UserContext"; 
 export default function AdminNavbar() {
   const { user } = useUser();
 
