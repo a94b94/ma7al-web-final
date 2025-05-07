@@ -1,3 +1,5 @@
+// pages/admin/local-invoices.tsx
+
 import React, { useState } from "react";
 import { useRouter } from "next/router";
 import toast from "react-hot-toast";
@@ -70,7 +72,7 @@ export default function LocalInvoicesPage({ invoices }: { invoices: LocalInvoice
       if (data.success) {
         const fixedInvoice: LocalInvoiceType = {
           ...data.invoice,
-          type: data.invoice.type === "installment" ? "installment" : "cash", // ✅ هنا التغيير
+          type: data.invoice.type === "installment" ? "installment" : "cash",
         };
         setSelectedInvoice(fixedInvoice);
         setShowModal(true);
@@ -81,7 +83,6 @@ export default function LocalInvoicesPage({ invoices }: { invoices: LocalInvoice
       toast.error("❌ فشل في تحميل الفاتورة");
     }
   };
-  
 
   const exportToExcel = () => {
     const exportData = invoices.map((inv) => ({
@@ -233,7 +234,7 @@ export const getServerSideProps: GetServerSideProps = async ({ query }) => {
     phone: inv.phone,
     address: inv.address,
     total: inv.total,
-    type: inv.type as "cash" | "installment",
+    type: inv.type === "installment" ? "installment" : "cash", // ✅ التعديل هنا
     createdAt: inv.createdAt.toString(),
     cart: inv.cart || [],
     downPayment: inv.downPayment || 0,
