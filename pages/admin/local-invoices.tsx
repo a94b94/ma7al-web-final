@@ -68,8 +68,11 @@ export default function LocalInvoicesPage({ invoices }: { invoices: LocalInvoice
       const res = await fetch(`/api/local-sale/get?id=${id}`);
       const data = await res.json();
       if (data.success) {
-        const fixedType = data.invoice.type as "cash" | "installment";
-        setSelectedInvoice({ ...data.invoice, type: fixedType });
+        const fixedInvoice = {
+          ...data.invoice,
+          type: data.invoice.type as "cash" | "installment",
+        };
+        setSelectedInvoice(fixedInvoice);
         setShowModal(true);
       } else {
         toast.error("❌ لم يتم العثور على الفاتورة");
