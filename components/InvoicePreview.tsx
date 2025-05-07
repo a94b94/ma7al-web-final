@@ -8,7 +8,7 @@ type InvoicePreviewProps = {
     cart: { name: string; quantity: number; price: number }[];
     total: number;
     createdAt: string;
-    type?: "cash" | "installment";
+    type: "cash" | "installment";
     downPayment?: number;
     installmentsCount?: number;
     dueDate?: string;
