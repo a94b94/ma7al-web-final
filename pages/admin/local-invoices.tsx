@@ -68,9 +68,9 @@ export default function LocalInvoicesPage({ invoices }: { invoices: LocalInvoice
       const res = await fetch(`/api/local-sale/get?id=${id}`);
       const data = await res.json();
       if (data.success) {
-        const fixedInvoice = {
+        const fixedInvoice: LocalInvoiceType = {
           ...data.invoice,
-          type: data.invoice.type as "cash" | "installment",
+          type: data.invoice.type === "installment" ? "installment" : "cash", // ✅ هنا التغيير
         };
         setSelectedInvoice(fixedInvoice);
         setShowModal(true);
@@ -81,6 +81,7 @@ export default function LocalInvoicesPage({ invoices }: { invoices: LocalInvoice
       toast.error("❌ فشل في تحميل الفاتورة");
     }
   };
+  
 
   const exportToExcel = () => {
     const exportData = invoices.map((inv) => ({
