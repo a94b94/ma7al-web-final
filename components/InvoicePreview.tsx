@@ -17,7 +17,7 @@ type InvoicePreviewProps = {
   storeName: string;
   storeLogo?: string;
   storeStamp?: string;
-  showActions?: boolean; // ✅ أضفنا هذا
+  showActions?: boolean;
 };
 
 export default function InvoicePreview({
@@ -48,7 +48,7 @@ export default function InvoicePreview({
         borderRadius: "10px",
       }}
     >
-      {/* رأس الصفحة */}
+      {/* رأس الفاتورة */}
       <div style={{ textAlign: "center", marginBottom: 20 }}>
         {storeLogo && (
           <img
@@ -61,35 +61,22 @@ export default function InvoicePreview({
         <h3 style={{ fontSize: 18, marginTop: 6, color: typeColor }}>{invoiceTypeLabel}</h3>
       </div>
 
-      {/* معلومات الفاتورة */}
+      {/* معلومات العميل والفاتورة */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", marginBottom: 20 }}>
         <Field label="📅 التاريخ" value={new Date(order.createdAt).toLocaleDateString("ar-EG")} />
         <Field label="📞 الهاتف" value={order.phone} />
         <Field label="📍 العنوان" value={order.address} />
         {order.type === "installment" && (
           <>
-            <Field
-              label="💰 دفعة أولى"
-              value={`${order.downPayment?.toLocaleString("ar-EG") || 0} د.ع`}
-            />
+            <Field label="💰 دفعة أولى" value={`${order.downPayment?.toLocaleString("ar-EG") || 0} د.ع`} />
             <Field label="📆 عدد الأقساط" value={order.installmentsCount?.toString() || "-"} />
-            <Field
-              label="📅 تاريخ الاستحقاق"
-              value={
-                order.dueDate
-                  ? new Date(order.dueDate).toLocaleDateString("ar-EG")
-                  : "—"
-              }
-            />
-            <Field
-              label="💳 المتبقي"
-              value={`${order.remaining?.toLocaleString("ar-EG") || 0} د.ع`}
-            />
+            <Field label="📅 تاريخ الاستحقاق" value={order.dueDate ? new Date(order.dueDate).toLocaleDateString("ar-EG") : "—"} />
+            <Field label="💳 المتبقي" value={`${order.remaining?.toLocaleString("ar-EG") || 0} د.ع`} />
           </>
         )}
       </div>
 
-      {/* المنتجات */}
+      {/* جدول المنتجات */}
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 15 }}>
           <thead>
@@ -105,12 +92,8 @@ export default function InvoicePreview({
               <tr key={idx}>
                 <td style={cellStyle}>{item.name}</td>
                 <td style={{ ...cellStyle, textAlign: "center" }}>{item.quantity}</td>
-                <td style={{ ...cellStyle, textAlign: "center" }}>
-                  {item.price.toLocaleString("ar-EG")} د.ع
-                </td>
-                <td style={{ ...cellStyle, textAlign: "center" }}>
-                  {(item.price * item.quantity).toLocaleString("ar-EG")} د.ع
-                </td>
+                <td style={{ ...cellStyle, textAlign: "center" }}>{item.price.toLocaleString("ar-EG")} د.ع</td>
+                <td style={{ ...cellStyle, textAlign: "center" }}>{(item.price * item.quantity).toLocaleString("ar-EG")} د.ع</td>
               </tr>
             ))}
           </tbody>
@@ -124,19 +107,7 @@ export default function InvoicePreview({
         </h3>
       </div>
 
-      {/* أزرار إضافية إذا showActions=true */}
-      {showActions && (
-        <div style={{ textAlign: "left", marginTop: 20, display: "flex", gap: 10 }}>
-          <button style={{ padding: "8px 12px", background: "#10b981", color: "#fff", border: "none", borderRadius: 5 }}>
-            🖨️ طباعة
-          </button>
-          <button style={{ padding: "8px 12px", background: "#3b82f6", color: "#fff", border: "none", borderRadius: 5 }}>
-            ✉️ إرسال
-          </button>
-        </div>
-      )}
-
-      {/* ختم */}
+      {/* الختم */}
       {storeStamp && (
         <div style={{ textAlign: "left", marginTop: 30 }}>
           <img
@@ -158,7 +129,6 @@ function Field({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
-// تحديث إجباري للنشر
 
 const cellStyle: React.CSSProperties = {
   border: "1px solid #ccc",
