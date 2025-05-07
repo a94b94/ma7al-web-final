@@ -3,6 +3,13 @@ import dbConnect from "@/utils/dbConnect";
 import Product from "@/models/Product";
 import Order from "@/models/Order";
 
+// ✅ نُعرّف نوع الطلب المتوقع
+interface OrderWithDate {
+  cart: { name: string; quantity: number; price: number }[];
+  total: number;
+  createdAt: string | Date;
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
     return res.status(405).json({ error: "❌ Method Not Allowed" });
@@ -12,11 +19,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     await dbConnect();
 
     const productsCount = await Product.countDocuments();
-    const orders = await Order.find();
+    const orders = await Order.find().lean() as unknown as OrderWithDate[]; // ✅ حل التحذير
 
     const ordersCount = orders.length;
 
-    // أرباح اليوم
+    // 🔹 أرباح اليوم
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -24,7 +31,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .filter((order) => new Date(order.createdAt) >= today)
       .reduce((sum, order) => sum + order.total, 0);
 
-    // أكثر منتج مبيعاً
+    // 🔹 أكثر منتج مبيعاً
     const productSales: { [name: string]: number } = {};
     for (const order of orders) {
       for (const item of order.cart) {
@@ -34,7 +41,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const topProduct = Object.entries(productSales).sort((a, b) => b[1] - a[1])[0] || ["-", 0];
 
-    // تحليلات 7 أيام
+    // 🔹 تحليلات 7 أيام
     const dailyRevenueMap: { [date: string]: number } = {};
     for (let i = 6; i >= 0; i--) {
       const date = new Date();

@@ -1,15 +1,14 @@
-
-import type { NextApiRequest, NextApiResponse } from 'next';
-import connectToDatabase from '@/lib/mongodb';
-import Category from '@/models/Category';
+import type { NextApiRequest, NextApiResponse } from "next";
+import dbConnect from "@/utils/dbConnect";
+import Category from "@/models/Category";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  await connectToDatabase();
+  await dbConnect();
 
-  if (req.method === 'GET') {
-    const categories = await Category.find();
+  if (req.method === "GET") {
+    const categories = await Category.find().lean().exec();
     return res.status(200).json(categories);
   }
 
-  res.status(405).json({ message: 'Method Not Allowed' });
+  return res.status(405).json({ error: "Method Not Allowed" });
 }

@@ -45,13 +45,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
       },
       {
-        $sort: { _id: 1 },
+        $sort: { _id: <1>1 }, // ✅ fix
       },
     ];
 
     const result = await LocalInvoice.aggregate(pipeline);
 
-    // ترتيب الشهور: [1-12]
     const fullYear = Array.from({ length: 12 }, (_, i) => {
       const found = result.find((r) => r._id === i + 1);
       return {

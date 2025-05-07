@@ -1,12 +1,26 @@
-import mongoose from "mongoose";
+import mongoose, { Schema, Document, Model } from "mongoose";
 
-const ProductSchema = new mongoose.Schema({
-  name: String,
-  price: Number,
-  image: String,
-  category: String, // يربط المنتج بالقسم مثل "mobiles"
-  isFeatured: Boolean,
-  discount: Number, // اختياري إذا تدعم العروض
-}, { timestamps: true });
+export interface IProduct extends Document {
+  name: string;
+  price: number;
+  image: string;
+  category: string;
+  isFeatured: boolean;
+  discount?: number;
+}
 
-export default mongoose.models.Product || mongoose.model("Product", ProductSchema);
+const ProductSchema: Schema<IProduct> = new mongoose.Schema(
+  {
+    name: { type: String, required: true },
+    price: { type: Number, required: true },
+    image: { type: String, required: true },
+    category: { type: String, required: true },
+    isFeatured: { type: Boolean, default: false },
+    discount: { type: Number, default: 0 },
+  },
+  { timestamps: true }
+);
+
+const Product: Model<IProduct> = mongoose.models.Product || mongoose.model<IProduct>("Product", ProductSchema);
+
+export default Product;

@@ -10,7 +10,7 @@ export default function CartPage() {
   const router = useRouter();
 
   const total = cart.reduce(
-    (sum, item) => sum + item.price * (item.qty || 1),
+    (sum, item) => sum + item.price * (item.quantity || 1),
     0
   );
 
@@ -62,7 +62,7 @@ export default function CartPage() {
                 >
                   <Minus size={16} />
                 </button>
-                <span className="text-lg font-bold">{item.qty || 1}</span>
+                <span className="text-lg font-bold">{item.quantity || 1}</span>
                 <button
                   onClick={() => increaseQty(item.id)}
                   className="bg-gray-200 px-2 py-1 rounded"
