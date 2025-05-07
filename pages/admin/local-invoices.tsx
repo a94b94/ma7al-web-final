@@ -20,6 +20,7 @@ interface CartItem {
   price: number;
 }
 
+// **هنا غيّرنا الـ type من string إلى union حرفي**
 interface LocalInvoiceType {
   _id: string;
   phone: string;
@@ -68,11 +69,12 @@ export default function LocalInvoicesPage({ invoices }: { invoices: LocalInvoice
   const handleView = async (id: string) => {
     try {
       const res = await fetch(`/api/local-sale/get?id=${id}`);
-      const data = await res.json();
-      if (data.success) {
+      const { success, invoice } = await res.json();
+      if (success) {
+        // نؤكد إنّ النوع واحد من القيم المسموحة
         const fixedInvoice: LocalInvoiceType = {
-          ...data.invoice,
-          type: data.invoice.type === "installment" ? "installment" : "cash",
+          ...invoice,
+          type: invoice.type === "installment" ? "installment" : "cash",
         };
         setSelectedInvoice(fixedInvoice);
         setShowModal(true);
@@ -105,6 +107,7 @@ export default function LocalInvoicesPage({ invoices }: { invoices: LocalInvoice
     <div className="max-w-6xl mx-auto p-6">
       <h1 className="text-2xl font-bold mb-6 text-center">📋 قائمة الفواتير المحلية</h1>
 
+      {/* الفلاتر + زر التصدير */}
       <div className="flex flex-wrap gap-4 mb-6 justify-between items-center">
         <select
           className="border p-2 rounded"
@@ -141,6 +144,7 @@ export default function LocalInvoicesPage({ invoices }: { invoices: LocalInvoice
         </button>
       </div>
 
+      {/* جدول الفواتير */}
       <div className="overflow-x-auto">
         <table className="w-full border text-sm text-right">
           <thead className="bg-gray-100">
@@ -162,10 +166,7 @@ export default function LocalInvoicesPage({ invoices }: { invoices: LocalInvoice
                 <td className="p-2 border">{inv.type === "installment" ? "أقساط" : "نقد"}</td>
                 <td className="p-2 border">{new Date(inv.createdAt).toLocaleDateString("ar-EG")}</td>
                 <td className="p-2 border text-center flex flex-wrap gap-2 justify-center">
-                  <button
-                    onClick={() => handleView(inv._id)}
-                    className="text-blue-600 hover:text-blue-800 font-bold"
-                  >
+                  <button onClick={() => handleView(inv._id)} className="text-blue-600 hover:text-blue-800 font-bold">
                     📄 عرض
                   </button>
                   <a
@@ -175,10 +176,7 @@ export default function LocalInvoicesPage({ invoices }: { invoices: LocalInvoice
                   >
                     🖨️ طباعة
                   </a>
-                  <button
-                    onClick={() => handleDelete(inv._id)}
-                    className="text-red-600 hover:text-red-800 font-bold"
-                  >
+                  <button onClick={() => handleDelete(inv._id)} className="text-red-600 hover:text-red-800 font-bold">
                     🗑️ حذف
                   </button>
                 </td>
@@ -188,15 +186,11 @@ export default function LocalInvoicesPage({ invoices }: { invoices: LocalInvoice
         </table>
       </div>
 
+      {/* المودال */}
       {showModal && selectedInvoice && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg max-w-4xl w-full p-4 relative overflow-y-auto max-h-[90vh]">
-            <button
-              onClick={() => setShowModal(false)}
-              className="absolute top-2 left-2 text-red-500 text-xl font-bold"
-            >
-              ✖
-            </button>
+            <button onClick={() => setShowModal(false)} className="absolute top-2 left-2 text-red-500 text-xl font-bold">✖</button>
             <InvoicePreview
               order={selectedInvoice}
               storeName="Ma7al Store"
@@ -234,7 +228,8 @@ export const getServerSideProps: GetServerSideProps = async ({ query }) => {
     phone: inv.phone,
     address: inv.address,
     total: inv.total,
-    type: inv.type === "installment" ? "installment" : "cash", // ✅ التعديل هنا
+    // هنا نحرص على النوع union حرفي
+    type: inv.type === "installment" ? "installment" : "cash",
     createdAt: inv.createdAt.toString(),
     cart: inv.cart || [],
     downPayment: inv.downPayment || 0,
@@ -243,7 +238,5 @@ export const getServerSideProps: GetServerSideProps = async ({ query }) => {
     remaining: inv.remaining || 0,
   }));
 
-  return {
-    props: { invoices },
-  };
+  return { props: { invoices } };
 };
