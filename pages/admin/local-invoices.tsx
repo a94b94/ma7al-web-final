@@ -68,7 +68,8 @@ export default function LocalInvoicesPage({ invoices }: { invoices: LocalInvoice
       const res = await fetch(`/api/local-sale/get?id=${id}`);
       const data = await res.json();
       if (data.success) {
-        setSelectedInvoice(data.invoice);
+        const fixedType = data.invoice.type as "cash" | "installment";
+        setSelectedInvoice({ ...data.invoice, type: fixedType });
         setShowModal(true);
       } else {
         toast.error("❌ لم يتم العثور على الفاتورة");
@@ -192,7 +193,7 @@ export default function LocalInvoicesPage({ invoices }: { invoices: LocalInvoice
               ✖
             </button>
             <InvoicePreview
-              order={selectedInvoice as LocalInvoiceType}
+              order={selectedInvoice}
               storeName="Ma7al Store"
               storeLogo="/logo.png"
               showActions={true}
@@ -228,7 +229,7 @@ export const getServerSideProps: GetServerSideProps = async ({ query }) => {
     phone: inv.phone,
     address: inv.address,
     total: inv.total,
-    type: inv.type,
+    type: inv.type as "cash" | "installment",
     createdAt: inv.createdAt.toString(),
     cart: inv.cart || [],
     downPayment: inv.downPayment || 0,
