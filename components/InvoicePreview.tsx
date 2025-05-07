@@ -14,12 +14,8 @@ type InvoicePreviewProps = {
     dueDate?: string;
     remaining?: number;
   };
-  storeName: string;
-  storeLogo?: string;
-  storeStamp?: string;
-  showActions?: boolean;
-};
-
+  // ...
+}; 
 export default function InvoicePreview({
   order,
   storeName,
