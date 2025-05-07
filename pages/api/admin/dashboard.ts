@@ -9,18 +9,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     verifyToken(req); // ✅ تحقق من التوكن
     await connectToDatabase(); // ✅ الاتصال بقاعدة البيانات
 
-    // 🔹 جلب الإحصائيات
-    const [totalOrders, totalProducts, orders] = await Promise.all([
-      Order.countDocuments(),
-      Product.countDocuments(),
-      Order.find().sort({ createdAt: -1 }).limit(4),
-    ]);
+    // 🔹 جلب البيانات منفصلة لتجنب خطأ التايب
+    const totalOrders = await Order.countDocuments();
+    const totalProducts = await Product.countDocuments();
+    const latestOrders = await Order.find().sort({ createdAt: -1 }).limit(4).lean();
 
-    const totalSales = await Order.aggregate([
+    const totalSalesAgg = await Order.aggregate([
       { $group: { _id: null, total: { $sum: "$total" } } },
     ]);
+    const totalSales = totalSalesAgg[0]?.total || 0;
 
-    // ✅ إحصائيات حسب الفئة
     const categoryStats = await Product.aggregate([
       { $group: { _id: "$category", count: { $sum: 1 } } },
     ]);
@@ -29,8 +27,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.status(200).json({
       totalOrders,
       totalProducts,
-      totalSales: totalSales[0]?.total || 0,
-      latestOrders: orders,
+      totalSales,
+      latestOrders,
       categoryStats,
     });
 

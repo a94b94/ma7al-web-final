@@ -7,7 +7,6 @@ import React, {
 } from "react";
 import toast from "react-hot-toast";
 
-// ✅ نوع العنصر في السلة
 type CartItem = {
   id: string;
   name: string;
@@ -16,27 +15,25 @@ type CartItem = {
   quantity: number;
 };
 
-// ✅ شكل السلة الكامل المرتبط بمحل
 type FullCart = {
   storeId: string;
   storeName: string;
   cart: CartItem[];
 };
 
-// ✅ البيانات التي يوفرها الـ Context
 type CartContextType = {
   cart: CartItem[];
   addToCart: (item: Omit<CartItem, "quantity">) => void;
   removeFromCart: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
+  increaseQty: (id: string) => void; // ✅ أضفناها
+  decreaseQty: (id: string) => void; // ✅ أضفناها
   clearCart: () => void;
   total: number;
 };
 
-// ✅ إنشاء الـ Context
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-// ✅ هوك لاستخدامه بسهولة
 export const useCart = () => {
   const context = useContext(CartContext);
   if (!context) {
@@ -45,11 +42,9 @@ export const useCart = () => {
   return context;
 };
 
-// ✅ مزود السياق
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [fullCart, setFullCart] = useState<FullCart | null>(null);
 
-  // ⬇️ تحميل السلة من localStorage عند تشغيل الصفحة
   useEffect(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("cart");
@@ -63,14 +58,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  // ⬆️ حفظ السلة إلى localStorage عند أي تغيير
   useEffect(() => {
     if (typeof window !== "undefined" && fullCart) {
       localStorage.setItem("cart", JSON.stringify(fullCart));
     }
   }, [fullCart]);
 
-  // ✅ إضافة منتج إلى السلة
   const addToCart = (item: Omit<CartItem, "quantity">) => {
     const selectedStoreId = localStorage.getItem("selectedStoreId");
     const selectedStoreName = localStorage.getItem("selectedStoreName");
@@ -115,7 +108,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     toast.success("✅ تم إضافة المنتج إلى السلة");
   };
 
-  // ✅ حذف منتج
   const removeFromCart = (id: string) => {
     if (!fullCart) return;
     const updated = {
@@ -125,7 +117,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     setFullCart(updated);
   };
 
-  // ✅ تعديل كمية منتج
   const updateQuantity = (id: string, quantity: number) => {
     if (!fullCart) return;
     const updated = {
@@ -137,14 +128,28 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     setFullCart(updated);
   };
 
-  // ✅ تفريغ السلة
+  const increaseQty = (id: string) => {
+    if (!fullCart) return;
+    const item = fullCart.cart.find((item) => item.id === id);
+    if (item) {
+      updateQuantity(id, item.quantity + 1);
+    }
+  };
+
+  const decreaseQty = (id: string) => {
+    if (!fullCart) return;
+    const item = fullCart.cart.find((item) => item.id === id);
+    if (item && item.quantity > 1) {
+      updateQuantity(id, item.quantity - 1);
+    }
+  };
+
   const clearCart = () => {
     setFullCart(null);
     localStorage.removeItem("cart");
     toast.success("🗑️ تم تفريغ السلة");
   };
 
-  // ✅ المجموع الكلي (مع تحقق إضافي لحل الخطأ)
   const total =
     fullCart?.cart && Array.isArray(fullCart.cart)
       ? fullCart.cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
@@ -157,6 +162,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         addToCart,
         removeFromCart,
         updateQuantity,
+        increaseQty, // ✅ تمت الإضافة
+        decreaseQty, // ✅ تمت الإضافة
         clearCart,
         total,
       }}

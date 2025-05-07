@@ -1,6 +1,30 @@
-import mongoose from "mongoose";
+// models/Order.ts
+import mongoose, { Document, Model, Schema } from "mongoose";
 
-const OrderSchema = new mongoose.Schema(
+export interface IOrder extends Document {
+  phone: string;
+  address: string;
+  cart: { name: string; quantity: number; price: number }[];
+  total: number;
+  dueDate?: Date;
+  seen?: boolean;
+  status?: string;
+  type: "cash" | "installment";
+  downPayment?: number;
+  installmentsCount?: number;
+  remaining?: number;
+  installments?: {
+    date: Date;
+    amount: number;
+    paid: boolean;
+    paidAt?: Date;
+  }[];
+  email?: string;
+  storeId: string;
+  storeName: string;
+}
+
+const OrderSchema = new Schema<IOrder>(
   {
     phone: { type: String, required: true },
     address: { type: String, required: true },
@@ -12,28 +36,17 @@ const OrderSchema = new mongoose.Schema(
       },
     ],
     total: { type: Number, required: true },
-
     dueDate: { type: Date },
     seen: { type: Boolean, default: false },
-
     status: {
       type: String,
-      enum: [
-        "بانتظار التأكيد",
-        "قيد المعالجة",
-        "تم الشحن",
-        "تم التوصيل",
-        "مكتمل",
-        "ملغي"
-      ],
+      enum: ["بانتظار التأكيد", "قيد المعالجة", "تم الشحن", "تم التوصيل", "مكتمل", "ملغي"],
       default: "بانتظار التأكيد",
     },
-
     type: { type: String, enum: ["cash", "installment"], default: "cash" },
     downPayment: { type: Number, default: 0 },
     installmentsCount: { type: Number, default: 0 },
     remaining: { type: Number },
-
     installments: [
       {
         date: { type: Date, required: true },
@@ -42,14 +55,12 @@ const OrderSchema = new mongoose.Schema(
         paidAt: { type: Date },
       },
     ],
-
     email: { type: String },
-
-    // ✅ جديد: ربط الطلب بالمحل
     storeId: { type: String, required: true },
     storeName: { type: String, required: true },
   },
   { timestamps: true }
 );
 
-export default mongoose.models.Order || mongoose.model("Order", OrderSchema);
+const Order: Model<IOrder> = mongoose.models.Order || mongoose.model<IOrder>("Order", OrderSchema);
+export default Order;

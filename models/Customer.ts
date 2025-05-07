@@ -1,14 +1,18 @@
+import mongoose, { Schema, model, models, Document, Model } from "mongoose";
 
-import mongoose from "mongoose";
+export interface ICustomer extends Document {
+  name: string;
+  phone: string;
+  address: string;
+  paymentStatus: string;
+}
 
-const customerSchema = new mongoose.Schema(
-  {
-    name: String,
-    phone: { type: String, unique: true },
-    address: String,
-    paymentStatus: { type: String, enum: ["paid", "cod"], default: "cod" },
-  },
-  { timestamps: true }
-);
+const CustomerSchema = new Schema<ICustomer>({
+  name: { type: String, required: true },
+  phone: { type: String, required: true, unique: true },
+  address: { type: String, required: true },
+  paymentStatus: { type: String, required: true },
+});
 
-export default mongoose.models.Customer || mongoose.model("Customer", customerSchema);
+const Customer: Model<ICustomer> = models.Customer || model<ICustomer>("Customer", CustomerSchema);
+export default Customer;

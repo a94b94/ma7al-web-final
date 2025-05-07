@@ -1,39 +1,29 @@
-import mongoose from "mongoose";
+import mongoose, { Schema, model, models, Document } from "mongoose";
 
-const UserSchema = new mongoose.Schema(
+export interface IUser extends Document {
+  name?: string;
+  email: string;
+  password: string;
+  storeName: string;
+  storeLogo?: string;
+  storeStamp?: string;
+  image?: string;
+}
+
+const UserSchema = new Schema<IUser>(
   {
-    name: {
-      type: String,
-      required: true, // 👤 اسم المستخدم
-    },
-    storeName: {
-      type: String,
-      required: true, // 🏪 اسم المتجر
-    },
-    storeLogo: {
-      type: String,
-      default: "", // 🖼️ شعار المتجر (رابط صورة)
-    },
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-    },
-    password: {
-      type: String,
-      required: true,
-    },
-    cart: {
-      type: Array,
-      default: [],
-    },
-    role: {
-      type: String,
-      enum: ["owner", "manager", "support"], // 👥 أنواع الصلاحيات
-      default: "manager", // ✨ القيمة الافتراضية
-    },
+    name: String,
+    email: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
+    storeName: { type: String, required: true },
+    storeLogo: String,
+    storeStamp: String,
+    image: String,
   },
   { timestamps: true }
 );
 
-export default mongoose.models.User || mongoose.model("User", UserSchema);
+// ✅ حل مشكلة findOne عبر تحديد النوع بوضوح
+const User: mongoose.Model<IUser> = models.User || model<IUser>("User", UserSchema);
+
+export default User;

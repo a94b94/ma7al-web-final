@@ -62,7 +62,15 @@ export default function LocalSalePage() {
 
   const handleChange = (index: number, field: keyof CartItem, value: string | number) => {
     const updated = [...cart];
-    updated[index][field] = field === "quantity" || field === "price" ? Number(value) : String(value);
+    const item = { ...updated[index] };
+
+    if (field === "quantity" || field === "price") {
+      item[field] = Number(value) as any;
+    } else {
+      item[field] = String(value) as any;
+    }
+
+    updated[index] = item;
     setCart(updated);
   };
 
