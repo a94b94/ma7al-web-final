@@ -23,9 +23,13 @@ interface LocalInvoiceType {
   phone: string;
   address: string;
   total: number;
-  type: string;
+  type: "cash" | "installment";
   createdAt: string;
   cart: CartItem[];
+  downPayment?: number;
+  installmentsCount?: number;
+  dueDate?: string;
+  remaining?: number;
 }
 
 export default function LocalInvoicesPage({ invoices }: { invoices: LocalInvoiceType[] }) {
@@ -188,7 +192,7 @@ export default function LocalInvoicesPage({ invoices }: { invoices: LocalInvoice
               ✖
             </button>
             <InvoicePreview
-              order={selectedInvoice}
+              order={selectedInvoice as LocalInvoiceType}
               storeName="Ma7al Store"
               storeLogo="/logo.png"
               showActions={true}
@@ -217,7 +221,7 @@ export const getServerSideProps: GetServerSideProps = async ({ query }) => {
     }
   }
 
-  const rawInvoices = await LocalInvoice.find(filter, null, { lean: true }).sort({ createdAt: -1 });
+  const rawInvoices = await LocalInvoice.find(filter).sort({ createdAt: -1 }).lean();
 
   const invoices: LocalInvoiceType[] = rawInvoices.map((inv: any) => ({
     _id: inv._id.toString(),
@@ -227,6 +231,10 @@ export const getServerSideProps: GetServerSideProps = async ({ query }) => {
     type: inv.type,
     createdAt: inv.createdAt.toString(),
     cart: inv.cart || [],
+    downPayment: inv.downPayment || 0,
+    installmentsCount: inv.installmentsCount || 0,
+    dueDate: inv.dueDate || "",
+    remaining: inv.remaining || 0,
   }));
 
   return {
