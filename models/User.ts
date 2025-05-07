@@ -12,18 +12,17 @@ export interface IUser extends Document {
 
 const UserSchema = new Schema<IUser>(
   {
-    name: String,
+    name: { type: String },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    storeName: { type: String, required: true },
-    storeLogo: String,
-    storeStamp: String,
-    image: String,
+    storeName: { type: String, required: true, unique: true },
+    storeLogo: { type: String, default: "" },
+    storeStamp: { type: String, default: "" },
+    image: { type: String, default: "" },
   },
   { timestamps: true }
 );
 
-// ✅ حل مشكلة findOne عبر تحديد النوع بوضوح
 const User: mongoose.Model<IUser> = models.User || model<IUser>("User", UserSchema);
 
 export default User;
