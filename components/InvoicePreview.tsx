@@ -14,8 +14,12 @@ type InvoicePreviewProps = {
     dueDate?: string;
     remaining?: number;
   };
-  // ...
-}; 
+  storeName: string; // ✅ تم إضافته
+  storeLogo?: string;
+  storeStamp?: string;
+  showActions?: boolean;
+};
+
 export default function InvoicePreview({
   order,
   storeName,
@@ -66,7 +70,10 @@ export default function InvoicePreview({
           <>
             <Field label="💰 دفعة أولى" value={`${order.downPayment?.toLocaleString("ar-EG") || 0} د.ع`} />
             <Field label="📆 عدد الأقساط" value={order.installmentsCount?.toString() || "-"} />
-            <Field label="📅 تاريخ الاستحقاق" value={order.dueDate ? new Date(order.dueDate).toLocaleDateString("ar-EG") : "—"} />
+            <Field
+              label="📅 تاريخ الاستحقاق"
+              value={order.dueDate ? new Date(order.dueDate).toLocaleDateString("ar-EG") : "—"}
+            />
             <Field label="💳 المتبقي" value={`${order.remaining?.toLocaleString("ar-EG") || 0} د.ع`} />
           </>
         )}
@@ -88,8 +95,12 @@ export default function InvoicePreview({
               <tr key={idx}>
                 <td style={cellStyle}>{item.name}</td>
                 <td style={{ ...cellStyle, textAlign: "center" }}>{item.quantity}</td>
-                <td style={{ ...cellStyle, textAlign: "center" }}>{item.price.toLocaleString("ar-EG")} د.ع</td>
-                <td style={{ ...cellStyle, textAlign: "center" }}>{(item.price * item.quantity).toLocaleString("ar-EG")} د.ع</td>
+                <td style={{ ...cellStyle, textAlign: "center" }}>
+                  {item.price.toLocaleString("ar-EG")} د.ع
+                </td>
+                <td style={{ ...cellStyle, textAlign: "center" }}>
+                  {(item.price * item.quantity).toLocaleString("ar-EG")} د.ع
+                </td>
               </tr>
             ))}
           </tbody>
