@@ -1,3 +1,4 @@
+// LocalSalePage.tsx (معدّل بإضافة labels لجميع الحقول)
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import dynamic from "next/dynamic";
@@ -63,13 +64,7 @@ export default function LocalSalePage() {
   const handleChange = (index: number, field: keyof CartItem, value: string | number) => {
     const updated = [...cart];
     const item = { ...updated[index] };
-
-    if (field === "quantity" || field === "price") {
-      item[field] = Number(value) as any;
-    } else {
-      item[field] = String(value) as any;
-    }
-
+    item[field] = field === "quantity" || field === "price" ? Number(value) : String(value);
     updated[index] = item;
     setCart(updated);
   };
@@ -101,11 +96,7 @@ export default function LocalSalePage() {
         body: JSON.stringify(fakeOrder),
       });
       const data = await res.json();
-      if (data.success) {
-        toast.success("✅ تم حفظ الفاتورة بنجاح");
-      } else {
-        toast.error("❌ فشل في حفظ الفاتورة");
-      }
+      data.success ? toast.success("✅ تم حفظ الفاتورة بنجاح") : toast.error("❌ فشل في حفظ الفاتورة");
     } catch {
       toast.error("حدث خطأ أثناء حفظ الفاتورة");
     }
@@ -117,12 +108,7 @@ export default function LocalSalePage() {
     const html2pdf = (await import("html2pdf.js")).default;
     html2pdf()
       .from(element)
-      .set({
-        margin: 10,
-        filename: "فاتورة.pdf",
-        html2canvas: { scale: 2 },
-        jsPDF: { format: "a4", orientation: "portrait" },
-      })
+      .set({ margin: 10, filename: "فاتورة.pdf", html2canvas: { scale: 2 }, jsPDF: { format: "a4", orientation: "portrait" } })
       .save();
   };
 
@@ -133,14 +119,11 @@ export default function LocalSalePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           phone: customerPhone,
-          message: `👋 مرحبًا ${customerName || "عميلنا"}، هذه نسخة من فاتورتك:\n\n📦 المنتجات:\n${cart
-            .map((item) => `• ${item.name} × ${item.quantity} = ${item.price * item.quantity} د.ع`)
-            .join("\n")}\n\n💰 الإجمالي: ${total.toLocaleString("ar-IQ")} د.ع\n\nشكراً لك\n${storeName}`,
+          message: `👋 مرحبًا ${customerName || "عميلنا"}، هذه نسخة من فاتورتك:\n\n📦 المنتجات:\n${cart.map((item) => `• ${item.name} × ${item.quantity} = ${item.price * item.quantity} د.ع`).join("\n")}\n\n💰 الإجمالي: ${total.toLocaleString("ar-IQ")} د.ع\n\nشكراً لك\n${storeName}`,
         }),
       });
       const data = await res.json();
-      if (data.success) toast.success("✅ تم إرسال الفاتورة عبر واتساب");
-      else toast.error("❌ فشل في إرسال الرسالة");
+      data.success ? toast.success("✅ تم إرسال الفاتورة عبر واتساب") : toast.error("❌ فشل في إرسال الرسالة");
     } catch {
       toast.error("⚠️ حدث خطأ أثناء الإرسال");
     }
@@ -155,36 +138,58 @@ export default function LocalSalePage() {
       {showActions && (
         <>
           <div className="grid sm:grid-cols-2 gap-4 mb-4">
-            <input className="border p-2" placeholder="👤 اسم الزبون" value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
-            <input className="border p-2" placeholder="📞 رقم الهاتف" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} />
+            <div>
+              <label htmlFor="customerName" className="block mb-1 text-sm font-medium text-gray-700">👤 اسم الزبون</label>
+              <input id="customerName" className="border p-2 w-full rounded" placeholder="اسم الزبون" value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
+            </div>
+            <div>
+              <label htmlFor="customerPhone" className="block mb-1 text-sm font-medium text-gray-700">📞 رقم الهاتف</label>
+              <input id="customerPhone" className="border p-2 w-full rounded" placeholder="رقم الهاتف" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} />
+            </div>
           </div>
 
           <div className="mb-4">
-            <select className="border p-2 w-full" value={invoiceType} onChange={(e) => setInvoiceType(e.target.value as "cash" | "installment")}>
-              <option value="cash">💵 نقد</option>
+            <label className="block mb-1 text-sm font-medium text-gray-700">نوع الفاتورة</label>
+            <select className="border p-2 w-full" value={invoiceType} onChange={(e) => setInvoiceType(e.target.value as "cash" | "installment")}>              <option value="cash">💵 نقد</option>
               <option value="installment">📄 أقساط</option>
             </select>
           </div>
 
           {invoiceType === "installment" && (
             <div className="grid sm:grid-cols-3 gap-4 mb-4">
-              <input type="number" className="border p-2" placeholder="💰 دفعة أولى" value={downPayment} onChange={(e) => setDownPayment(+e.target.value)} />
-              <input type="number" className="border p-2" placeholder="📆 عدد الأقساط" value={installmentsCount} onChange={(e) => setInstallmentsCount(+e.target.value)} />
-              <input type="date" className="border p-2" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+              <div>
+                <label className="block mb-1 text-sm text-gray-700">💰 دفعة أولى</label>
+                <input type="number" className="border p-2 w-full rounded" value={downPayment} onChange={(e) => setDownPayment(+e.target.value)} />
+              </div>
+              <div>
+                <label className="block mb-1 text-sm text-gray-700">📆 عدد الأقساط</label>
+                <input type="number" className="border p-2 w-full rounded" value={installmentsCount} onChange={(e) => setInstallmentsCount(+e.target.value)} />
+              </div>
+              <div>
+                <label className="block mb-1 text-sm text-gray-700">📅 تاريخ الاستحقاق</label>
+                <input type="date" className="border p-2 w-full rounded" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+              </div>
             </div>
           )}
 
           {cart.map((item, idx) => (
             <div key={idx} className="flex gap-2 mb-2">
-              <input className="border p-2 flex-1" placeholder="اسم المنتج" value={item.name} onChange={(e) => handleChange(idx, "name", e.target.value)} />
-              <input type="number" className="border p-2 w-20" placeholder="الكمية" value={item.quantity} onChange={(e) => handleChange(idx, "quantity", e.target.value)} />
-              <input type="number" className="border p-2 w-32" placeholder="السعر" value={item.price} onChange={(e) => handleChange(idx, "price", e.target.value)} />
+              <div className="flex-1">
+                <label className="block mb-1 text-sm">اسم المنتج</label>
+                <input className="border p-2 w-full rounded" placeholder="اسم المنتج" value={item.name} onChange={(e) => handleChange(idx, "name", e.target.value)} />
+              </div>
+              <div>
+                <label className="block mb-1 text-sm">الكمية</label>
+                <input type="number" className="border p-2 w-20 rounded" placeholder="الكمية" value={item.quantity} onChange={(e) => handleChange(idx, "quantity", e.target.value)} />
+              </div>
+              <div>
+                <label className="block mb-1 text-sm">السعر</label>
+                <input type="number" className="border p-2 w-32 rounded" placeholder="السعر" value={item.price} onChange={(e) => handleChange(idx, "price", e.target.value)} />
+              </div>
             </div>
           ))}
 
-          <button onClick={handleAddRow} className="bg-blue-600 text-white px-4 py-2 rounded mb-4">
-            + إضافة منتج
-          </button>
+          <button onClick={handleAddRow} className="bg-blue-600 text-white px-4 py-2 rounded mb-4">+ إضافة منتج</button>
 
           <button onClick={() => { setShowInvoice(true); handleSaveInvoice(); }} className="bg-green-600 text-white px-6 py-2 rounded w-full">
             ✅ توليد الفاتورة
