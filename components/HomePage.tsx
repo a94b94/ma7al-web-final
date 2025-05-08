@@ -144,7 +144,14 @@ export default function HomePage() {
         <ProductSlider products={newProducts} loading={loading} />
       </main>
 
-      <Footer /> 
+      <Footer />
+
+      <div className="bg-indigo-100 dark:bg-indigo-900 py-4 text-center">
+        <p className="text-sm text-indigo-700 dark:text-indigo-200 font-semibold tracking-wide">
+          © {new Date().getFullYear()} جميع الحقوق محفوظة لـ <span className="underline">عبدالله التميمي</span>
+        </p>
+      </div>
     </div>
   );
 }
+
