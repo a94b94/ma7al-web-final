@@ -58,12 +58,12 @@ export default function HomePage() {
   }, [darkMode]);
 
   useEffect(() => {
-    fetch("/api/products/discount")
+    fetch("/api/products/discount", { cache: "no-store" })
       .then((res) => res.json())
       .then((data) => (Array.isArray(data) ? setDiscountProducts(data) : setDiscountProducts([])))
       .catch(() => setDiscountProducts([]));
 
-    fetch("/api/products/new")
+    fetch("/api/products/new", { cache: "no-store" })
       .then((res) => res.json())
       .then((data) => (Array.isArray(data) ? setNewProducts(data) : setNewProducts([])))
       .catch(() => setNewProducts([]))
