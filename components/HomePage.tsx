@@ -144,12 +144,7 @@ export default function HomePage() {
         <ProductSlider products={newProducts} loading={loading} />
       </main>
 
-      <Footer />
-
-      <p className="text-center mt-10 text-sm font-semibold text-indigo-700 dark:text-indigo-400 animate-pulse">
-        جميع الحقوق محفوظة © <span className="underline decoration-dotted">ابن ال تميم</span>
-        <span className="inline-block ml-2 text-xs text-gray-500 dark:text-gray-300 italic">— توقيع رقمي</span>
-      </p>
+      <Footer /> 
     </div>
   );
 }
