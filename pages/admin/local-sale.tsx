@@ -1,4 +1,3 @@
-// LocalSalePage.tsx (معدّل بالكامل مع تنسيق Labels واضح ولون أسود)
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import dynamic from "next/dynamic";
@@ -31,16 +30,6 @@ export default function LocalSalePage() {
   const total = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
   const remaining = Math.max(total - downPayment, 0);
 
-  const handleChange = (index: number, field: keyof CartItem, value: string | number) => {
-    const updated = [...cart];
-    updated[index] = { ...updated[index], [field]: field === "quantity" || field === "price" ? Number(value) : String(value) };
-    setCart(updated);
-  };
-
-  const handleAddRow = () => {
-    setCart([...cart, { name: "", quantity: 1, price: 0 }]);
-  };
-
   const fakeOrder = {
     _id: typeof id === "string" ? id : undefined,
     phone: customerPhone || "غير مذكور",
@@ -55,24 +44,55 @@ export default function LocalSalePage() {
     remaining,
   };
 
+  const handleChange = (index: number, field: keyof CartItem, value: string | number) => {
+    const updated = [...cart];
+    updated[index] = {
+      ...updated[index],
+      [field]: field === "quantity" || field === "price" ? Number(value) : String(value),
+    };
+    setCart(updated);
+  };
+
+  const handleAddRow = () => {
+    setCart([...cart, { name: "", quantity: 1, price: 0 }]);
+  };
+
+  const handleSaveInvoice = async () => {
+    try {
+      const res = await fetch("/api/local-sale/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(fakeOrder),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success("✅ تم حفظ الفاتورة بنجاح");
+      } else {
+        toast.error("❌ فشل في حفظ الفاتورة");
+      }
+    } catch {
+      toast.error("⚠️ حدث خطأ أثناء الحفظ");
+    }
+  };
+
   return (
     <div className="p-6 max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold mb-4 text-center">📎 توليد فاتورة محلية</h1>
 
       <div className="grid sm:grid-cols-2 gap-4 mb-4">
         <div>
-          <label htmlFor="customerName" className="block text-sm font-medium text-black mb-1">👤 اسم الزبون</label>
-          <input id="customerName" className="border p-2 w-full rounded" placeholder="اسم الزبون" value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
+          <label className="block text-sm font-medium text-black mb-1">👤 اسم الزبون</label>
+          <input className="border p-2 w-full rounded" value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
         </div>
         <div>
-          <label htmlFor="customerPhone" className="block text-sm font-medium text-black mb-1">📞 رقم الهاتف</label>
-          <input id="customerPhone" className="border p-2 w-full rounded" placeholder="رقم الهاتف" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} />
+          <label className="block text-sm font-medium text-black mb-1">📞 رقم الهاتف</label>
+          <input className="border p-2 w-full rounded" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} />
         </div>
       </div>
 
       <div className="mb-4">
         <label className="block text-sm font-medium text-black mb-1">نوع الفاتورة</label>
-        <select className="border p-2 w-full rounded" value={invoiceType} onChange={(e) => setInvoiceType(e.target.value as "cash" | "installment")}>              
+        <select className="border p-2 w-full rounded" value={invoiceType} onChange={(e) => setInvoiceType(e.target.value as any)}>
           <option value="cash">💵 نقد</option>
           <option value="installment">📄 أقساط</option>
         </select>
@@ -99,15 +119,15 @@ export default function LocalSalePage() {
         <div key={idx} className="flex gap-2 mb-2">
           <div className="flex-1">
             <label className="block text-sm font-medium text-black mb-1">اسم المنتج</label>
-            <input className="border p-2 w-full rounded" placeholder="اسم المنتج" value={item.name} onChange={(e) => handleChange(idx, "name", e.target.value)} />
+            <input className="border p-2 w-full rounded" value={item.name} onChange={(e) => handleChange(idx, "name", e.target.value)} />
           </div>
           <div>
             <label className="block text-sm font-medium text-black mb-1">الكمية</label>
-            <input type="number" className="border p-2 w-20 rounded" placeholder="الكمية" value={item.quantity} onChange={(e) => handleChange(idx, "quantity", e.target.value)} />
+            <input type="number" className="border p-2 w-20 rounded" value={item.quantity} onChange={(e) => handleChange(idx, "quantity", e.target.value)} />
           </div>
           <div>
             <label className="block text-sm font-medium text-black mb-1">السعر</label>
-            <input type="number" className="border p-2 w-32 rounded" placeholder="السعر" value={item.price} onChange={(e) => handleChange(idx, "price", e.target.value)} />
+            <input type="number" className="border p-2 w-32 rounded" value={item.price} onChange={(e) => handleChange(idx, "price", e.target.value)} />
           </div>
         </div>
       ))}

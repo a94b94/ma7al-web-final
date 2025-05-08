@@ -3,12 +3,19 @@ import connectToDatabase from "@/lib/mongodb";
 import Product from "@/models/Product";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  await connectToDatabase();
+  // منع التخزين المؤقت نهائياً لضمان ظهور التحديثات فورًا
+  res.setHeader("Cache-Control", "no-store");
 
   try {
-    const discounted = await Product.find({ discount: { $gt: 0 } }).sort({ createdAt: -1 }).limit(12);
+    await connectToDatabase();
+
+    const discounted = await Product.find({ discount: { $gt: 0 } })
+      .sort({ createdAt: -1 })
+      .limit(12);
+
     res.status(200).json(discounted);
-  } catch (error) {
+  } catch (error: any) {
+    console.error("❌ فشل في جلب المنتجات المخفضة:", error.message || error);
     res.status(500).json({ error: "فشل في جلب المنتجات المخفضة" });
   }
 }
