@@ -1,4 +1,4 @@
-ءimport React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import dynamic from "next/dynamic";
 import toast from "react-hot-toast";
