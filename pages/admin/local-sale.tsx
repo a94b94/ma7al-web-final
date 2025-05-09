@@ -35,7 +35,7 @@ export default function LocalSalePage() {
   const fakeOrder = {
     _id: typeof id === "string" ? id : undefined,
     phone: customerPhone || "غير مذكور",
-    customerName: customerName || "زبون محلي",
+    address: customerName || "زبون محلي", // ✅ تم التعديل هنا
     cart,
     total,
     createdAt: new Date().toISOString(),
