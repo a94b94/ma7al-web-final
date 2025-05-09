@@ -1,4 +1,4 @@
-// pages/admin/local-invoices.tsx
+ء// pages/admin/local-invoices.tsx
 
 import React, { useState } from "react";
 import { useRouter } from "next/router";
@@ -20,7 +20,6 @@ interface CartItem {
   price: number;
 }
 
-// **هنا غيّرنا الـ type من string إلى union حرفي**
 interface LocalInvoiceType {
   _id: string;
   phone: string;
@@ -33,6 +32,8 @@ interface LocalInvoiceType {
   installmentsCount?: number;
   dueDate?: string;
   remaining?: number;
+  paid?: number;
+  discount?: number;
 }
 
 export default function LocalInvoicesPage({ invoices }: { invoices: LocalInvoiceType[] }) {
@@ -71,7 +72,6 @@ export default function LocalInvoicesPage({ invoices }: { invoices: LocalInvoice
       const res = await fetch(`/api/local-sale/get?id=${id}`);
       const { success, invoice } = await res.json();
       if (success) {
-        // نؤكد إنّ النوع واحد من القيم المسموحة
         const fixedInvoice: LocalInvoiceType = {
           ...invoice,
           type: invoice.type === "installment" ? "installment" : "cash",
@@ -107,7 +107,6 @@ export default function LocalInvoicesPage({ invoices }: { invoices: LocalInvoice
     <div className="max-w-6xl mx-auto p-6">
       <h1 className="text-2xl font-bold mb-6 text-center">📋 قائمة الفواتير المحلية</h1>
 
-      {/* الفلاتر + زر التصدير */}
       <div className="flex flex-wrap gap-4 mb-6 justify-between items-center">
         <select
           className="border p-2 rounded"
@@ -144,7 +143,6 @@ export default function LocalInvoicesPage({ invoices }: { invoices: LocalInvoice
         </button>
       </div>
 
-      {/* جدول الفواتير */}
       <div className="overflow-x-auto">
         <table className="w-full border text-sm text-right">
           <thead className="bg-gray-100">
@@ -186,7 +184,6 @@ export default function LocalInvoicesPage({ invoices }: { invoices: LocalInvoice
         </table>
       </div>
 
-      {/* المودال */}
       {showModal && selectedInvoice && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg max-w-4xl w-full p-4 relative overflow-y-auto max-h-[90vh]">
@@ -227,7 +224,6 @@ export const getServerSideProps: GetServerSideProps = async ({ query }) => {
     phone: inv.phone,
     address: inv.address,
     total: inv.total,
-    // هنا نحرص على النوع union حرفي
     type: inv.type === "installment" ? "installment" : "cash",
     createdAt: inv.createdAt.toString(),
     cart: inv.cart || [],
@@ -235,6 +231,8 @@ export const getServerSideProps: GetServerSideProps = async ({ query }) => {
     installmentsCount: inv.installmentsCount || 0,
     dueDate: inv.dueDate || "",
     remaining: inv.remaining || 0,
+    paid: inv.paid || 0,
+    discount: inv.discount || 0,
   }));
 
   return { props: { invoices } };
