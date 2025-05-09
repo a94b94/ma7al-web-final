@@ -1,50 +1,22 @@
 
-import type { NextApiRequest, NextApiResponse } from "next";
-import { Client, LocalAuth } from "whatsapp-web.js";
-import qrcode from "qrcode";
+export default async function handler(req, res) {
+  try {
+    const response = await fetch("https://ma7al-whatsapp-production.up.railway.app/status");
+    const data = await response.json();
 
-const globalAny = global as any;
-
-if (!globalAny.whatsappClient) {
-  globalAny.whatsappClient = new Client({
-    authStrategy: new LocalAuth({ clientId: "ma7al-store" }),
-    puppeteer: {
-      headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
-    },
-  });
-
-  const client = globalAny.whatsappClient;
-
-  client.on("qr", async (qr) => {
-    globalAny.currentQr = await qrcode.toDataURL(qr);
-    globalAny.isReady = false;
-    console.log("🔄 QR Generated");
-  });
-
-  client.on("ready", () => {
-    globalAny.isReady = true;
-    globalAny.currentQr = null;
-    console.log("✅ WhatsApp Client Ready");
-  });
-
-  client.on("disconnected", () => {
-    globalAny.isReady = false;
-    globalAny.currentQr = null;
-    console.log("🔌 WhatsApp Disconnected");
-    client.initialize(); // إعادة الاتصال تلقائيًا
-  });
-
-  client.initialize();
-}
-
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
+    if (response.ok) {
+      return res.status(200).json({
+        isReady: data.connected || false,
+        qr: data.qr || null,
+      });
+    } else {
+      return res.status(500).json({ isReady: false, qr: null });
+    }
+  } catch (err) {
+    return res.status(500).json({
+      isReady: false,
+      qr: null,
+      error: "فشل الاتصال بسيرفر الواتساب",
+    });
   }
-
-  return res.status(200).json({
-    qr: globalAny.currentQr || null,
-    isReady: globalAny.isReady || false,
-  });
 }
