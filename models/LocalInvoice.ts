@@ -16,6 +16,8 @@ export interface LocalInvoiceDocument extends Document {
   installmentsCount?: number;
   dueDate?: string;
   remaining?: number;
+  paid?: number;       // ✅ جديد
+  discount?: number;   // ✅ جديد
   createdAt: Date;
   updatedAt: Date;
 }
@@ -37,6 +39,8 @@ const LocalInvoiceSchema = new Schema<LocalInvoiceDocument>(
     installmentsCount: Number,
     dueDate: String,
     remaining: Number,
+    paid: { type: Number, default: 0 },       // ✅ تمت الإضافة هنا
+    discount: { type: Number, default: 0 },   // ✅ تمت الإضافة هنا
   },
   { timestamps: true }
 );
