@@ -24,7 +24,6 @@ export default function LocalSalePage() {
   const [dueDate, setDueDate] = useState("");
   const [storeName, setStoreName] = useState("Ma7al Store");
   const [storeLogo, setStoreLogo] = useState("/logo.png");
-  const [storeStamp, setStoreStamp] = useState("/stamp.png");
   const [showInvoice, setShowInvoice] = useState(false);
 
   const total = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
@@ -33,7 +32,7 @@ export default function LocalSalePage() {
   const fakeOrder = {
     _id: typeof id === "string" ? id : undefined,
     phone: customerPhone || "غير مذكور",
-    address: customerName || "زبون محلي",
+    customerName: customerName || "زبون محلي",
     cart,
     total,
     createdAt: new Date().toISOString(),
@@ -137,7 +136,12 @@ export default function LocalSalePage() {
 
       {showInvoice && (
         <div className="mt-10 border p-4 bg-white shadow">
-          <InvoicePreview order={fakeOrder} storeName={storeName} storeLogo={storeLogo} storeStamp={storeStamp} showActions={true} />
+          <InvoicePreview
+            order={fakeOrder}
+            storeName={storeName}
+            storeLogo={storeLogo}
+            showActions={true}
+          />
         </div>
       )}
     </div>
