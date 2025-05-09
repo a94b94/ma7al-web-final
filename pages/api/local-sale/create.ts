@@ -21,17 +21,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       installmentsCount,
       dueDate,
       remaining,
+      paid,       // ✅ تمت الإضافة هنا
+      discount    // ✅ تمت الإضافة هنا
     } = req.body;
 
-    // ✅ التحقق من الحقول المطلوبة
+    // التحقق من الحقول المطلوبة
     if (!phone || !address || !cart || !Array.isArray(cart) || !total || !type) {
       return res.status(400).json({ success: false, error: "❗ بيانات ناقصة" });
     }
 
-    // ✅ طباعة البيانات في اللوغ لمراجعتها
     console.log("📦 البيانات المستلمة:", req.body);
 
-    // ✅ حفظ الفاتورة
     const invoice = await LocalInvoice.create({
       phone,
       address,
@@ -43,6 +43,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       installmentsCount,
       dueDate,
       remaining,
+      paid,       // ✅ تمت الإضافة هنا
+      discount    // ✅ تمت الإضافة هنا
     });
 
     return res.status(201).json({ success: true, invoice });
