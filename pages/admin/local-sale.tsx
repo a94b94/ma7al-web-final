@@ -139,7 +139,6 @@ export default function LocalSalePage() {
           <InvoicePreview
             order={fakeOrder}
             storeName={storeName}
-            storeLogo={storeLogo}
             showActions={true}
           />
         </div>
