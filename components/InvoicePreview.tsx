@@ -4,7 +4,7 @@ type InvoicePreviewProps = {
   order: {
     _id: string;
     phone: string;
-    address: string;
+    customerName?: string;
     cart: { name: string; quantity: number; price: number }[];
     total: number;
     createdAt: string;
@@ -14,9 +14,9 @@ type InvoicePreviewProps = {
     dueDate?: string;
     remaining?: number;
   };
-  storeName: string; // ✅ تم إضافته
+  storeName: string;
   storeLogo?: string;
-  storeStamp?: string;
+  userName?: string;
   showActions?: boolean;
 };
 
@@ -24,12 +24,57 @@ export default function InvoicePreview({
   order,
   storeName,
   storeLogo,
-  storeStamp,
-  showActions,
+  userName,
+  showActions = true,
 }: InvoicePreviewProps) {
   const invoiceTypeLabel =
-    order.type === "installment" ? "🧾 فاتورة بيع أقساط" : "🧾 فاتورة بيع نقد";
+    order.type === "installment" ? "فاتورة بيع أقساط" : "فاتورة بيع نقد";
   const typeColor = order.type === "installment" ? "#d97706" : "#10b981";
+
+  const handlePrint = () => window.print();
+
+  const sendToWhatsAppServer = async () => {
+    const date = new Date(order.createdAt).toLocaleDateString("ar-EG");
+    const productList = order.cart
+      .map(
+        (item, idx) =>
+          `${idx + 1}. ${item.name} - الكمية: ${item.quantity} - السعر: ${item.price.toLocaleString("ar-EG")} د.ع`
+      )
+      .join("\n");
+
+    const message = `🧾 *${invoiceTypeLabel}*
+📅 التاريخ: ${date}
+👤 الاسم: ${order.customerName || "-"}
+📞 الهاتف: ${order.phone}
+
+📦 المنتجات:
+${productList}
+
+💰 الإجمالي: ${order.total.toLocaleString("ar-EG")} د.ع
+
+🔻 مرسل من: ${storeName}`;
+
+    try {
+      const res = await fetch("https://ma7al-whatsapp-production.up.railway.app/send", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          phone: order.phone.replace(/^0/, "964"),
+          message,
+        }),
+      });
+
+      if (res.ok) {
+        alert("✅ تم إرسال الفاتورة إلى الزبون عبر واتساب");
+      } else {
+        alert("❌ فشل في إرسال الفاتورة");
+      }
+    } catch (err) {
+      alert("⚠️ حدث خطأ أثناء الاتصال بسيرفر الواتساب");
+    }
+  };
 
   return (
     <div
@@ -58,14 +103,15 @@ export default function InvoicePreview({
           />
         )}
         <h2 style={{ fontSize: 24, fontWeight: "bold", margin: 0 }}>{storeName}</h2>
-        <h3 style={{ fontSize: 18, marginTop: 6, color: typeColor }}>{invoiceTypeLabel}</h3>
+        <h3 style={{ fontSize: 18, marginTop: 6, color: typeColor }}>🧾 {invoiceTypeLabel}</h3>
+        <p style={{ fontSize: 14, marginTop: 6 }}>07717805404</p>
       </div>
 
       {/* معلومات العميل والفاتورة */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", marginBottom: 20 }}>
         <Field label="📅 التاريخ" value={new Date(order.createdAt).toLocaleDateString("ar-EG")} />
+        <Field label="👤 اسم الزبون" value={order.customerName || "—"} />
         <Field label="📞 الهاتف" value={order.phone} />
-        <Field label="📍 العنوان" value={order.address} />
         {order.type === "installment" && (
           <>
             <Field label="💰 دفعة أولى" value={`${order.downPayment?.toLocaleString("ar-EG") || 0} د.ع`} />
@@ -114,14 +160,43 @@ export default function InvoicePreview({
         </h3>
       </div>
 
-      {/* الختم */}
-      {storeStamp && (
-        <div style={{ textAlign: "left", marginTop: 30 }}>
-          <img
-            src={storeStamp}
-            alt="ختم المتجر"
-            style={{ maxWidth: "100px", opacity: 0.8 }}
-          />
+      {/* التوقيع */}
+      <div style={{ textAlign: "left", marginTop: 30 }}>
+        <p style={{ fontSize: 14 }}>
+          توقيع المسؤول: {userName || "اسم المسؤول"} ______________________
+        </p>
+      </div>
+
+      {/* الأزرار */}
+      {showActions && (
+        <div style={{ marginTop: 30, display: "flex", justifyContent: "center", gap: "20px" }}>
+          <button
+            onClick={handlePrint}
+            style={{
+              backgroundColor: "#1f2937",
+              color: "#fff",
+              border: "none",
+              padding: "10px 20px",
+              borderRadius: "5px",
+              cursor: "pointer",
+            }}
+          >
+            🖨️ طباعة الفاتورة
+          </button>
+
+          <button
+            onClick={sendToWhatsAppServer}
+            style={{
+              backgroundColor: "#25D366",
+              color: "#fff",
+              border: "none",
+              padding: "10px 20px",
+              borderRadius: "5px",
+              cursor: "pointer",
+            }}
+          >
+            📤 إرسال على WhatsApp
+          </button>
         </div>
       )}
     </div>
