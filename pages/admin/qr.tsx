@@ -11,11 +11,17 @@ export default function WhatsAppQRPage() {
   const fetchQr = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/whatsapp"); // 🟢 هنا التعديل
+      const res = await fetch("/api/whatsapp");
       if (!res.ok) throw new Error("❌ لا يوجد اتصال أو QR متاح حالياً");
       const data = await res.json();
-      setQr(data.qr);
-      setIsReady(data.isReady);
+
+      // لا تحدّث صورة QR إلا إذا تغيّرت فعلاً
+      if (data.qr && data.qr !== qr) {
+        setQr(data.qr);
+      }
+
+      // يعرض الحالة سواء كانت isReady أو connected
+      setIsReady(data.connected ?? data.isReady);
       setError("");
     } catch (err: any) {
       setQr(null);
@@ -39,7 +45,7 @@ export default function WhatsAppQRPage() {
         {loading && <p className="text-gray-500">🔄 جاري التحميل...</p>}
 
         {!loading && isReady && (
-          <p className="text-green-600 font-semibold text-lg">✅ تم ربط واتساب بنجاح</p>
+          <p className="text-green-600 font-semibold text-lg">✅ متصل في حسابك على واتساب</p>
         )}
 
         {!loading && qr && !isReady && (
