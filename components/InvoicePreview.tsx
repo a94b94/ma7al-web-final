@@ -15,16 +15,12 @@ type InvoicePreviewProps = {
     remaining?: number;
   };
   storeName: string;
-  storeLogo?: string;
-  userName?: string;
   showActions?: boolean;
 };
 
 export default function InvoicePreview({
   order,
   storeName,
-  storeLogo,
-  userName,
   showActions = true,
 }: InvoicePreviewProps) {
   const invoiceTypeLabel =
@@ -57,9 +53,7 @@ ${productList}
     try {
       const res = await fetch("https://ma7al-whatsapp-production.up.railway.app/send", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           phone: order.phone.replace(/^0/, "964"),
           message,
@@ -95,16 +89,8 @@ ${productList}
     >
       {/* رأس الفاتورة */}
       <div style={{ textAlign: "center", marginBottom: 20 }}>
-        {storeLogo && (
-          <img
-            src={storeLogo}
-            alt="شعار المتجر"
-            style={{ maxWidth: "100px", marginBottom: 10 }}
-          />
-        )}
         <h2 style={{ fontSize: 24, fontWeight: "bold", margin: 0 }}>{storeName}</h2>
         <h3 style={{ fontSize: 18, marginTop: 6, color: typeColor }}>🧾 {invoiceTypeLabel}</h3>
-        <p style={{ fontSize: 14, marginTop: 6 }}>07717805404</p>
       </div>
 
       {/* معلومات العميل والفاتورة */}
@@ -158,13 +144,6 @@ ${productList}
         <h3 style={{ color: "#16a34a", fontSize: 18 }}>
           💰 الإجمالي: {order.total.toLocaleString("ar-EG")} دينار
         </h3>
-      </div>
-
-      {/* التوقيع */}
-      <div style={{ textAlign: "left", marginTop: 30 }}>
-        <p style={{ fontSize: 14 }}>
-          توقيع المسؤول: {userName || "اسم المسؤول"} ______________________
-        </p>
       </div>
 
       {/* الأزرار */}
