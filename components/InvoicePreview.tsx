@@ -89,8 +89,8 @@ ${productList}
     >
       {/* رأس الفاتورة */}
       <div style={{ textAlign: "center", marginBottom: 20 }}>
-        <h2 style={{ fontSize: 24, fontWeight: "bold", margin: 0 }}>{storeName}</h2>
-        <h3 style={{ fontSize: 18, marginTop: 6, color: typeColor }}>🧾 {invoiceTypeLabel}</h3>
+        <h2 style={{ fontSize: 26, fontWeight: "bold", margin: 0 }}>{storeName}</h2>
+        <h3 style={{ fontSize: 20, marginTop: 8, color: typeColor }}>🧾 {invoiceTypeLabel}</h3>
       </div>
 
       {/* معلومات العميل والفاتورة */}
