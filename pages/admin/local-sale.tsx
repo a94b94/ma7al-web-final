@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+ءimport React, { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import dynamic from "next/dynamic";
 import toast from "react-hot-toast";
@@ -22,12 +22,15 @@ export default function LocalSalePage() {
   const [downPayment, setDownPayment] = useState(0);
   const [installmentsCount, setInstallmentsCount] = useState(0);
   const [dueDate, setDueDate] = useState("");
+  const [paid, setPaid] = useState(0);
+  const [discount, setDiscount] = useState(0);
   const [storeName, setStoreName] = useState("Ma7al Store");
   const [storeLogo, setStoreLogo] = useState("/logo.png");
   const [showInvoice, setShowInvoice] = useState(false);
 
   const total = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
-  const remaining = Math.max(total - downPayment, 0);
+  const totalAfterDiscount = Math.max(total - discount, 0);
+  const remaining = Math.max(totalAfterDiscount - paid, 0);
 
   const fakeOrder = {
     _id: typeof id === "string" ? id : undefined,
@@ -41,6 +44,8 @@ export default function LocalSalePage() {
     installmentsCount,
     dueDate: dueDate || new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString(),
     remaining,
+    paid,
+    discount,
   };
 
   const handleChange = (index: number, field: keyof CartItem, value: string | number) => {
@@ -86,6 +91,21 @@ export default function LocalSalePage() {
         <div>
           <label className="block text-sm font-medium text-black mb-1">📞 رقم الهاتف</label>
           <input className="border p-2 w-full rounded" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} />
+        </div>
+      </div>
+
+      <div className="grid sm:grid-cols-3 gap-4 mb-4">
+        <div>
+          <label className="block text-sm font-medium text-black mb-1">💵 المبلغ المدفوع</label>
+          <input type="number" className="border p-2 w-full rounded" value={paid} onChange={(e) => setPaid(+e.target.value)} />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-black mb-1">🔻 الخصم</label>
+          <input type="number" className="border p-2 w-full rounded" value={discount} onChange={(e) => setDiscount(+e.target.value)} />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-black mb-1">💰 المتبقي بعد الخصم والمدفوع</label>
+          <input type="number" className="border p-2 w-full rounded" value={remaining} readOnly />
         </div>
       </div>
 

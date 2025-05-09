@@ -13,6 +13,8 @@ type InvoicePreviewProps = {
     installmentsCount?: number;
     dueDate?: string;
     remaining?: number;
+    paid?: number;
+    discount?: number;
   };
   storeName: string;
   showActions?: boolean;
@@ -53,7 +55,9 @@ ${productList}
     try {
       const res = await fetch("https://ma7al-whatsapp-production.up.railway.app/send", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           phone: order.phone.replace(/^0/, "964"),
           message,
@@ -70,6 +74,14 @@ ${productList}
     }
   };
 
+  const now = new Date();
+  const formattedTime = now.toLocaleTimeString("ar-EG");
+  const formattedDate = now.toLocaleDateString("ar-EG");
+  const invoiceNumber = order._id?.slice(-6) || Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+  const paid = order.paid || 0;
+  const discount = order.discount || 0;
+  const totalAfterDiscount = order.total - discount;
+
   return (
     <div
       style={{
@@ -77,76 +89,55 @@ ${productList}
         direction: "rtl",
         fontFamily: "'Cairo', sans-serif",
         width: "100%",
-        maxWidth: "800px",
+        maxWidth: "900px",
         margin: "0 auto",
         backgroundColor: "#fff",
         color: "#000",
         fontSize: "16px",
         boxSizing: "border-box",
-        border: "1px solid #ddd",
-        borderRadius: "10px",
+        border: "1px solid #000",
       }}
     >
-      {/* رأس الفاتورة */}
-      <div style={{ textAlign: "center", marginBottom: 20 }}>
-        <h2 style={{ fontSize: 26, fontWeight: "bold", margin: 0 }}>{storeName}</h2>
-        <h3 style={{ fontSize: 20, marginTop: 8, color: typeColor }}>🧾 {invoiceTypeLabel}</h3>
+      <div style={{ textAlign: "center", marginBottom: 10 }}>
+        <h2 style={{ fontSize: 24, fontWeight: "bold", margin: 0 }}>{storeName}</h2>
+        <h3 style={{ fontSize: 20, marginTop: 4, color: typeColor }}>🧾 {invoiceTypeLabel}</h3>
+        <p style={{ fontSize: 14, marginTop: 4 }}>🧾 رقم الفاتورة: {invoiceNumber}</p>
+        <p style={{ fontSize: 14 }}>⏱️ الساعة: {formattedTime}</p>
       </div>
 
-      {/* معلومات العميل والفاتورة */}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", marginBottom: 20 }}>
-        <Field label="📅 التاريخ" value={new Date(order.createdAt).toLocaleDateString("ar-EG")} />
-        <Field label="👤 اسم الزبون" value={order.customerName || "—"} />
-        <Field label="📞 الهاتف" value={order.phone} />
-        {order.type === "installment" && (
-          <>
-            <Field label="💰 دفعة أولى" value={`${order.downPayment?.toLocaleString("ar-EG") || 0} د.ع`} />
-            <Field label="📆 عدد الأقساط" value={order.installmentsCount?.toString() || "-"} />
-            <Field
-              label="📅 تاريخ الاستحقاق"
-              value={order.dueDate ? new Date(order.dueDate).toLocaleDateString("ar-EG") : "—"}
-            />
-            <Field label="💳 المتبقي" value={`${order.remaining?.toLocaleString("ar-EG") || 0} د.ع`} />
-          </>
-        )}
-      </div>
-
-      {/* جدول المنتجات */}
-      <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 15 }}>
-          <thead>
-            <tr style={{ backgroundColor: "#f0f0f0" }}>
-              <th style={cellStyle}>المنتج</th>
-              <th style={cellStyle}>الكمية</th>
-              <th style={cellStyle}>السعر</th>
-              <th style={cellStyle}>الإجمالي</th>
+      <table style={{ width: "100%", border: "1px solid #000", borderCollapse: "collapse", fontSize: 14 }}>
+        <thead>
+          <tr>
+            <th style={cellStyle}>#</th>
+            <th style={cellStyle}>اسم المنتج</th>
+            <th style={cellStyle}>الكمية</th>
+            <th style={cellStyle}>السعر</th>
+            <th style={cellStyle}>الإجمالي</th>
+          </tr>
+        </thead>
+        <tbody>
+          {order.cart.map((item, index) => (
+            <tr key={index}>
+              <td style={cellStyle}>{index + 1}</td>
+              <td style={cellStyle}>{item.name}</td>
+              <td style={cellStyle}>{item.quantity}</td>
+              <td style={cellStyle}>{item.price.toLocaleString("ar-EG")} د.ع</td>
+              <td style={cellStyle}>{(item.price * item.quantity).toLocaleString("ar-EG")} د.ع</td>
             </tr>
-          </thead>
-          <tbody>
-            {order.cart.map((item, idx) => (
-              <tr key={idx}>
-                <td style={cellStyle}>{item.name}</td>
-                <td style={{ ...cellStyle, textAlign: "center" }}>{item.quantity}</td>
-                <td style={{ ...cellStyle, textAlign: "center" }}>
-                  {item.price.toLocaleString("ar-EG")} د.ع
-                </td>
-                <td style={{ ...cellStyle, textAlign: "center" }}>
-                  {(item.price * item.quantity).toLocaleString("ar-EG")} د.ع
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+          ))}
+        </tbody>
+      </table>
+
+      <div style={{ textAlign: "left", marginTop: 20 }}>
+        <p><strong>📅 التاريخ:</strong> {formattedDate} &nbsp;&nbsp;&nbsp;&nbsp;<strong>👤 اسم الزبون:</strong> {order.customerName || "—"} &nbsp;&nbsp;&nbsp;&nbsp; <strong>📞 الهاتف:</strong> {order.phone}</p>
       </div>
 
-      {/* الإجمالي */}
-      <div style={{ textAlign: "left", marginTop: 30 }}>
-        <h3 style={{ color: "#16a34a", fontSize: 18 }}>
-          💰 الإجمالي: {order.total.toLocaleString("ar-EG")} دينار
-        </h3>
+      <div style={{ marginTop: 20 }}>
+        <p><strong>💵 المبلغ المدفوع:</strong> {paid.toLocaleString("ar-EG")} د.ع</p>
+        <p><strong>🔻 الخصم:</strong> {discount.toLocaleString("ar-EG")} د.ع</p>
+        <p style={{ fontSize: 16, fontWeight: "bold" }}>💰 الإجمالي بعد الخصم: {totalAfterDiscount.toLocaleString("ar-EG")} د.ع</p>
       </div>
 
-      {/* الأزرار */}
       {showActions && (
         <div style={{ marginTop: 30, display: "flex", justifyContent: "center", gap: "20px" }}>
           <button
@@ -192,8 +183,7 @@ function Field({ label, value }: { label: string; value: string }) {
 }
 
 const cellStyle: React.CSSProperties = {
-  border: "1px solid #ccc",
-  padding: "10px",
+  border: "1px solid #000",
+  padding: "8px",
   textAlign: "center",
-  whiteSpace: "nowrap",
 };
