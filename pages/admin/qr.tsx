@@ -15,12 +15,10 @@ export default function WhatsAppQRPage() {
       if (!res.ok) throw new Error("❌ لا يوجد اتصال أو QR متاح حالياً");
       const data = await res.json();
 
-      // لا تحدّث صورة QR إلا إذا تغيّرت فعلاً
       if (data.qr && data.qr !== qr) {
         setQr(data.qr);
       }
 
-      // يعرض الحالة سواء كانت isReady أو connected
       setIsReady(data.connected ?? data.isReady);
       setError("");
     } catch (err: any) {
@@ -32,9 +30,7 @@ export default function WhatsAppQRPage() {
   };
 
   useEffect(() => {
-    fetchQr();
-    const interval = setInterval(fetchQr, 6000);
-    return () => clearInterval(interval);
+    fetchQr(); // أول تحميل فقط عند فتح الصفحة
   }, []);
 
   return (
