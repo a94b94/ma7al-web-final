@@ -194,7 +194,6 @@ export default function LocalInvoicesPage({ invoices }: { invoices: LocalInvoice
             <InvoicePreview
               order={selectedInvoice}
               storeName="Ma7al Store"
-              storeLogo="/logo.png"
               showActions={true}
             />
           </div>
