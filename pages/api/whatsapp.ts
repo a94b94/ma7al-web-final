@@ -1,4 +1,3 @@
-
 export default async function handler(req, res) {
   try {
     const response = await fetch("https://ma7al-whatsapp-production.up.railway.app/status");
@@ -6,15 +5,15 @@ export default async function handler(req, res) {
 
     if (response.ok) {
       return res.status(200).json({
-        isReady: data.connected || false,
+        connected: data.connected || false,  // ✅ عدّلنا من isReady إلى connected
         qr: data.qr || null,
       });
     } else {
-      return res.status(500).json({ isReady: false, qr: null });
+      return res.status(500).json({ connected: false, qr: null });
     }
   } catch (err) {
     return res.status(500).json({
-      isReady: false,
+      connected: false,
       qr: null,
       error: "فشل الاتصال بسيرفر الواتساب",
     });
