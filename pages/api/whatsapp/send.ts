@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { connectDB } from "@/lib/mongoose";
-import { Notification } from "@/models/Notification";
+import NotificationModel from "@/models/Notification";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
@@ -29,7 +29,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!result.status) throw new Error("فشل في الإرسال");
 
     // ✅ تسجيل الإشعار
-    await Notification.create({
+    await NotificationModel.create({
       orderId,
       customerPhone: phone,
       message,

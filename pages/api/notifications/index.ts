@@ -1,14 +1,14 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import mongoose from "mongoose";
-import { Order } from "@/models/Order";
-import { Notification } from "@/models/Notification";
-import { connectDB } from "@/lib/mongoose"; // أو عدل المسار حسب مشروعك
+import Order from "@/models/Order";
+import NotificationModel from "@/models/Notification";
+import { connectDB } from "@/lib/mongoose";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   await connectDB();
 
   try {
-    const notifications = await Notification.find()
+    const notifications = await NotificationModel.find()
       .sort({ createdAt: -1 })
       .populate("orderId");
 
