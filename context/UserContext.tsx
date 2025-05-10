@@ -1,8 +1,15 @@
 import { createContext, useContext, useEffect, useState } from "react";
 
+type User = {
+  name: string;
+  role: string;
+  storeName?: string;
+  [key: string]: any;
+};
+
 type UserContextType = {
-  user: any;
-  setUser: React.Dispatch<React.SetStateAction<any>>;
+  user: User | null;
+  setUser: React.Dispatch<React.SetStateAction<User | null>>;
   logout: () => void;
 };
 
@@ -13,15 +20,19 @@ const UserContext = createContext<UserContextType>({
 });
 
 export function UserProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    // تحميل المستخدم من localStorage عند البداية
     const stored = localStorage.getItem("user");
     if (stored) {
       try {
-        setUser(JSON.parse(stored));
-      } catch {}
+        const parsed = JSON.parse(stored);
+        if (parsed && parsed.name) {
+          setUser(parsed);
+        }
+      } catch {
+        console.warn("فشل تحميل المستخدم من التخزين المحلي");
+      }
     }
   }, []);
 
@@ -31,8 +42,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    // حفظ المستخدم عند تغييره
-    if (user) localStorage.setItem("user", JSON.stringify(user));
+    if (user) {
+      localStorage.setItem("user", JSON.stringify(user));
+    }
   }, [user]);
 
   return (
