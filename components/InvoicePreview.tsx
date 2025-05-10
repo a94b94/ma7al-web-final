@@ -55,9 +55,7 @@ ${productList}
     try {
       const res = await fetch("https://ma7al-whatsapp-production.up.railway.app/send", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           phone: order.phone.replace(/^0/, "964"),
           message,
@@ -77,7 +75,8 @@ ${productList}
   const now = new Date();
   const formattedTime = now.toLocaleTimeString("ar-EG");
   const formattedDate = now.toLocaleDateString("ar-EG");
-  const invoiceNumber = order._id?.slice(-6) || Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+  const invoiceNumber =
+    order._id?.slice(-6) || Math.floor(Math.random() * 1000000).toString().padStart(6, "0");
   const paid = order.paid || 0;
   const discount = order.discount || 0;
   const totalAfterDiscount = order.total - discount;
@@ -105,7 +104,14 @@ ${productList}
         <p style={{ fontSize: 14 }}>⏱️ الساعة: {formattedTime}</p>
       </div>
 
-      <table style={{ width: "100%", border: "1px solid #000", borderCollapse: "collapse", fontSize: 14 }}>
+      <table
+        style={{
+          width: "100%",
+          border: "1px solid #000",
+          borderCollapse: "collapse",
+          fontSize: 14,
+        }}
+      >
         <thead>
           <tr>
             <th style={cellStyle}>#</th>
@@ -122,24 +128,53 @@ ${productList}
               <td style={cellStyle}>{item.name}</td>
               <td style={cellStyle}>{item.quantity}</td>
               <td style={cellStyle}>{item.price.toLocaleString("ar-EG")} د.ع</td>
-              <td style={cellStyle}>{(item.price * item.quantity).toLocaleString("ar-EG")} د.ع</td>
+              <td style={cellStyle}>
+                {(item.price * item.quantity).toLocaleString("ar-EG")} د.ع
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
 
       <div style={{ textAlign: "left", marginTop: 20 }}>
-        <p><strong>📅 التاريخ:</strong> {formattedDate} &nbsp;&nbsp;&nbsp;&nbsp;<strong>👤 اسم الزبون:</strong> {order.customerName || "—"} &nbsp;&nbsp;&nbsp;&nbsp; <strong>📞 الهاتف:</strong> {order.phone}</p>
+        <p>
+          <strong>📅 التاريخ:</strong> {formattedDate} &nbsp;&nbsp;&nbsp;&nbsp;
+          <strong>👤 اسم الزبون:</strong> {order.customerName || "—"} &nbsp;&nbsp;&nbsp;&nbsp;
+          <strong>📞 الهاتف:</strong> {order.phone}
+        </p>
       </div>
 
       <div style={{ marginTop: 20 }}>
-        <p><strong>💵 المبلغ المدفوع:</strong> {paid.toLocaleString("ar-EG")} د.ع</p>
-        <p><strong>🔻 الخصم:</strong> {discount.toLocaleString("ar-EG")} د.ع</p>
-        <p style={{ fontSize: 16, fontWeight: "bold" }}>💰 الإجمالي بعد الخصم: {totalAfterDiscount.toLocaleString("ar-EG")} د.ع</p>
+        <p>
+          <strong>💵 المبلغ المدفوع:</strong> {paid.toLocaleString("ar-EG")} د.ع
+        </p>
+        <p>
+          <strong>🔻 الخصم:</strong> {discount.toLocaleString("ar-EG")} د.ع
+        </p>
+        <p style={{ fontSize: 16, fontWeight: "bold" }}>
+          💰 الإجمالي بعد الخصم: {totalAfterDiscount.toLocaleString("ar-EG")} د.ع
+        </p>
       </div>
 
+      {order.type === "installment" && (
+        <div style={{ marginTop: 20 }}>
+          <p><strong>📥 تفاصيل الأقساط:</strong></p>
+          <p>🔢 عدد الأقساط: {order.installmentsCount || "—"}</p>
+          <p>💳 المبلغ المدفوع مقدماً: {order.downPayment?.toLocaleString("ar-EG") || 0} د.ع</p>
+          <p>🧾 المتبقي: {order.remaining?.toLocaleString("ar-EG") || 0} د.ع</p>
+          <p>🗓️ تاريخ أول قسط: {order.dueDate ? new Date(order.dueDate).toLocaleDateString("ar-EG") : "—"}</p>
+        </div>
+      )}
+
       {showActions && (
-        <div style={{ marginTop: 30, display: "flex", justifyContent: "center", gap: "20px" }}>
+        <div
+          style={{
+            marginTop: 30,
+            display: "flex",
+            justifyContent: "center",
+            gap: "20px",
+          }}
+        >
           <button
             onClick={handlePrint}
             style={{
@@ -169,15 +204,6 @@ ${productList}
           </button>
         </div>
       )}
-    </div>
-  );
-}
-
-function Field({ label, value }: { label: string; value: string }) {
-  return (
-    <div style={{ flex: "1 1 200px", display: "flex", gap: "8px" }}>
-      <strong>{label}:</strong>
-      <span>{value || "—"}</span>
     </div>
   );
 }
