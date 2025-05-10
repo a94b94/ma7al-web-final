@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import dbConnect from "@/lib/dbConnect";
 import LocalInvoice from "@/models/LocalInvoice";
+import Order from "@/models/Order"; // ✅ إضافة نموذج الطلبات
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
@@ -21,8 +22,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       installmentsCount,
       dueDate,
       remaining,
-      paid,       // ✅ تمت الإضافة هنا
-      discount    // ✅ تمت الإضافة هنا
+      paid,
+      discount,
+      storeId,
+      storeName,
+      customerName,
     } = req.body;
 
     // التحقق من الحقول المطلوبة
@@ -32,6 +36,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     console.log("📦 البيانات المستلمة:", req.body);
 
+    // ✅ حفظ الفاتورة في localinvoices
     const invoice = await LocalInvoice.create({
       phone,
       address,
@@ -43,9 +48,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       installmentsCount,
       dueDate,
       remaining,
-      paid,       // ✅ تمت الإضافة هنا
-      discount    // ✅ تمت الإضافة هنا
+      paid,
+      discount,
+      storeId,
+      storeName,
+      customerName,
     });
+
+    // ✅ إذا كانت تقسيط، نحفظ نسخة في orders لعرضها في قائمة الأقساط
+    if (type === "installment") {
+      await Order.create({
+        phone,
+        address,
+        cart,
+        total,
+        type,
+        downPayment,
+        installmentsCount,
+        dueDate,
+        remaining,
+        paid,
+        discount,
+        storeId: storeId || "default",
+        storeName: storeName || "Store",
+        customerName: customerName || "الزبون",
+      });
+    }
 
     return res.status(201).json({ success: true, invoice });
   } catch (error) {
