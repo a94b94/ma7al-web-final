@@ -17,7 +17,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   await connectDB();
 
   try {
-    const apiRes = await fetch("https://ma7al-whatsapp-production.up.railway.app/send", {
+    // ✅ المسار الصحيح
+    const apiRes = await fetch("https://ma7al-whatsapp-production.up.railway.app/send-message", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -29,6 +30,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const result = await apiRes.json();
     if (!result.success) throw new Error("فشل في الإرسال");
 
+    // ✅ تسجيل الإشعار
     await NotificationModel.create({
       orderId,
       customerPhone: phone,
@@ -36,6 +38,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       sentBy,
     });
 
+    // ✅ تحديث الطلب
     await Order.findByIdAndUpdate(orderId, {
       reminderSent: true,
       sentBy,
