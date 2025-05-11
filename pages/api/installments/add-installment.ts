@@ -12,35 +12,43 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const { orderId } = req.body;
 
     if (!orderId) {
-      return res.status(400).json({ success: false, message: "الرقم غير موجود" });
+      return res.status(400).json({ success: false, message: "رقم الطلب مفقود" });
     }
 
     const order = await Order.findById(orderId) as IOrder;
 
-    if (!order || order.type !== "installment" || !order.installments || order.installments.length === 0) {
-      return res.status(404).json({ success: false, message: "طلب تقسيط غير صالح" });
+    if (!order) {
+      return res.status(404).json({ success: false, message: "الطلب غير موجود" });
+    }
+
+    if (order.type !== "installment") {
+      return res.status(400).json({ success: false, message: "الطلب ليس تقسيط" });
+    }
+
+    if (!order.installments || order.installments.length === 0) {
+      return res.status(400).json({ success: false, message: "لا توجد أقساط مسجلة" });
     }
 
     const unpaidInstallment = order.installments.find((i) => !i.paid);
+
     if (!unpaidInstallment) {
-      return res.status(400).json({ success: false, message: "كل الأقساط مدفوعة بالفعل" });
+      return res.status(400).json({ success: false, message: "كل الأقساط مدفوعة" });
     }
 
     unpaidInstallment.paid = true;
     unpaidInstallment.paidAt = new Date();
 
-    const updatedPaid = (order.paid || 0) + unpaidInstallment.amount;
-    order.paid = updatedPaid;
+    order.paid = (order.paid || 0) + unpaidInstallment.amount;
 
-    if (updatedPaid >= order.total) {
+    if (order.paid >= order.total) {
       order.status = "مكتمل";
     }
 
     await order.save();
 
-    res.status(200).json({ success: true, amount: unpaidInstallment.amount });
-  } catch (err) {
-    console.error("❌ خطأ أثناء تحديث القسط:", err);
-    res.status(500).json({ success: false, message: "فشل في تحديث القسط" });
+    return res.status(200).json({ success: true, amount: unpaidInstallment.amount });
+  } catch (error) {
+    console.error("❌ خطأ أثناء إضافة القسط:", error);
+    return res.status(500).json({ success: false, message: "فشل في إضافة القسط" });
   }
 }
