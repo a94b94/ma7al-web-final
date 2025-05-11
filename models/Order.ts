@@ -8,6 +8,7 @@ export interface IOrder extends Document {
   address: string;
   cart: { name: string; quantity: number; price: number }[];
   total: number;
+  paid?: number; // ✅ مضاف لدعم التتبع الكامل
   dueDate?: Date;
   seen?: boolean;
   status?: string;
@@ -53,6 +54,7 @@ const OrderSchema = new Schema<IOrder>(
     ],
 
     total: { type: Number, required: true },
+    paid: { type: Number, default: 0 }, // ✅ مضاف فعليًا للـ schema أيضًا
     dueDate: { type: Date },
 
     seen: { type: Boolean, default: false },
