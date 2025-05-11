@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { connectDB } from "@/lib/mongoose";
 import NotificationModel from "@/models/Notification";
-import Order from "@/models/Order"; // ⬅️ نحتاجه لتحديث الطلب
+import Order from "@/models/Order";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
@@ -17,8 +17,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   await connectDB();
 
   try {
-    // ✅ رابط السيرفر الخارجي على Railway
-    const apiRes = await fetch("https://ma7al-whatsapp-production.up.railway.app/send-message", {
+    const apiRes = await fetch("https://ma7al-whatsapp-production.up.railway.app/send", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -28,9 +27,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     const result = await apiRes.json();
-    if (!result.status) throw new Error("فشل في الإرسال");
+    if (!result.success) throw new Error("فشل في الإرسال");
 
-    // ✅ تسجيل الإشعار
     await NotificationModel.create({
       orderId,
       customerPhone: phone,
@@ -38,7 +36,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       sentBy,
     });
 
-    // ✅ تحديث الطلب نفسه ليظهر في جدول الأقساط
     await Order.findByIdAndUpdate(orderId, {
       reminderSent: true,
       sentBy,
