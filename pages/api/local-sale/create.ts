@@ -18,25 +18,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       total,
       createdAt,
       type,
-      downPayment,
-      installmentsCount,
+      downPayment = 0,
+      installmentsCount = 0,
       dueDate,
-      remaining,
-      paid,
-      discount,
-      storeId,
-      storeName,
-      customerName,
-      sentBy, // ✅
+      remaining = 0,
+      paid = 0,
+      discount = 0,
+      storeId = "default",
+      storeName = "Store",
+      customerName = "الزبون",
+      sentBy = "مشرف",
     } = req.body;
 
-    if (!phone || !address || !cart || !Array.isArray(cart) || !total || !type) {
-      return res.status(400).json({ success: false, error: "❗ بيانات ناقصة" });
+    if (!phone || !address || !Array.isArray(cart) || cart.length === 0 || !total || !type) {
+      return res.status(400).json({ success: false, error: "❗ البيانات ناقصة أو غير صحيحة" });
     }
 
-    console.log("📦 البيانات المستلمة:", req.body);
+    console.log("📦 حفظ فاتورة محلية...");
+    console.log({ phone, customerName, total, type });
 
-    // حفظ الفاتورة الأصلية
+    // حفظ الفاتورة في LocalInvoice
     const invoice = await LocalInvoice.create({
       phone,
       address,
@@ -56,7 +57,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       sentBy,
     });
 
-    // إذا كانت الفاتورة تقسيط، نحفظ نسخة للأقساط
+    // إذا كانت تقسيط، نحفظ نسخة في Order (لمتابعة الأقساط لاحقًا)
     if (type === "installment") {
       await Order.create({
         phone,
@@ -70,17 +71,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         remaining,
         paid,
         discount,
-        storeId: storeId || "default",
-        storeName: storeName || "Store",
-        customerName: customerName || "الزبون",
-        customerPhone: phone, // ✅ حتى يظهر في الأعمدة بشكل صحيح
-        sentBy: sentBy || "مشرف", // ✅ ضروري
+        storeId,
+        storeName,
+        customerName,
+        customerPhone: phone,
+        sentBy,
       });
+
+      console.log("🗂️ تم إنشاء سجل متابعة للأقساط");
     }
 
     return res.status(201).json({ success: true, invoice });
-  } catch (error) {
-    console.error("❌ خطأ أثناء الحفظ:", error);
-    return res.status(500).json({ success: false, error: "فشل في حفظ الفاتورة" });
+  } catch (error: any) {
+    console.error("❌ خطأ أثناء حفظ الفاتورة:", error.message);
+    return res.status(500).json({ success: false, error: "حدث خطأ داخلي أثناء حفظ البيانات" });
   }
 }
