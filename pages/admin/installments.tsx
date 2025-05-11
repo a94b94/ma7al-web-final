@@ -1,8 +1,10 @@
 import AdminLayout from "@/components/admin/AdminLayout";
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { useUser } from "@/context/UserContext"; // ✅ جلب اسم المشرف
 
 export default function InstallmentsPage() {
+  const { user } = useUser(); // ✅ اسم المشرف الحالي
   const [orders, setOrders] = useState([]);
   const [filter, setFilter] = useState<"all" | "paid" | "due">("all");
 
@@ -42,7 +44,6 @@ export default function InstallmentsPage() {
     <AdminLayout>
       <h1 className="text-2xl font-bold mb-4">قائمة الأقساط</h1>
 
-      {/* فلترة حسب حالة الدفع */}
       <div className="mb-4 flex gap-2">
         <button onClick={() => setFilter("all")} className="px-4 py-1 border rounded">الكل</button>
         <button onClick={() => setFilter("paid")} className="px-4 py-1 border rounded">مدفوع</button>
@@ -71,10 +72,10 @@ export default function InstallmentsPage() {
               const message = `📅 تذكير: لديك قسط مستحق بتاريخ ${new Date(order.dueDate).toLocaleDateString("ar-IQ")} لدى متجر ${order.storeName}.`;
               return (
                 <tr key={order._id}>
-                  <td className="p-2 border">{order.customerName}</td>
-                  <td className="p-2 border">{order.customerPhone}</td>
+                  <td className="p-2 border">{order.customerName || "—"}</td>
+                  <td className="p-2 border">{order.phone || "—"}</td>
                   <td className="p-2 border">
-                    {new Date(order.dueDate).toLocaleDateString("ar-IQ")}
+                    {order.dueDate ? new Date(order.dueDate).toLocaleDateString("ar-IQ") : "—"}
                   </td>
                   <td className="p-2 border">{order.total}</td>
                   <td className="p-2 border">{order.paid || 0}</td>
@@ -92,7 +93,7 @@ export default function InstallmentsPage() {
                     <button
                       className="text-blue-600 hover:underline"
                       onClick={() =>
-                        handleSendReminder(order._id, order.customerPhone, message, "مشرف النظام") // 👈 بدّل الاسم حسب المستخدم الحالي
+                        handleSendReminder(order._id, order.phone, message, user?.name || "مشرف")
                       }
                     >
                       إرسال تذكير
