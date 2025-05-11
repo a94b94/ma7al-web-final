@@ -27,7 +27,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       storeId,
       storeName,
       customerName,
-      sentBy, // ✅ أضف هذا
+      sentBy, // ✅
     } = req.body;
 
     if (!phone || !address || !cart || !Array.isArray(cart) || !total || !type) {
@@ -36,7 +36,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     console.log("📦 البيانات المستلمة:", req.body);
 
-    // حفظ في localinvoices
+    // حفظ الفاتورة الأصلية
     const invoice = await LocalInvoice.create({
       phone,
       address,
@@ -53,10 +53,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       storeId,
       storeName,
       customerName,
-      sentBy, // ✅ أضف هنا أيضًا
+      sentBy,
     });
 
-    // إذا كانت تقسيط، نسجّل أيضًا في orders
+    // إذا كانت الفاتورة تقسيط، نحفظ نسخة للأقساط
     if (type === "installment") {
       await Order.create({
         phone,
@@ -73,7 +73,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         storeId: storeId || "default",
         storeName: storeName || "Store",
         customerName: customerName || "الزبون",
-        sentBy: sentBy || "مشرف", // ✅ يتم الحفظ هنا
+        customerPhone: phone, // ✅ حتى يظهر في الأعمدة بشكل صحيح
+        sentBy: sentBy || "مشرف", // ✅ ضروري
       });
     }
 
