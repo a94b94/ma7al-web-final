@@ -3,6 +3,9 @@ import mongoose, { Document, Model, Schema } from "mongoose";
 
 export interface IOrder extends Document {
   phone: string;
+  customerName?: string; // ✅ مضاف
+  customerPhone?: string; // ✅ إذا استخدمته
+  sentBy?: string; // ✅ مضاف
   address: string;
   cart: { name: string; quantity: number; price: number }[];
   total: number;
@@ -27,6 +30,9 @@ export interface IOrder extends Document {
 const OrderSchema = new Schema<IOrder>(
   {
     phone: { type: String, required: true },
+    customerName: { type: String }, // ✅ مضاف
+    customerPhone: { type: String }, // اختياري حسب الحاجة
+    sentBy: { type: String }, // ✅ مضاف
     address: { type: String, required: true },
     cart: [
       {
