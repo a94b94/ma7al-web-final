@@ -9,6 +9,8 @@ export interface CartItem {
 export interface LocalInvoiceDocument extends Document {
   phone: string;
   address: string;
+  customerName?: string;  // ✅ جديد
+  sentBy?: string;        // ✅ جديد
   cart: CartItem[];
   total: number;
   type: "cash" | "installment";
@@ -16,8 +18,8 @@ export interface LocalInvoiceDocument extends Document {
   installmentsCount?: number;
   dueDate?: string;
   remaining?: number;
-  paid?: number;       // ✅ جديد
-  discount?: number;   // ✅ جديد
+  paid?: number;
+  discount?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -26,6 +28,8 @@ const LocalInvoiceSchema = new Schema<LocalInvoiceDocument>(
   {
     phone: { type: String, required: true },
     address: { type: String, required: true },
+    customerName: { type: String },   // ✅
+    sentBy: { type: String },         // ✅
     cart: [
       {
         name: String,
@@ -39,8 +43,8 @@ const LocalInvoiceSchema = new Schema<LocalInvoiceDocument>(
     installmentsCount: Number,
     dueDate: String,
     remaining: Number,
-    paid: { type: Number, default: 0 },       // ✅ تمت الإضافة هنا
-    discount: { type: Number, default: 0 },   // ✅ تمت الإضافة هنا
+    paid: { type: Number, default: 0 },
+    discount: { type: Number, default: 0 },
   },
   { timestamps: true }
 );
