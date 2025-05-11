@@ -17,7 +17,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   await connectDB();
 
   try {
-    const apiRes = await fetch("http://localhost:5000/send-message", {
+    // ✅ رابط السيرفر الخارجي على Railway
+    const apiRes = await fetch("https://ma7al-whatsapp-production.up.railway.app/send-message", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
