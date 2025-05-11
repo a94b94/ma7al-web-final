@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { connectDB } from "@/lib/mongoose";
-import Order from "@/models/Order";
+import Order, { IOrder } from "@/models/Order";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
@@ -15,7 +15,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ success: false, message: "الرقم غير موجود" });
     }
 
-    const order = await Order.findById(orderId);
+    const order = await Order.findById(orderId) as IOrder;
 
     if (!order || order.type !== "installment" || !order.installments || order.installments.length === 0) {
       return res.status(404).json({ success: false, message: "طلب تقسيط غير صالح" });
