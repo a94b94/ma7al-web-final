@@ -1,5 +1,7 @@
 import React from "react";
 
+import "../styles/invoice.css"; // تأكد من وجود هذا الملف وتعديله حسب المسار الصحيح
+
 type InvoicePreviewProps = {
   order: {
     _id: string;
@@ -82,21 +84,7 @@ ${productList}
   const totalAfterDiscount = order.total - discount;
 
   return (
-    <div
-      style={{
-        padding: "20px",
-        direction: "rtl",
-        fontFamily: "'Cairo', sans-serif",
-        width: "100%",
-        maxWidth: "900px",
-        margin: "0 auto",
-        backgroundColor: "#fff",
-        color: "#000",
-        fontSize: "16px",
-        boxSizing: "border-box",
-        border: "1px solid #000",
-      }}
-    >
+    <div className="invoice-container">
       <div style={{ textAlign: "center", marginBottom: 10 }}>
         <h2 style={{ fontSize: 24, fontWeight: "bold", margin: 0 }}>{storeName}</h2>
         <h3 style={{ fontSize: 20, marginTop: 4, color: typeColor }}>🧾 {invoiceTypeLabel}</h3>
@@ -104,33 +92,24 @@ ${productList}
         <p style={{ fontSize: 14 }}>⏱️ الساعة: {formattedTime}</p>
       </div>
 
-      <table
-        style={{
-          width: "100%",
-          border: "1px solid #000",
-          borderCollapse: "collapse",
-          fontSize: 14,
-        }}
-      >
+      <table className="invoice-table">
         <thead>
           <tr>
-            <th style={cellStyle}>#</th>
-            <th style={cellStyle}>اسم المنتج</th>
-            <th style={cellStyle}>الكمية</th>
-            <th style={cellStyle}>السعر</th>
-            <th style={cellStyle}>الإجمالي</th>
+            <th>#</th>
+            <th>اسم المنتج</th>
+            <th>الكمية</th>
+            <th>السعر</th>
+            <th>الإجمالي</th>
           </tr>
         </thead>
         <tbody>
           {order.cart.map((item, index) => (
             <tr key={index}>
-              <td style={cellStyle}>{index + 1}</td>
-              <td style={cellStyle}>{item.name}</td>
-              <td style={cellStyle}>{item.quantity}</td>
-              <td style={cellStyle}>{item.price.toLocaleString("ar-EG")} د.ع</td>
-              <td style={cellStyle}>
-                {(item.price * item.quantity).toLocaleString("ar-EG")} د.ع
-              </td>
+              <td>{index + 1}</td>
+              <td>{item.name}</td>
+              <td>{item.quantity}</td>
+              <td>{item.price.toLocaleString("ar-EG")} د.ع</td>
+              <td>{(item.price * item.quantity).toLocaleString("ar-EG")} د.ع</td>
             </tr>
           ))}
         </tbody>
@@ -167,14 +146,7 @@ ${productList}
       )}
 
       {showActions && (
-        <div
-          style={{
-            marginTop: 30,
-            display: "flex",
-            justifyContent: "center",
-            gap: "20px",
-          }}
-        >
+        <div className="no-print" style={{ marginTop: 30, display: "flex", justifyContent: "center", gap: "20px" }}>
           <button
             onClick={handlePrint}
             style={{
@@ -207,9 +179,3 @@ ${productList}
     </div>
   );
 }
-
-const cellStyle: React.CSSProperties = {
-  border: "1px solid #000",
-  padding: "8px",
-  textAlign: "center",
-};
