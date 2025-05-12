@@ -95,6 +95,7 @@ export default function LocalSalePage() {
 
       if (data.success) {
         toast.success("✅ تم حفظ الفاتورة بنجاح");
+        setShowInvoice(true);
 
         await fetch("https://ma7al-whatsapp-production.up.railway.app/send-message", {
           method: "POST",
@@ -131,10 +132,72 @@ export default function LocalSalePage() {
         <button onClick={() => router.push("/admin")} className="text-sm underline text-blue-600">← رجوع للوحة التحكم</button>
       </div>
 
-      {/* تعليمات عند عدم عرض المنتجات */}
-      {!showInvoice && <p className="text-center text-gray-500 mb-4">يرجى ملء تفاصيل الزبون والمنتجات</p>}
+      {/* إدخال بيانات الزبون */}
+      <div className="grid sm:grid-cols-2 gap-4 mb-4">
+        <div>
+          <label className="block mb-1 font-medium">👤 اسم الزبون</label>
+          <input className="border p-2 w-full rounded" value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
+        </div>
+        <div>
+          <label className="block mb-1 font-medium">📞 رقم الهاتف</label>
+          <input className="border p-2 w-full rounded" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} />
+        </div>
+      </div>
 
-      {/* المحتوى الآخر يمكنك إضافته هنا مثل إدخال بيانات الزبون والمنتجات */}
+      {/* تفاصيل المنتجات */}
+      {cart.map((item, idx) => (
+        <div key={idx} className="flex gap-2 mb-2">
+          <input className="border p-2 flex-1 rounded" placeholder="اسم المنتج" value={item.name} onChange={(e) => handleChange(idx, "name", e.target.value)} />
+          <input type="number" className="border p-2 w-20 rounded" placeholder="الكمية" value={item.quantity} onChange={(e) => handleChange(idx, "quantity", e.target.value)} />
+          <input type="number" className="border p-2 w-32 rounded" placeholder="السعر" value={item.price} onChange={(e) => handleChange(idx, "price", e.target.value)} />
+        </div>
+      ))}
+
+      <button onClick={handleAddRow} className="bg-blue-600 text-white px-4 py-2 rounded mb-4">+ إضافة منتج</button>
+
+      {/* المبالغ */}
+      <div className="grid sm:grid-cols-3 gap-4 mb-4">
+        <div>
+          <label className="block mb-1 font-medium">💵 المبلغ المدفوع</label>
+          <input type="number" className="border p-2 w-full rounded" value={paid} onChange={(e) => setPaid(+e.target.value)} />
+        </div>
+        <div>
+          <label className="block mb-1 font-medium">🔻 الخصم</label>
+          <input type="number" className="border p-2 w-full rounded" value={discount} onChange={(e) => setDiscount(+e.target.value)} />
+        </div>
+        <div>
+          <label className="block mb-1 font-medium">💰 المتبقي</label>
+          <input type="number" className="border p-2 w-full rounded" value={remaining} readOnly />
+        </div>
+      </div>
+
+      {/* نوع الفاتورة */}
+      <div className="mb-4">
+        <label className="block mb-1 font-medium">نوع الفاتورة</label>
+        <select className="border p-2 w-full rounded" value={invoiceType} onChange={(e) => setInvoiceType(e.target.value as any)}>
+          <option value="cash">💵 نقد</option>
+          <option value="installment">📄 أقساط</option>
+        </select>
+      </div>
+
+      {invoiceType === "installment" && (
+        <div className="grid sm:grid-cols-3 gap-4 mb-4">
+          <div>
+            <label className="block mb-1 font-medium">💰 دفعة أولى</label>
+            <input type="number" className="border p-2 w-full rounded" value={downPayment} onChange={(e) => setDownPayment(+e.target.value)} />
+          </div>
+          <div>
+            <label className="block mb-1 font-medium">📆 عدد الأقساط</label>
+            <input type="number" className="border p-2 w-full rounded" value={installmentsCount} onChange={(e) => setInstallmentsCount(+e.target.value)} />
+          </div>
+          <div>
+            <label className="block mb-1 font-medium">📅 تاريخ الاستحقاق</label>
+            <input type="date" className="border p-2 w-full rounded" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+          </div>
+        </div>
+      )}
+
+      <button onClick={handleSaveInvoice} className="bg-green-600 text-white px-6 py-2 rounded w-full">✅ توليد الفاتورة</button>
 
       {showInvoice && (
         <div>
