@@ -131,9 +131,10 @@ export default function LocalSalePage() {
         <button onClick={() => router.push("/admin")} className="text-sm underline text-blue-600">← رجوع للوحة التحكم</button>
       </div>
 
-      <p className="text-gray-500">يرجى ملء تفاصيل الزبون والمنتجات.</p>
+      {/* تعليمات عند عدم عرض المنتجات */}
+      {!showInvoice && <p className="text-center text-gray-500 mb-4">يرجى ملء تفاصيل الزبون والمنتجات</p>}
 
-      {/* يمكنك هنا إضافة الحقول والمحتوى الذي حذفته مؤقتًا */}
+      {/* المحتوى الآخر يمكنك إضافته هنا مثل إدخال بيانات الزبون والمنتجات */}
 
       {showInvoice && (
         <div>
