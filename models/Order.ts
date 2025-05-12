@@ -8,7 +8,7 @@ export interface IOrder extends Document {
   address: string;
   cart: { name: string; quantity: number; price: number }[];
   total: number;
-  paid?: number; // ✅ مضاف لدعم التتبع الكامل
+  paid?: number;
   dueDate?: Date;
   seen?: boolean;
   status?: string;
@@ -21,6 +21,8 @@ export interface IOrder extends Document {
     amount: number;
     paid: boolean;
     paidAt?: Date;
+    late?: boolean;
+    lateFee?: number;
   }[];
   email?: string;
   storeId: string;
@@ -33,9 +35,26 @@ const InstallmentSchema = new Schema(
     amount: { type: Number, required: true },
     paid: { type: Boolean, default: false },
     paidAt: { type: Date },
+    late: { type: Boolean, default: false },
+    lateFee: { type: Number, default: 0 },
   },
   { _id: false }
 );
+
+InstallmentSchema.pre("save", function (next) {
+  const today = new Date();
+  const installment = this as any;
+
+  if (!installment.paid && new Date(installment.date) < today) {
+    installment.late = true;
+    installment.lateFee = 1000; // يمكن تغيير القيمة حسب سياسة المتجر
+  } else {
+    installment.late = false;
+    installment.lateFee = 0;
+  }
+
+  next();
+});
 
 const OrderSchema = new Schema<IOrder>(
   {
@@ -54,7 +73,7 @@ const OrderSchema = new Schema<IOrder>(
     ],
 
     total: { type: Number, required: true },
-    paid: { type: Number, default: 0 }, // ✅ مضاف فعليًا للـ schema أيضًا
+    paid: { type: Number, default: 0 },
     dueDate: { type: Date },
 
     seen: { type: Boolean, default: false },

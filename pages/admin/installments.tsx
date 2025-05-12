@@ -7,7 +7,7 @@ import Link from "next/link";
 export default function InstallmentsPage() {
   const { user } = useUser();
   const [orders, setOrders] = useState([]);
-  const [filter, setFilter] = useState<"all" | "paid" | "due">("all");
+  const [filter, setFilter] = useState<"all" | "paid" | "due" | "late">("all");
 
   useEffect(() => {
     axios.get("/api/installments").then((res) => {
@@ -70,10 +70,19 @@ export default function InstallmentsPage() {
     }
   };
 
+  const handleAutoRemind = async () => {
+    const res = await fetch("/api/installments/auto-remind", { method: "POST" });
+    const data = await res.json();
+    if (data.success) alert(`📤 تم إرسال ${data.count} تذكير`);
+    else alert("❌ فشل في إرسال التذكيرات التلقائية");
+  };
+
   const filteredOrders = orders.filter((order) => {
     const remaining = order.total - (order.paid || 0);
+    const hasLateInstallment = order.installments?.some((i: any) => !i.paid && new Date(i.date) < new Date());
     if (filter === "paid") return remaining === 0;
     if (filter === "due") return remaining > 0;
+    if (filter === "late") return hasLateInstallment;
     return true;
   });
 
@@ -82,14 +91,12 @@ export default function InstallmentsPage() {
       <h1 className="text-2xl font-bold mb-4 text-right">📋 قائمة الأقساط</h1>
 
       <div className="mb-4 flex gap-2 justify-end">
-        <button onClick={() => setFilter("all")} className="px-4 py-1 border rounded">
-          الكل
-        </button>
-        <button onClick={() => setFilter("paid")} className="px-4 py-1 border rounded">
-          مدفوع
-        </button>
-        <button onClick={() => setFilter("due")} className="px-4 py-1 border rounded">
-          متبقي
+        <button onClick={() => setFilter("all"))} className="px-4 py-1 border rounded">الكل</button>
+        <button onClick={() => setFilter("paid"))} className="px-4 py-1 border rounded">مدفوع</button>
+        <button onClick={() => setFilter("due"))} className="px-4 py-1 border rounded">متبقي</button>
+        <button onClick={() => setFilter("late"))} className="px-4 py-1 border rounded">متأخر</button>
+        <button onClick={handleAutoRemind} className="px-4 py-1 border rounded bg-blue-600 text-white">
+          🔁 إرسال التذكيرات التلقائية
         </button>
       </div>
 
@@ -115,15 +122,17 @@ export default function InstallmentsPage() {
               const monthly = order.installmentsCount
                 ? Math.ceil((order.total - (order.downPayment || 0)) / order.installmentsCount)
                 : 0;
+              const hasLate = order.installments?.some((i: any) => !i.paid && new Date(i.date) < new Date());
 
               const message = `📅 تذكير: لديك قسط مستحق بتاريخ ${new Date(
                 order.dueDate
-              ).toLocaleDateString("ar-IQ")} لدى متجر ${order.storeName}.\n💰 المتبقي: ${remaining} د.ع ${
+              ).toLocaleDateString("ar-IQ")} لدى متجر ${order.storeName}.
+💰 المتبقي: ${remaining} د.ع ${
                 monthly ? `\n📤 القسط الشهري: ${monthly} د.ع` : ""
               }\n📞 للاستفسار: ${order.phone}`;
 
               return (
-                <tr key={order._id}>
+                <tr key={order._id} className={hasLate ? "bg-red-100" : ""}>
                   <td className="p-2 border">{order.customerName || "—"}</td>
                   <td className="p-2 border">{order.phone || "—"}</td>
                   <td className="p-2 border">
@@ -135,7 +144,7 @@ export default function InstallmentsPage() {
                   <td className="p-2 border">{order.paid || 0}</td>
                   <td className="p-2 border">{remaining}</td>
                   <td className="p-2 border">{order.reminderSent ? "✅" : "❌"}</td>
-                  <td className="p-2 border">{remaining === 0 ? "مدفوع" : "متبقي"}</td>
+                  <td className="p-2 border">{remaining === 0 ? "مدفوع" : hasLate ? "متأخر" : "متبقي"}</td>
                   <td className="p-2 border">{order.sentBy || "—"}</td>
                   <td className="p-2 border space-y-1">
                     <Link href={`/admin/installments/${order._id}`} className="text-indigo-600 hover:underline block">
