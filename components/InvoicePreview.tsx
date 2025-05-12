@@ -1,7 +1,5 @@
 import React from "react";
 
-// ✅ أزلنا الاستيراد من invoice.css لأن التنسيق موجود في globals.css
-
 type InvoicePreviewProps = {
   order: {
     _id: string;
@@ -19,163 +17,86 @@ type InvoicePreviewProps = {
     discount?: number;
   };
   storeName: string;
-  showActions?: boolean;
 };
 
-export default function InvoicePreview({
-  order,
-  storeName,
-  showActions = true,
-}: InvoicePreviewProps) {
-  const invoiceTypeLabel =
-    order.type === "installment" ? "فاتورة بيع أقساط" : "فاتورة بيع نقد";
-  const typeColor = order.type === "installment" ? "#d97706" : "#10b981";
-
-  const handlePrint = () => window.print();
-
-  const sendToWhatsAppServer = async () => {
-    const date = new Date(order.createdAt).toLocaleDateString("ar-EG");
-    const productList = order.cart
-      .map(
-        (item, idx) =>
-          `${idx + 1}. ${item.name} - الكمية: ${item.quantity} - السعر: ${item.price.toLocaleString("en-US")} د.ع`
-      )
-      .join("\n");
-
-    const message = `🧾 *${invoiceTypeLabel}*
-📅 التاريخ: ${date}
-👤 الاسم: ${order.customerName || "-"}
-📞 الهاتف: ${order.phone}
-
-📦 المنتجات:
-${productList}
-
-💰 الإجمالي: ${order.total.toLocaleString("en-US")} د.ع
-
-🔻 مرسل من: ${storeName}`;
-
-    try {
-      const res = await fetch("https://ma7al-whatsapp-production.up.railway.app/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          phone: order.phone.replace(/^0/, "964"),
-          message,
-        }),
-      });
-
-      if (res.ok) {
-        alert("✅ تم إرسال الفاتورة إلى الزبون عبر واتساب");
-      } else {
-        alert("❌ فشل في إرسال الفاتورة");
-      }
-    } catch (err) {
-      alert("⚠️ حدث خطأ أثناء الاتصال بسيرفر الواتساب");
-    }
-  };
-
-  const now = new Date();
-  const formattedTime = now.toLocaleTimeString("ar-EG");
+export default function InvoicePrintPreview({ order, storeName }: InvoicePreviewProps) {
+  const now = new Date(order.createdAt);
   const formattedDate = now.toLocaleDateString("ar-EG");
-  const invoiceNumber =
-    order._id?.slice(-6) || Math.floor(Math.random() * 1000000).toString().padStart(6, "0");
-  const paid = order.paid || 0;
-  const discount = order.discount || 0;
-  const totalAfterDiscount = order.total - discount;
+  const formattedTime = now.toLocaleTimeString("ar-EG");
+  const invoiceNumber = order._id?.slice(-6).padStart(6, "0");
 
   return (
-    <div className="invoice-container" style={{ fontFamily: 'Segoe UI, Tahoma, sans-serif' }}>
-      <div style={{ textAlign: "center", marginBottom: 10 }}>
-        <h2 style={{ fontSize: 24, fontWeight: "bold", margin: 0 }}>{storeName}</h2>
-        <h3 style={{ fontSize: 20, marginTop: 4, color: typeColor }}>🧾 {invoiceTypeLabel}</h3>
-        <p style={{ fontSize: 14, marginTop: 4 }}>🧾 رقم الفاتورة: {invoiceNumber}</p>
-        <p style={{ fontSize: 14 }}>⏱️ الساعة: {formattedTime}</p>
+    <div style={{ maxWidth: 800, margin: "0 auto", padding: 20, fontFamily: 'Segoe UI, Tahoma', color: '#000' }}>
+      {/* الترويسة */}
+      <div style={{ textAlign: 'center', borderBottom: '1px solid #000', paddingBottom: 10, marginBottom: 20 }}>
+        <h2 style={{ margin: 0 }}>{storeName}</h2>
+        <h3 style={{ margin: '5px 0' }}>{order.type === 'installment' ? 'فاتورة بيع أقساط' : 'فاتورة بيع نقد'}</h3>
+        <p style={{ margin: 0 }}>رقم الفاتورة: {invoiceNumber}</p>
+        <p style={{ margin: 0 }}>🕒 الساعة: {formattedTime} | 📅 التاريخ: {formattedDate}</p>
       </div>
 
-      <table className="invoice-table">
+      {/* جدول المنتجات */}
+      <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 20 }}>
         <thead>
           <tr>
-            <th>#</th>
-            <th>اسم المنتج</th>
-            <th>الكمية</th>
-            <th>السعر</th>
-            <th>الإجمالي</th>
+            <th style={th}>#</th>
+            <th style={th}>اسم المنتج</th>
+            <th style={th}>الكمية</th>
+            <th style={th}>السعر</th>
+            <th style={th}>الإجمالي</th>
           </tr>
         </thead>
         <tbody>
           {order.cart.map((item, index) => (
             <tr key={index}>
-              <td>{index + 1}</td>
-              <td>{item.name}</td>
-              <td>{item.quantity}</td>
-              <td>{item.price.toLocaleString("en-US")} د.ع</td>
-              <td>{(item.price * item.quantity).toLocaleString("en-US")} د.ع</td>
+              <td style={td}>{index + 1}</td>
+              <td style={td}>{item.name}</td>
+              <td style={td}>{item.quantity}</td>
+              <td style={td}>{item.price.toLocaleString("en-US")} د.ع</td>
+              <td style={td}>{(item.price * item.quantity).toLocaleString("en-US")} د.ع</td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      <div style={{ textAlign: "left", marginTop: 20 }}>
-        <p>
-          <strong>📅 التاريخ:</strong> {formattedDate} &nbsp;&nbsp;&nbsp;&nbsp;
-          <strong>👤 اسم الزبون:</strong> {order.customerName || "—"} &nbsp;&nbsp;&nbsp;&nbsp;
-          <strong>📞 الهاتف:</strong> {order.phone}
-        </p>
-      </div>
+      {/* تفاصيل الزبون */}
+      <p><strong>👤 اسم الزبون:</strong> {order.customerName || "—"} | <strong>📞 الهاتف:</strong> {order.phone}</p>
 
-      <div style={{ marginTop: 20 }}>
-        <p>
-          <strong>💵 المبلغ المدفوع:</strong> {paid.toLocaleString("en-US")} د.ع
-        </p>
-        <p>
-          <strong>🔻 الخصم:</strong> {discount.toLocaleString("en-US")} د.ع
-        </p>
-        <p style={{ fontSize: 16, fontWeight: "bold" }}>
-          💰 الإجمالي بعد الخصم: {totalAfterDiscount.toLocaleString("en-US")} د.ع
-        </p>
-      </div>
+      {/* المبالغ */}
+      <p><strong>💵 المدفوع:</strong> {order.paid?.toLocaleString("en-US") || 0} د.ع</p>
+      <p><strong>🔻 الخصم:</strong> {order.discount?.toLocaleString("en-US") || 0} د.ع</p>
+      <p><strong>💰 الإجمالي بعد الخصم:</strong> {(order.total - (order.discount || 0)).toLocaleString("en-US")} د.ع</p>
 
+      {/* تفاصيل الأقساط */}
       {order.type === "installment" && (
         <div style={{ marginTop: 20 }}>
           <p><strong>📥 تفاصيل الأقساط:</strong></p>
-          <p>🔢 عدد الأقساط: {order.installmentsCount || "—"}</p>
-          <p>💳 المبلغ المدفوع مقدماً: {order.downPayment?.toLocaleString("en-US") || 0} د.ع</p>
-          <p>🧾 المتبقي: {order.remaining?.toLocaleString("en-US") || 0} د.ع</p>
-          <p>🗓️ تاريخ أول قسط: {order.dueDate ? new Date(order.dueDate).toLocaleDateString("ar-EG") : "—"}</p>
+          <p>📆 عدد الأقساط: {order.installmentsCount}</p>
+          <p>💳 الدفعة الأولى: {order.downPayment?.toLocaleString("en-US") || 0} د.ع</p>
+          <p>💸 المتبقي: {order.remaining?.toLocaleString("en-US") || 0} د.ع</p>
+          <p>🗓️ تاريخ أول قسط: {order.dueDate ? new Date(order.dueDate).toLocaleDateString("ar-EG") : '—'}</p>
         </div>
       )}
 
-      {showActions && (
-        <div className="no-print" style={{ marginTop: 30, display: "flex", justifyContent: "center", gap: "20px" }}>
-          <button
-            onClick={handlePrint}
-            style={{
-              backgroundColor: "#1f2937",
-              color: "#fff",
-              border: "none",
-              padding: "10px 20px",
-              borderRadius: "5px",
-              cursor: "pointer",
-            }}
-          >
-            🖨️ طباعة الفاتورة
-          </button>
-
-          <button
-            onClick={sendToWhatsAppServer}
-            style={{
-              backgroundColor: "#25D366",
-              color: "#fff",
-              border: "none",
-              padding: "10px 20px",
-              borderRadius: "5px",
-              cursor: "pointer",
-            }}
-          >
-            📤 إرسال على WhatsApp
-          </button>
-        </div>
-      )}
+      {/* ملاحظات */}
+      <div style={{ borderTop: '1px dashed #000', marginTop: 30, paddingTop: 10, fontSize: 13 }}>
+        <p>📌 ملاحظة: يرجى الاحتفاظ بهذه الفاتورة كمرجع للدفعات اللاحقة.</p>
+        <p>للاستفسار، الرجاء التواصل على الرقم الموجود أعلاه.</p>
+      </div>
     </div>
   );
 }
+
+const th: React.CSSProperties = {
+  border: '1px solid #000',
+  padding: 8,
+  fontSize: 14,
+  background: '#eee',
+};
+
+const td: React.CSSProperties = {
+  border: '1px solid #000',
+  padding: 8,
+  fontSize: 14,
+  textAlign: 'center',
+};
