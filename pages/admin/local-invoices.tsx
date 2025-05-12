@@ -8,7 +8,7 @@ import dynamic from "next/dynamic";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 
-const InvoicePreview = dynamic(() => import("@/components/InvoicePreview"), {
+const InvoicePrintPreview = dynamic(() => import("@/components/InvoicePrintPreview"), {
   ssr: false,
 });
 
@@ -186,10 +186,9 @@ export default function LocalInvoicesPage({ invoices }: { invoices: LocalInvoice
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg max-w-4xl w-full p-4 relative overflow-y-auto max-h-[90vh]">
             <button onClick={() => setShowModal(false)} className="absolute top-2 left-2 text-red-500 text-xl font-bold">✖</button>
-            <InvoicePreview
+            <InvoicePrintPreview
               order={selectedInvoice}
               storeName="Ma7al Store"
-              showActions={true}
             />
           </div>
         </div>
