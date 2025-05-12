@@ -1,6 +1,6 @@
 import React from "react";
 
-import "../styles/invoice.css"; // تأكد من وجود هذا الملف وتعديله حسب المسار الصحيح
+// ✅ أزلنا الاستيراد من invoice.css لأن التنسيق موجود في globals.css
 
 type InvoicePreviewProps = {
   order: {
