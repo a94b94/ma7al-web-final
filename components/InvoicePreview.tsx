@@ -38,7 +38,7 @@ export default function InvoicePreview({
     const productList = order.cart
       .map(
         (item, idx) =>
-          `${idx + 1}. ${item.name} - الكمية: ${item.quantity} - السعر: ${item.price.toLocaleString("ar-EG")} د.ع`
+          `${idx + 1}. ${item.name} - الكمية: ${item.quantity} - السعر: ${item.price.toLocaleString("en-US")} د.ع`
       )
       .join("\n");
 
@@ -50,7 +50,7 @@ export default function InvoicePreview({
 📦 المنتجات:
 ${productList}
 
-💰 الإجمالي: ${order.total.toLocaleString("ar-EG")} د.ع
+💰 الإجمالي: ${order.total.toLocaleString("en-US")} د.ع
 
 🔻 مرسل من: ${storeName}`;
 
@@ -84,7 +84,7 @@ ${productList}
   const totalAfterDiscount = order.total - discount;
 
   return (
-    <div className="invoice-container">
+    <div className="invoice-container" style={{ fontFamily: 'Segoe UI, Tahoma, sans-serif' }}>
       <div style={{ textAlign: "center", marginBottom: 10 }}>
         <h2 style={{ fontSize: 24, fontWeight: "bold", margin: 0 }}>{storeName}</h2>
         <h3 style={{ fontSize: 20, marginTop: 4, color: typeColor }}>🧾 {invoiceTypeLabel}</h3>
@@ -108,8 +108,8 @@ ${productList}
               <td>{index + 1}</td>
               <td>{item.name}</td>
               <td>{item.quantity}</td>
-              <td>{item.price.toLocaleString("ar-EG")} د.ع</td>
-              <td>{(item.price * item.quantity).toLocaleString("ar-EG")} د.ع</td>
+              <td>{item.price.toLocaleString("en-US")} د.ع</td>
+              <td>{(item.price * item.quantity).toLocaleString("en-US")} د.ع</td>
             </tr>
           ))}
         </tbody>
@@ -125,13 +125,13 @@ ${productList}
 
       <div style={{ marginTop: 20 }}>
         <p>
-          <strong>💵 المبلغ المدفوع:</strong> {paid.toLocaleString("ar-EG")} د.ع
+          <strong>💵 المبلغ المدفوع:</strong> {paid.toLocaleString("en-US")} د.ع
         </p>
         <p>
-          <strong>🔻 الخصم:</strong> {discount.toLocaleString("ar-EG")} د.ع
+          <strong>🔻 الخصم:</strong> {discount.toLocaleString("en-US")} د.ع
         </p>
         <p style={{ fontSize: 16, fontWeight: "bold" }}>
-          💰 الإجمالي بعد الخصم: {totalAfterDiscount.toLocaleString("ar-EG")} د.ع
+          💰 الإجمالي بعد الخصم: {totalAfterDiscount.toLocaleString("en-US")} د.ع
         </p>
       </div>
 
@@ -139,8 +139,8 @@ ${productList}
         <div style={{ marginTop: 20 }}>
           <p><strong>📥 تفاصيل الأقساط:</strong></p>
           <p>🔢 عدد الأقساط: {order.installmentsCount || "—"}</p>
-          <p>💳 المبلغ المدفوع مقدماً: {order.downPayment?.toLocaleString("ar-EG") || 0} د.ع</p>
-          <p>🧾 المتبقي: {order.remaining?.toLocaleString("ar-EG") || 0} د.ع</p>
+          <p>💳 المبلغ المدفوع مقدماً: {order.downPayment?.toLocaleString("en-US") || 0} د.ع</p>
+          <p>🧾 المتبقي: {order.remaining?.toLocaleString("en-US") || 0} د.ع</p>
           <p>🗓️ تاريخ أول قسط: {order.dueDate ? new Date(order.dueDate).toLocaleDateString("ar-EG") : "—"}</p>
         </div>
       )}
