@@ -20,7 +20,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       type,
       downPayment = 0,
       installmentsCount = 0,
-      dueDate,
       remaining = 0,
       paid = 0,
       discount = 0,
@@ -29,16 +28,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       sentBy = "مشرف",
     } = req.body;
 
-    const address = customerName; // استخدام اسم الزبون كعنوان افتراضي (محلي)
+    const address = customerName;
+    const dueDate = new Date().toISOString(); // التاريخ الأول تلقائي = اليوم
 
     if (!phone || !customerName || !Array.isArray(cart) || cart.length === 0 || !total || !type) {
       return res.status(400).json({ success: false, error: "❗ البيانات ناقصة أو غير صحيحة" });
     }
 
-    console.log("📦 حفظ فاتورة محلية...");
-    console.log({ phone, customerName, total, type });
-
-    // حفظ الفاتورة في LocalInvoice
     const invoice = await LocalInvoice.create({
       phone,
       address,
@@ -58,14 +54,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       sentBy,
     });
 
-    // إذا كانت تقسيط، نحسب الأقساط ونحفظ نسخة في Order
     if (type === "installment") {
       const installments = [];
 
-      if (installmentsCount > 0 && dueDate) {
+      if (installmentsCount > 0) {
         const installmentAmount = Math.ceil((total - downPayment) / installmentsCount);
         for (let i = 0; i < installmentsCount; i++) {
-          const due = new Date(dueDate);
+          const due = new Date();
           due.setMonth(due.getMonth() + i);
           installments.push({
             date: due,
@@ -94,8 +89,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         sentBy,
         installments,
       });
-
-      console.log("🗂️ تم إنشاء سجل متابعة للأقساط مع جدول أقساط");
     }
 
     return res.status(201).json({ success: true, invoice });
