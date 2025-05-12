@@ -13,7 +13,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const {
       phone,
-      address,
+      customerName = "الزبون",
       cart,
       total,
       createdAt,
@@ -26,11 +26,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       discount = 0,
       storeId = "default",
       storeName = "Store",
-      customerName = "الزبون",
       sentBy = "مشرف",
     } = req.body;
 
-    if (!phone || !address || !Array.isArray(cart) || cart.length === 0 || !total || !type) {
+    const address = customerName; // استخدام اسم الزبون كعنوان افتراضي (محلي)
+
+    if (!phone || !customerName || !Array.isArray(cart) || cart.length === 0 || !total || !type) {
       return res.status(400).json({ success: false, error: "❗ البيانات ناقصة أو غير صحيحة" });
     }
 
