@@ -5,7 +5,7 @@ import { useRouter } from "next/router";
 import dynamic from "next/dynamic";
 import toast from "react-hot-toast";
 
-const InvoicePreview = dynamic(() => import("@/components/InvoicePreview"), { ssr: false });
+const InvoicePrintPreview = dynamic(() => import("@/components/InvoicePrintPreview"), { ssr: false });
 
 interface CartItem {
   name: string;
@@ -26,8 +26,7 @@ export default function LocalSalePage() {
   const [dueDate, setDueDate] = useState("");
   const [paid, setPaid] = useState(0);
   const [discount, setDiscount] = useState(0);
-  const [storeName, setStoreName] = useState("Ma7al Store");
-  const [storeLogo] = useState("/logo.png");
+  const [storeName] = useState("Ma7al Store");
   const [showInvoice, setShowInvoice] = useState(false);
 
   const total = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
@@ -201,7 +200,7 @@ export default function LocalSalePage() {
             <button onClick={handlePrintPDF} className="bg-gray-800 text-white px-4 py-1 rounded">🖨️ طباعة PDF</button>
           </div>
           <div id="invoice-preview" className="border p-4 bg-white shadow">
-            <InvoicePreview order={fakeOrder} storeName={storeName} showActions={false} />
+            <InvoicePrintPreview order={fakeOrder} storeName={storeName} />
           </div>
         </div>
       )}
