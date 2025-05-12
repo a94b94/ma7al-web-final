@@ -9,14 +9,16 @@ body {
   background-color: #f9fafb;
 }
 
+/* ✅ تنسيقات الطباعة */
 @media print {
   body {
     margin: 0;
     padding: 0;
     font-size: 14px;
-    font-family: 'Cairo', 'Tahoma', sans-serif;
+    font-family: 'Segoe UI', Tahoma, sans-serif;
     direction: rtl;
     color: #000;
+    background: white;
   }
 
   .invoice-container {
@@ -24,7 +26,6 @@ body {
     padding: 20px;
     box-sizing: border-box;
     page-break-inside: avoid;
-    background: white;
   }
 
   .invoice-table {
@@ -40,13 +41,18 @@ body {
     text-align: center;
   }
 
-  .no-print {
-    display: none !important;
-  }
-
   @page {
     size: A4 portrait;
     margin: 1cm;
+  }
+}
+
+/* ✅ دعم إخفاء الأزرار في الطباعة عبر Tailwind */
+@layer utilities {
+  @media print {
+    .no-print {
+      display: none !important;
+    }
   }
 }
 
@@ -78,6 +84,7 @@ body {
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
   }
+
   .dark {
     --background: 0 0% 3.9%;
     --foreground: 0 0% 98%;
@@ -110,6 +117,7 @@ body {
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
   }

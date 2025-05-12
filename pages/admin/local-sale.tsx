@@ -40,7 +40,7 @@ export default function LocalSalePage() {
   const fakeOrder = {
     _id: typeof id === "string" ? id : undefined,
     phone: customerPhone || "غير مذكور",
-    address: customerName || "زبون محلي",
+    customerName: customerName || "زبون محلي",
     cart,
     total: totalAfterDiscount,
     createdAt: new Date().toISOString(),
@@ -201,7 +201,7 @@ export default function LocalSalePage() {
             <button onClick={handlePrintPDF} className="bg-gray-800 text-white px-4 py-1 rounded">🖨️ طباعة PDF</button>
           </div>
           <div id="invoice-preview" className="border p-4 bg-white shadow">
-            <InvoicePreview order={fakeOrder} storeName={storeName} showActions={true} />
+            <InvoicePreview order={fakeOrder} storeName={storeName} showActions={false} />
           </div>
         </div>
       )}
