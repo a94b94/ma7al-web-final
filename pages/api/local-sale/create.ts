@@ -57,8 +57,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       sentBy,
     });
 
-    // إذا كانت تقسيط، نحفظ نسخة في Order (لمتابعة الأقساط لاحقًا)
+    // إذا كانت تقسيط، نحسب الأقساط ونحفظ نسخة في Order
     if (type === "installment") {
+      const installments = [];
+
+      if (installmentsCount > 0 && dueDate) {
+        const installmentAmount = Math.ceil((total - downPayment) / installmentsCount);
+        for (let i = 0; i < installmentsCount; i++) {
+          const due = new Date(dueDate);
+          due.setMonth(due.getMonth() + i);
+          installments.push({
+            date: due,
+            amount: installmentAmount,
+            paid: false,
+          });
+        }
+      }
+
       await Order.create({
         phone,
         address,
@@ -76,9 +91,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         customerName,
         customerPhone: phone,
         sentBy,
+        installments,
       });
 
-      console.log("🗂️ تم إنشاء سجل متابعة للأقساط");
+      console.log("🗂️ تم إنشاء سجل متابعة للأقساط مع جدول أقساط");
     }
 
     return res.status(201).json({ success: true, invoice });
