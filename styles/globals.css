@@ -9,7 +9,46 @@ body {
   background-color: #f9fafb;
 }
 
+@media print {
+  body {
+    margin: 0;
+    padding: 0;
+    font-size: 14px;
+    font-family: 'Cairo', 'Tahoma', sans-serif;
+    direction: rtl;
+    color: #000;
+  }
 
+  .invoice-container {
+    width: 100%;
+    padding: 20px;
+    box-sizing: border-box;
+    page-break-inside: avoid;
+    background: white;
+  }
+
+  .invoice-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+  }
+
+  .invoice-table th,
+  .invoice-table td {
+    border: 1px solid black;
+    padding: 8px;
+    text-align: center;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 1cm;
+  }
+}
 
 @layer base {
   :root {
@@ -66,8 +105,6 @@ body {
     --chart-5: 340 75% 55%;
   }
 }
-
-
 
 @layer base {
   * {
