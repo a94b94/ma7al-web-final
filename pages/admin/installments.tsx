@@ -91,10 +91,10 @@ export default function InstallmentsPage() {
       <h1 className="text-2xl font-bold mb-4 text-right">📋 قائمة الأقساط</h1>
 
       <div className="mb-4 flex gap-2 justify-end">
-        <button onClick={() => setFilter("all"))} className="px-4 py-1 border rounded">الكل</button>
-        <button onClick={() => setFilter("paid"))} className="px-4 py-1 border rounded">مدفوع</button>
-        <button onClick={() => setFilter("due"))} className="px-4 py-1 border rounded">متبقي</button>
-        <button onClick={() => setFilter("late"))} className="px-4 py-1 border rounded">متأخر</button>
+        <button onClick={() => setFilter("all")} className="px-4 py-1 border rounded">الكل</button>
+        <button onClick={() => setFilter("paid")} className="px-4 py-1 border rounded">مدفوع</button>
+        <button onClick={() => setFilter("due")} className="px-4 py-1 border rounded">متبقي</button>
+        <button onClick={() => setFilter("late")} className="px-4 py-1 border rounded">متأخر</button>
         <button onClick={handleAutoRemind} className="px-4 py-1 border rounded bg-blue-600 text-white">
           🔁 إرسال التذكيرات التلقائية
         </button>
