@@ -10,13 +10,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const now = new Date();
 
   try {
-    // احصل على الطلبات التي تحتوي على أقساط غير مدفوعة وقريبة من اليوم (اليوم أو غدًا)
     const orders = await Order.find({
       type: "installment",
       installments: {
         $elemMatch: {
           paid: false,
-          date: { $lte: new Date(now.getTime() + 24 * 60 * 60 * 1000) }, // اليوم أو غدًا
+          date: { $lte: new Date(now.getTime() + 24 * 60 * 60 * 1000) },
         },
       },
     });
@@ -24,15 +23,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     let remindersSent = 0;
 
     for (const order of orders) {
+      if (!order.phone || !Array.isArray(order.installments)) continue;
+
       const customerPhone = order.phone.replace("+", "");
       const customerName = order.customerName || "الزبون";
-      const storeName = order.storeName;
+      const storeName = order.storeName || "المتجر";
       const nextDue = order.installments.find(i => !i.paid)?.date;
+
+      if (!nextDue) continue;
+
       const dueDateStr = new Date(nextDue).toLocaleDateString("ar-IQ");
+      const amount = order.remaining?.toLocaleString() || "غير محدد";
 
-      const message = `📢 تذكير بموعد قسط\n👤 ${customerName}\n📅 ${dueDateStr}\n💰 ${order.remaining?.toLocaleString()} د.ع\n🛍️ متجر: ${storeName}`;
+      const message = `📢 تذكير بموعد قسط\n👤 ${customerName}\n📅 ${dueDateStr}\n💰 ${amount} د.ع\n🛍️ متجر: ${storeName}`;
 
-      // تحقق إن تم إرسال هذا التذكير من قبل
       const alreadySent = await NotificationModel.findOne({
         orderId: order._id,
         customerPhone,
@@ -40,24 +44,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
 
       if (!alreadySent) {
-        // أرسل الرسالة
         const result = await fetch("https://ma7al-whatsapp-production.up.railway.app/send", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ phone: customerPhone, message }),
         });
 
-        const json = await result.json();
-        if (json.success || result.ok) {
+        let json = {};
+        try {
+          json = await result.json();
+        } catch (err) {
+          console.warn("⚠️ فشل تحويل الرد إلى JSON", err.message);
+        }
+
+        if ((json as any).success || result.ok) {
           remindersSent++;
 
-          // سجل التذكير
           await NotificationModel.create({
             orderId: order._id,
             customerPhone,
             message,
             sentAt: new Date(),
           });
+        } else {
+          console.error("❌ فشل الإرسال", json);
         }
       }
     }
@@ -65,6 +75,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.status(200).json({ success: true, count: remindersSent });
   } catch (err) {
     console.error("❌ Auto Reminder Error:", err);
-    res.status(500).json({ success: false, error: "حدث خطأ أثناء إرسال التذكيرات" });
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : "حدث خطأ غير متوقع" });
   }
 }
