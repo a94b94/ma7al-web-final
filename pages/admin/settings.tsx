@@ -11,19 +11,30 @@ export default function AdminSettingsPage() {
   const [storeName, setStoreName] = useState("");
   const [storeLogo, setStoreLogo] = useState("");
   const [whatsappNumber, setWhatsappNumber] = useState("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!user) {
-      router.push("/login");
-    } else {
+    if (user) {
       setStoreName(user.storeName || "");
       setStoreLogo(user.storeLogo || "");
       setWhatsappNumber(user.whatsappNumber || "");
     }
   }, [user]);
 
+  useEffect(() => {
+    if (!user) {
+      router.push("/login");
+    }
+  }, [user]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!/^\d{10,15}$/.test(whatsappNumber)) {
+      toast.error("❌ رقم الواتساب غير صحيح");
+      return;
+    }
+
+    setLoading(true);
     try {
       await axios.post("/api/admin/settings", {
         userId: user._id,
@@ -34,6 +45,8 @@ export default function AdminSettingsPage() {
       toast.success("✅ تم حفظ التعديلات بنجاح");
     } catch (err) {
       toast.error("فشل في حفظ الإعدادات");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -99,9 +112,10 @@ export default function AdminSettingsPage() {
 
         <button
           type="submit"
-          className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
+          disabled={loading}
+          className={`bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
         >
-          حفظ التعديلات
+          {loading ? "جارٍ الحفظ..." : "حفظ التعديلات"}
         </button>
       </form>
     </div>
