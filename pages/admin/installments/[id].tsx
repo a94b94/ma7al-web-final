@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import { useUser } from "@/context/UserContext";
 import * as XLSX from "xlsx";
 import ReminderLog from "@/components/admin/ReminderLog";
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, XAxis, YAxis, Bar, CartesianGrid, Legend } from "recharts";
 
 export default function InstallmentDetailsPage() {
   const router = useRouter();
@@ -44,13 +45,6 @@ export default function InstallmentDetailsPage() {
     localStorage.setItem("installment_sort", sortOrder);
   }, [sortOrder]);
 
-  const handleResetFilters = () => {
-    setFilter("all");
-    setSortOrder("asc");
-    localStorage.removeItem("installment_filter");
-    localStorage.removeItem("installment_sort");
-  };
-
   const handleMarkInstallmentPaid = async (index: number) => {
     try {
       const res = await axios.post("/api/installments/mark-one", {
@@ -72,27 +66,6 @@ export default function InstallmentDetailsPage() {
     }
   };
 
-  const handleUnmarkInstallmentPaid = async (index: number) => {
-    try {
-      const res = await axios.post("/api/installments/unmark-one", {
-        orderId: id,
-        installmentIndex: index,
-      });
-      if (res.data.success) {
-        toast.success("✅ تم إلغاء دفع القسط");
-        setOrder((prev: any) => {
-          const updated = { ...prev };
-          updated.installments[index].paid = false;
-          updated.installments[index].paidAt = undefined;
-          updated.paid -= updated.installments[index].amount;
-          return updated;
-        });
-      } else toast.error("❌ فشل في التحديث");
-    } catch {
-      toast.error("⚠️ خطأ أثناء الإلغاء");
-    }
-  };
-
   const handleSendReminder = async (index: number) => {
     const installment = order.installments[index];
     const message = `📅 تذكير بقسط مستحق بتاريخ ${new Date(installment.date).toLocaleDateString("ar-IQ")} بقيمة ${installment.amount.toLocaleString()} د.ع\nالرجاء السداد في أقرب وقت ممكن.\n📞 ${order.storeName}`;
@@ -101,7 +74,7 @@ export default function InstallmentDetailsPage() {
         phone: order.phone,
         message,
         orderId: order._id,
-        sentBy: user?.name || "مشرف"
+        sentBy: user?.name || "مشرف",
       });
 
       await axios.post("/api/notifications/log", {
@@ -110,7 +83,7 @@ export default function InstallmentDetailsPage() {
         sentBy: user?.name || "مشرف",
         phone: order.phone,
         type: "installment-reminder",
-        installmentIndex: index
+        installmentIndex: index,
       });
 
       toast.success("✅ تم إرسال التذكير وتسجيله في السجل");
@@ -119,47 +92,7 @@ export default function InstallmentDetailsPage() {
     }
   };
 
-  const handlePrintReport = async () => {
-    const element = document.getElementById("installment-report");
-    if (element) {
-      const html2pdf = (await import("html2pdf.js")).default;
-      html2pdf()
-        .from(element)
-        .set({
-          margin: 0.5,
-          filename: `تقرير-الأقساط-${order.customerName}.pdf`,
-          html2canvas: { scale: 2 }
-        })
-        .save();
-    }
-  };
-
-  const handleExportToExcel = () => {
-    const filtered = filteredInstallments.map((item: any, index: number) => ({
-      "#": index + 1,
-      "تاريخ الاستحقاق": new Date(item.date).toLocaleDateString("ar-IQ"),
-      "المبلغ": item.amount,
-      "الحالة": item.paid ? "مدفوع" : "غير مدفوع",
-      "تاريخ الدفع": item.paidAt ? new Date(item.paidAt).toLocaleDateString("ar-IQ") : "—",
-    }));
-    const worksheet = XLSX.utils.json_to_sheet(filtered);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Installments");
-    XLSX.writeFile(workbook, `تقرير-الأقساط-${order.customerName}.xlsx`);
-  };
-
-  if (loading) return <AdminLayout><p>🔄 جاري التحميل...</p></AdminLayout>;
-  if (!order) return <AdminLayout><p>❌ لم يتم العثور على الفاتورة</p></AdminLayout>;
-
-  const totalInstallments = order.installments?.length || 0;
-  const paidInstallments = order.installments?.filter((i: any) => i.paid).length || 0;
-  const unpaidInstallments = totalInstallments - paidInstallments;
-  const totalPaidAmount = order.paid || 0;
-  const totalRemainingAmount = (order.total || 0) - totalPaidAmount;
-  const today = new Date().toLocaleDateString("ar-IQ");
-  const logo = order.storeLogo || user?.storeLogo;
-
-  const filteredInstallments = (order.installments || [])
+  const filteredInstallments = (order?.installments || [])
     .filter((item: any) => {
       if (filter === "paid") return item.paid;
       if (filter === "unpaid") return !item.paid;
@@ -171,13 +104,131 @@ export default function InstallmentDetailsPage() {
       return sortOrder === "asc" ? dateA - dateB : dateB - dateA;
     });
 
+  const totalInstallments = order?.installments?.length || 0;
+  const paidInstallments = order?.installments?.filter((i: any) => i.paid).length || 0;
+  const unpaidInstallments = totalInstallments - paidInstallments;
+  const totalPaidAmount = order?.paid || 0;
+  const totalRemainingAmount = (order?.total || 0) - totalPaidAmount;
+
+  const now = new Date();
+  const last7 = new Date(now);
+  last7.setDate(now.getDate() - 7);
+  const last30 = new Date(now);
+  last30.setDate(now.getDate() - 30);
+
+  const paidInLast7 = order?.installments?.filter((i: any) => i.paid && i.paidAt && new Date(i.paidAt) >= last7)
+    .reduce((sum: number, i: any) => sum + i.amount, 0) || 0;
+  const paidInLast30 = order?.installments?.filter((i: any) => i.paid && i.paidAt && new Date(i.paidAt) >= last30)
+    .reduce((sum: number, i: any) => sum + i.amount, 0) || 0;
+
+  const chartData = [
+    { name: "مدفوع", value: paidInstallments },
+    { name: "غير مدفوع", value: unpaidInstallments },
+  ];
+
+  const monthlyTotals: Record<string, number> = {};
+  order?.installments?.forEach((i: any) => {
+    if (i.paid && i.paidAt) {
+      const month = new Date(i.paidAt).toLocaleDateString("ar-IQ", { year: "numeric", month: "short" });
+      monthlyTotals[month] = (monthlyTotals[month] || 0) + i.amount;
+    }
+  });
+
+  const barData = Object.keys(monthlyTotals).map((month) => ({ month, amount: monthlyTotals[month] }));
+
+  const COLORS = ["#4ade80", "#f87171"];
+
   return (
     <AdminLayout>
       <div className="mb-6 p-4 border rounded bg-white">
         <h2 className="text-lg font-bold mb-2">🧾 سجل التذكيرات</h2>
-        <ReminderLog orderId={order._id} />
+        <ReminderLog orderId={order?._id} />
       </div>
-      {/* باقي الكود للجدول والتفاصيل هنا */}
+
+      <div className="mb-6 p-4 border rounded bg-white">
+        <h2 className="text-lg font-bold mb-2">📊 ملخص الأقساط</h2>
+        <p>عدد الأقساط: {totalInstallments}</p>
+        <p>المدفوعة: {paidInstallments}</p>
+        <p>غير المدفوعة: {unpaidInstallments}</p>
+        <p>الإجمالي المدفوع: {totalPaidAmount.toLocaleString()} د.ع</p>
+        <p>المتبقي: {totalRemainingAmount.toLocaleString()} د.ع</p>
+        <p>🔹 المدفوع خلال آخر 7 أيام: {paidInLast7.toLocaleString()} د.ع</p>
+        <p>🔹 المدفوع خلال آخر 30 يوم: {paidInLast30.toLocaleString()} د.ع</p>
+
+        <div className="w-full h-64 mt-6">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie data={chartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
+                {chartData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+
+        {barData.length > 0 && (
+          <div className="w-full h-72 mt-10">
+            <h3 className="text-base font-semibold mb-2">📈 المدفوعات حسب الشهر</h3>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={barData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="amount" fill="#60a5fa" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </div>
+
+      <div className="p-4 border rounded bg-white">
+        <h2 className="text-lg font-bold mb-4">📋 جدول الأقساط</h2>
+        <table className="w-full text-sm border">
+          <thead className="bg-gray-100">
+            <tr>
+              <th className="p-2 border">#</th>
+              <th className="p-2 border">تاريخ الاستحقاق</th>
+              <th className="p-2 border">المبلغ</th>
+              <th className="p-2 border">الحالة</th>
+              <th className="p-2 border">تاريخ الدفع</th>
+              <th className="p-2 border">إجراء</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredInstallments.map((item: any, index: number) => (
+              <tr key={index} className={item.paid ? "bg-green-50" : "bg-red-50"}>
+                <td className="p-2 border text-center">{index + 1}</td>
+                <td className="p-2 border text-center">{new Date(item.date).toLocaleDateString("ar-IQ")}</td>
+                <td className="p-2 border text-center">{item.amount.toLocaleString()} د.ع</td>
+                <td className="p-2 border text-center">{item.paid ? "✅ مدفوع" : "❌ غير مدفوع"}</td>
+                <td className="p-2 border text-center">{item.paidAt ? new Date(item.paidAt).toLocaleDateString("ar-IQ") : "—"}</td>
+                <td className="p-2 border text-center space-x-2 rtl:space-x-reverse">
+                  {!item.paid && (
+                    <>
+                      <button
+                        onClick={() => handleMarkInstallmentPaid(index)}
+                        className="text-green-600 hover:underline"
+                      >
+                        💵 دفع
+                      </button>
+                      <button
+                        onClick={() => handleSendReminder(index)}
+                        className="text-blue-600 hover:underline"
+                      >
+                        📤 تذكير
+                      </button>
+                    </>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </AdminLayout>
   );
 }
