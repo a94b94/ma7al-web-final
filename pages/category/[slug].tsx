@@ -36,16 +36,14 @@ export default function CategoryPage() {
   return (
     <div className="bg-[#f9f9f9] min-h-screen py-12 px-4 sm:px-8">
       <div className="max-w-7xl mx-auto">
-        {/* العنوان */}
-        <h1 className="text-4xl font-bold text-gray-800 mb-10 text-center">
+        <h1 className="text-3xl sm:text-4xl font-bold text-gray-800 mb-10 text-center">
           🛒 تصفّح قسم <span className="text-blue-600 capitalize">{slug}</span>
         </h1>
 
-        {/* المنتجات */}
         {products.length === 0 ? (
           <p className="text-center text-gray-500 text-lg">لا توجد منتجات حالياً بهذا القسم.</p>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
             {products.map((product: any) => {
               const hasDiscount = product.discount > 0;
               const finalPrice = hasDiscount
@@ -55,31 +53,31 @@ export default function CategoryPage() {
               return (
                 <div
                   key={product._id}
-                  className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden"
+                  className="bg-white dark:bg-slate-800 rounded-2xl shadow-md hover:shadow-lg transition-all overflow-hidden border dark:border-slate-700 group"
                 >
-                  <div className="relative w-full h-48 bg-gray-100">
+                  <div className="relative w-full h-48 overflow-hidden">
                     <Image
                       src={product.image || "/images/default.jpg"}
                       alt={product.name}
                       fill
-                      className="object-cover"
+                      className="object-cover transform group-hover:scale-105 transition duration-300"
                     />
                     {hasDiscount && (
-                      <span className="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full shadow-sm">
+                      <span className="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
                         خصم {product.discount}%
                       </span>
                     )}
                   </div>
 
-                  <div className="p-4 flex flex-col justify-between h-[180px]">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-1 truncate">
+                  <div className="p-4 flex flex-col justify-between h-[190px]">
+                    <h3 className="text-sm font-semibold truncate text-slate-800 dark:text-white mb-1">
                       {product.name}
                     </h3>
 
                     <div className="mb-2">
                       {hasDiscount ? (
                         <div className="flex items-center gap-2">
-                          <span className="text-red-600 font-bold text-lg">
+                          <span className="text-red-600 font-bold text-base">
                             {finalPrice.toLocaleString()} د.ع
                           </span>
                           <span className="line-through text-gray-400 text-sm">
@@ -87,7 +85,7 @@ export default function CategoryPage() {
                           </span>
                         </div>
                       ) : (
-                        <span className="text-blue-700 font-bold text-lg">
+                        <span className="text-blue-600 font-bold text-base">
                           {product.price.toLocaleString()} د.ع
                         </span>
                       )}
@@ -95,13 +93,13 @@ export default function CategoryPage() {
 
                     <div className="flex gap-2 mt-auto">
                       <Link href={`/product/${product._id}`}>
-                        <button className="flex-1 bg-gray-200 text-gray-800 text-sm py-2 px-3 rounded-lg hover:bg-gray-300 transition flex items-center justify-center gap-1">
+                        <button className="flex-1 bg-gray-200 dark:bg-slate-700 text-gray-800 dark:text-white text-xs py-2 rounded-lg hover:bg-gray-300 dark:hover:bg-slate-600 transition flex items-center justify-center gap-1">
                           <Eye size={16} /> عرض
                         </button>
                       </Link>
                       <button
                         onClick={() => handleAddToCart(product)}
-                        className="flex-1 bg-blue-600 text-white text-sm py-2 px-3 rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-1"
+                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs py-2 rounded-lg transition flex items-center justify-center gap-1"
                       >
                         <ShoppingCart size={16} /> للسلة
                       </button>
