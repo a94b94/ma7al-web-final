@@ -1,6 +1,6 @@
 // pages/api/activity/log.ts
 import type { NextApiRequest, NextApiResponse } from "next";
-import connectDB from "@/lib/mongoose";
+import { connectDB } from "@/lib/mongoose";
 import Activity from "@/models/Activity";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
