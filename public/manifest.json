@@ -1,0 +1,23 @@
+{
+  "name": "Ma7al Store",
+  "short_name": "Ma7al",
+  "description": "متجر الكتروني احترافي لبيع الإلكترونيات",
+  "lang": "ar-IQ",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}
