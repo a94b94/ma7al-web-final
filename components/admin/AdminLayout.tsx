@@ -16,7 +16,7 @@ import {
   ShieldCheck,
   Settings,
   CreditCard,
-  FileBarChart, // ✅ أيقونة التقارير
+  FileBarChart,
 } from "lucide-react";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -29,9 +29,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { label: "لوحة التحكم", href: "/admin", icon: <LayoutDashboard size={18} /> },
     { label: "الإشعارات", href: "/admin/notifications", icon: <Bell size={18} /> },
     { label: "المنتجات", href: "/admin/products", icon: <Package size={18} /> },
+    { label: "📦 المخزن", href: "/admin/inventory", icon: <Package size={18} /> }, // ✅ تمت الإضافة هنا
     { label: "الطلبات", href: "/admin/orders", icon: <ShoppingCart size={18} /> },
     { label: "قائمة الأقساط", href: "/admin/installments", icon: <CreditCard size={18} /> },
-    { label: "📈 التقارير المالية", href: "/admin/reports", icon: <FileBarChart size={18} /> }, // ✅ الجديد
+    { label: "📈 التقارير المالية", href: "/admin/reports", icon: <FileBarChart size={18} /> },
     { label: "إضافة منتج", href: "/admin/add-product", icon: <PlusCircle size={18} /> },
     { label: "توليد فاتورة", href: "/admin/local-sale", icon: <FilePlus size={18} /> },
     { label: "قائمة الزبائن", href: "/admin/customers", icon: <User size={18} /> },
