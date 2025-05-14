@@ -29,11 +29,20 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
 
   const fetcher = (url: string) => fetch(url).then((res) => res.json());
+
+  // 🛎️ إشعارات
   const { data: notifData } = useSWR(
     user?.phone ? `/api/notifications/user?phone=${user.phone}` : null,
     fetcher
   );
   const unreadCount = notifData?.notifications?.filter((n: any) => !n.seen)?.length || 0;
+
+  // 🧠 توصيات ذكية
+  const guestId = typeof window !== "undefined" ? localStorage.getItem("guestId") : "";
+  const { data: recData } = useSWR(
+    user?.phone || guestId ? `/api/recommendations?userId=${user?.phone || guestId}` : null,
+    fetcher
+  );
 
   useEffect(() => {
     const theme = localStorage.getItem("theme");
@@ -72,7 +81,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-100 to-white dark:from-gray-900 dark:to-gray-800 text-gray-900 dark:text-white">
+    <div className="min-h-screen bg-gradient-to-b from-gray-100 to-white dark:from-gray-900 dark:to-gray-800 text-gray-900 dark:text-white pb-24">
       <header className="bg-white dark:bg-gray-900 shadow-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto flex items-center justify-between px-4 py-3">
           <a href="/" className="text-2xl font-extrabold text-indigo-600 dark:text-indigo-400">
@@ -163,6 +172,20 @@ export default function HomePage() {
           🆕 وصل حديثًا
         </motion.h2>
         <ProductSlider products={newProducts} loading={loading} />
+
+        {recData?.recommended?.length > 0 && (
+          <motion.div
+            className="mt-12"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <h3 className="text-2xl font-bold text-center text-purple-600 mb-6">
+              🧠 مقترحات مخصصة لك
+            </h3>
+            <ProductSlider products={recData.recommended} />
+          </motion.div>
+        )}
       </main>
 
       <Footer />

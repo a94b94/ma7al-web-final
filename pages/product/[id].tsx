@@ -1,3 +1,5 @@
+"use client";
+
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import Image from "next/image";
@@ -6,23 +8,47 @@ import { useCart } from "@/context/CartContext";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 import SimilarProducts from "@/components/SimilarProducts";
+import { useUser } from "@/context/UserContext";
 
 export default function ProductPage() {
   const router = useRouter();
   const { id } = router.query;
   const { addToCart } = useCart();
+  const { user } = useUser();
   const [product, setProduct] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (id) {
       fetch(`/api/products/${id}`)
         .then((res) => res.json())
-        .then((data) => setProduct(data));
+        .then((data) => {
+          setProduct(data);
+          // 🧠 تسجيل النشاط لتوصيات AI
+          if (data?._id && data?.category) {
+            fetch("/api/activity/log", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                userId: user?.phone || localStorage.getItem("guestId") || "guest",
+                productId: data._id,
+                category: data.category,
+                action: "viewed",
+              }),
+            });
+          }
+        })
+        .catch(() => toast.error("فشل في تحميل بيانات المنتج"))
+        .finally(() => setLoading(false));
     }
   }, [id]);
 
-  if (!product) {
-    return <p className="text-center py-20 text-gray-500">⏳ جاري تحميل المنتج...</p>;
+  if (loading || !product) {
+    return (
+      <p className="text-center py-20 text-gray-500">
+        ⏳ جاري تحميل بيانات المنتج...
+      </p>
+    );
   }
 
   const discountPrice = product.discount
@@ -118,6 +144,7 @@ export default function ProductPage() {
         </motion.div>
       </div>
 
+      {/* 🌀 منتجات مشابهة */}
       {product.category && (
         <div className="mt-20">
           <SimilarProducts currentProductId={product._id} category={product.category} />

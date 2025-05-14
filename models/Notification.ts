@@ -2,20 +2,20 @@ import mongoose, { Schema, Document, Model } from "mongoose";
 
 export interface INotification extends Document {
   orderId?: mongoose.Types.ObjectId;
-  userId: string; // يمكن أن يكون رقم الهاتف أو ID المستخدم
+  userId: string; // يمكن أن يكون رقم الهاتف أو معرف المستخدم
   message: string;
   sentBy?: string;
   type?: "status" | "order" | "invoice" | "installment";
   installmentIndex?: number;
+  seen?: boolean;
   createdAt: Date;
   updatedAt: Date;
-  seen?: boolean;
 }
 
 const NotificationSchema = new Schema<INotification>(
   {
     orderId: { type: mongoose.Schema.Types.ObjectId, ref: "Order" },
-    userId: { type: String, required: true }, // الهاتف أو معرف المستخدم
+    userId: { type: String, required: true }, // يمكن أن يكون رقم الهاتف أو email أو ID
     message: { type: String, required: true },
     sentBy: { type: String },
     type: {
@@ -27,7 +27,7 @@ const NotificationSchema = new Schema<INotification>(
     seen: { type: Boolean, default: false },
   },
   {
-    timestamps: true, // يضيف createdAt و updatedAt
+    timestamps: true, // يضيف createdAt و updatedAt تلقائيًا
   }
 );
 
