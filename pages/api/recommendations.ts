@@ -1,6 +1,6 @@
 // pages/api/recommendations.ts
 import type { NextApiRequest, NextApiResponse } from "next";
-import connectDB from "@/lib/mongoose";
+import { connectDB } from "@/lib/mongoose"; // ✅ تعديل هنا
 import Activity from "@/models/Activity";
 import Product from "@/models/Product";
 
