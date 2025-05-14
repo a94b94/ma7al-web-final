@@ -8,19 +8,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const { category, exclude } = req.query;
 
   if (!category || typeof category !== "string") {
-    return res.status(400).json({ error: "القسم مطلوب" });
+    return res.status(400).json({ error: "⚠️ القسم مطلوب" });
   }
 
   try {
-    const products = await Product.find({
-      category,
-      _id: { $ne: exclude }, // استبعاد المنتج الحالي
-    })
-      .limit(4)
-      .sort({ createdAt: -1 });
+    const filter: any = { category };
 
-    res.status(200).json(products);
+    // استبعاد المنتج الحالي إن وجد
+    if (exclude && typeof exclude === "string") {
+      filter._id = { $ne: exclude };
+    }
+
+    const products = await Product.find(filter)
+      .limit(4)
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return res.status(200).json(products);
   } catch (error) {
-    res.status(500).json({ error: "فشل في جلب المنتجات المشابهة" });
+    console.error("❌ خطأ أثناء جلب المنتجات المشابهة:", error);
+    return res.status(500).json({ error: "فشل في جلب المنتجات المشابهة" });
   }
 }
