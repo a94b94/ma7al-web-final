@@ -17,6 +17,9 @@ export default function MobileBottomNav() {
   const { user } = useUser();
   const { cart } = useCart();
 
+  // ✅ إصلاح مشكلة Vercel: تأكد أن الكود يعمل فقط على المتصفح
+  if (typeof window === "undefined" || !pathname) return null;
+
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   const navItems = [
@@ -51,7 +54,7 @@ export default function MobileBottomNav() {
                   isActive ? "text-blue-600 font-semibold" : "text-gray-500"
                 }`}
               >
-                {/* أيقونة أو صورة */}
+                {/* صورة البروفايل أو أيقونة */}
                 {item.avatar ? (
                   <img
                     src={item.avatar}
@@ -62,7 +65,7 @@ export default function MobileBottomNav() {
                   <item.icon size={22} strokeWidth={isActive ? 2.5 : 1.5} />
                 ) : null}
 
-                {/* عدد المنتجات في السلة */}
+                {/* شارة عدد المنتجات في السلة */}
                 {item.label === "السلة" && item.badge > 0 && (
                   <span className="absolute -top-1.5 -right-1.5 bg-red-600 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
                     {item.badge}
@@ -72,7 +75,7 @@ export default function MobileBottomNav() {
                 <span className="mt-0.5">{item.label}</span>
               </button>
 
-              {/* خط متحرك للأيقونة النشطة */}
+              {/* خط سفلي متحرك */}
               <AnimatePresence>
                 {isActive && (
                   <motion.div
