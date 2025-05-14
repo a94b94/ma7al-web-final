@@ -6,9 +6,6 @@ import axios from "axios";
 import toast from "react-hot-toast";
 import Link from "next/link";
 import Tesseract from "tesseract.js";
-import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf";
-
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 const detectCategory = (name: string) => {
   const lowered = name.toLowerCase();
@@ -45,6 +42,10 @@ export default function InventoryPage() {
 
       if (file.type === "application/pdf") {
         toast.loading("📄 جارٍ استخراج النص من PDF...");
+
+        const pdfjsLib = await import("pdfjs-dist");
+        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+
         const typedarray = new Uint8Array(reader.result as ArrayBuffer);
         const pdf = await pdfjsLib.getDocument({ data: typedarray }).promise;
 

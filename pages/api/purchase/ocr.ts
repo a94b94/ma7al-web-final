@@ -2,7 +2,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { connectDB } from "@/lib/mongoose";
 import InventoryProduct from "@/models/InventoryProduct";
-import * as pdfParse from "pdf-parse";
+
+// ✅ إزالة pdf-parse لأنه غير مستخدم فعليًا هنا وتم حله عبر النصوص الممررة
 
 export const config = {
   api: {
