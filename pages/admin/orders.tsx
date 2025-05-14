@@ -16,6 +16,34 @@ type Order = {
   storeName?: string;
 };
 
+const STATUS_OPTIONS = [
+  "بانتظار التأكيد",
+  "قيد المعالجة",
+  "تم الشحن",
+  "تم التوصيل",
+  "مكتمل",
+  "ملغي",
+];
+
+const getStatusClasses = (status: string) => {
+  switch (status) {
+    case "بانتظار التأكيد":
+      return "bg-yellow-100 text-yellow-800";
+    case "قيد المعالجة":
+      return "bg-blue-100 text-blue-800";
+    case "تم الشحن":
+      return "bg-indigo-100 text-indigo-800";
+    case "تم التوصيل":
+      return "bg-cyan-100 text-cyan-800";
+    case "مكتمل":
+      return "bg-green-100 text-green-800";
+    case "ملغي":
+      return "bg-red-100 text-red-800";
+    default:
+      return "bg-gray-100 text-gray-800";
+  }
+};
+
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,7 +70,6 @@ export default function OrdersPage() {
         const filtered = allOrders.filter(
           (order: Order) => order.storeId === currentStoreId
         );
-
         setOrders(filtered);
         if (data.newOrdersCount && filtered.length > 0) {
           toast.success(`🔔 ${filtered.length} طلب جديد لمتجرك`);
@@ -76,25 +103,6 @@ export default function OrdersPage() {
     }
   };
 
-  const getStatusClasses = (status: string) => {
-    switch (status) {
-      case "بانتظار التأكيد":
-        return "bg-yellow-100 text-yellow-800";
-      case "قيد المعالجة":
-        return "bg-blue-100 text-blue-800";
-      case "تم الشحن":
-        return "bg-indigo-100 text-indigo-800";
-      case "تم التوصيل":
-        return "bg-cyan-100 text-cyan-800";
-      case "مكتمل":
-        return "bg-green-100 text-green-800";
-      case "ملغي":
-        return "bg-red-100 text-red-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
-
   return (
     <AdminLayout>
       <div className="p-6 max-w-6xl mx-auto">
@@ -121,11 +129,15 @@ export default function OrdersPage() {
                     💰 {order.total.toLocaleString()} د.ع
                   </span>
                 </div>
+
                 <p className="text-sm mb-1">📱 {order.phone}</p>
                 <p className="text-sm mb-1">📍 {order.address}</p>
-                <p className="text-sm mb-3 flex items-center gap-3">
+
+                <div className="flex flex-wrap gap-3 items-center mb-3">
                   <span
-                    className={`px-2 py-1 rounded text-xs font-medium ${getStatusClasses(order.status || "بانتظار التأكيد")}`}
+                    className={`px-2 py-1 rounded text-xs font-medium ${getStatusClasses(
+                      order.status || "بانتظار التأكيد"
+                    )}`}
                   >
                     {order.status || "بانتظار التأكيد"}
                   </span>
@@ -135,19 +147,19 @@ export default function OrdersPage() {
                     onChange={(e) => updateStatus(order._id, e.target.value)}
                     className="border rounded px-2 py-1 text-sm"
                   >
-                    <option value="بانتظار التأكيد">بانتظار التأكيد</option>
-                    <option value="قيد المعالجة">قيد المعالجة</option>
-                    <option value="تم الشحن">تم الشحن</option>
-                    <option value="تم التوصيل">تم التوصيل</option>
-                    <option value="مكتمل">مكتمل</option>
-                    <option value="ملغي">ملغي</option>
+                    {STATUS_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
                   </select>
-                </p>
+                </div>
 
                 <ul className="text-sm text-gray-700 list-disc pl-5 space-y-1">
                   {order.cart.map((item, idx) => (
                     <li key={idx}>
-                      {item.name} × {item.quantity} - {item.price.toLocaleString()} د.ع
+                      {item.name} × {item.quantity} -{" "}
+                      {item.price.toLocaleString()} د.ع
                     </li>
                   ))}
                 </ul>
