@@ -1,4 +1,3 @@
-// ✅ الكود الكامل النهائي لصفحة تفاصيل الأقساط
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
@@ -12,12 +11,6 @@ import {
   Cell,
   Tooltip,
   ResponsiveContainer,
-  BarChart,
-  XAxis,
-  YAxis,
-  Bar,
-  CartesianGrid,
-  Legend,
 } from "recharts";
 
 export default function InstallmentDetailsPage() {
@@ -61,16 +54,32 @@ export default function InstallmentDetailsPage() {
   const handleSendReminder = async (index: number) => {
     const installment = order.installments[index];
     const message = `📅 تذكير: قسط مستحق بتاريخ ${new Date(installment.date).toLocaleDateString("ar-IQ")} بمبلغ ${installment.amount.toLocaleString()} د.ع`;
+
     try {
-      await axios.post("/api/whatsapp/send", {
+      const res = await axios.post("/api/whatsapp/send", {
         phone: order.phone,
         message,
         orderId: order._id,
         sentBy: user?.name || "مشرف",
       });
-      toast.success("📤 تم إرسال التذكير بنجاح");
+
+      if (res.data.success) {
+        toast.success("📤 تم إرسال التذكير بنجاح");
+
+        // ✅ تسجيل التذكير في Notification Log
+        await axios.post("/api/installments/reminder", {
+          orderId: order._id,
+          customerPhone: order.phone,
+          message,
+          sentBy: user?.name || "مشرف",
+          installmentIndex: index,
+          type: "installment",
+        });
+      } else {
+        toast.error("❌ فشل في إرسال التذكير");
+      }
     } catch {
-      toast.error("❌ فشل في إرسال التذكير");
+      toast.error("❌ حدث خطأ أثناء إرسال التذكير");
     }
   };
 

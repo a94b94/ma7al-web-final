@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 
 interface LogEntry {
+  _id: string;
   message: string;
   sentBy: string;
-  phone: string;
+  customerPhone: string;
   createdAt: string;
   type: string;
 }
@@ -23,7 +24,6 @@ export default function ReminderLog({ orderId }: { orderId: string }) {
   }, [orderId]);
 
   if (loading) return <p>🔄 جاري تحميل السجل...</p>;
-
   if (!logs.length) return <p className="text-gray-500">لا يوجد تذكيرات مسجلة.</p>;
 
   return (
@@ -38,14 +38,16 @@ export default function ReminderLog({ orderId }: { orderId: string }) {
           </tr>
         </thead>
         <tbody>
-          {logs.map((log, idx) => (
-            <tr key={idx}>
+          {logs.map((log) => (
+            <tr key={log._id} className="hover:bg-gray-50">
               <td className="p-2 border">
                 {new Date(log.createdAt).toLocaleString("ar-IQ")}
               </td>
-              <td className="p-2 border whitespace-pre-wrap">{log.message}</td>
-              <td className="p-2 border">{log.phone}</td>
-              <td className="p-2 border">{log.sentBy}</td>
+              <td className="p-2 border whitespace-pre-wrap">
+                {log.message || "—"}
+              </td>
+              <td className="p-2 border">{log.customerPhone || "—"}</td>
+              <td className="p-2 border">{log.sentBy || "—"}</td>
             </tr>
           ))}
         </tbody>
