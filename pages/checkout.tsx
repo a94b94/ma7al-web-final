@@ -25,11 +25,11 @@ export default function SimilarProducts({
   const [address, setAddress] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const storePhone = "9647701234567"; // رقم الواتساب المستلم (مع رمز الدولة بدون +)
+  const storePhone = "9647701234567"; // رقم واتساب المستلم
 
   const handleSubmitOrder = async () => {
-    if (!phone || !address) {
-      toast.error("يرجى إدخال رقم الهاتف والعنوان.");
+    if (!phone.trim() || !address.trim()) {
+      toast.error("يرجى إدخال رقم الهاتف والعنوان الكامل.");
       return;
     }
 
@@ -41,12 +41,16 @@ export default function SimilarProducts({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phone, address, paymentMethod }),
       });
+
       const data = await res.json();
+
       if (res.ok) {
-        toast.success("✅ تم إرسال الطلب بنجاح!");
+        toast.success("✅ تم تأكيد الطلب بنجاح!");
         setOrderConfirmed(true);
 
-        const message = `🛒 طلب جديد من Ma7al Store\n\n📱 الهاتف: ${phone}\n📍 العنوان: ${address}\n💳 طريقة الدفع: ${paymentMethod === "cash" ? "عند الاستلام" : "بطاقة"}`;
+        const message = `🛒 طلب جديد من Ma7al Store\n\n📱 الهاتف: ${phone}\n📍 العنوان: ${address}\n💳 طريقة الدفع: ${
+          paymentMethod === "cash" ? "عند الاستلام" : "بطاقة إلكترونية"
+        }`;
         const url = `https://wa.me/${storePhone}?text=${encodeURIComponent(message)}`;
         window.open(url, "_blank");
 
@@ -56,7 +60,7 @@ export default function SimilarProducts({
         toast.error(data.message || "حدث خطأ أثناء إرسال الطلب.");
       }
     } catch (err) {
-      toast.error("فشل في إرسال الطلب، تحقق من الاتصال.");
+      toast.error("❌ فشل في إرسال الطلب، تحقق من اتصالك بالإنترنت.");
     } finally {
       setLoading(false);
     }
@@ -66,12 +70,7 @@ export default function SimilarProducts({
   if (!products || products.length === 0) return null;
 
   return (
-    <motion.div
-      className="mt-20"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.6 }}
-    >
+    <motion.div className="mt-20" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6 }}>
       <motion.h2
         className="text-2xl font-extrabold text-center mb-8 text-indigo-600"
         initial={{ y: -20, opacity: 0 }}
@@ -81,8 +80,9 @@ export default function SimilarProducts({
         🌀 منتجات مشابهة قد تهمك
       </motion.h2>
 
+      {/* نموذج الطلب */}
       <div className="max-w-md mx-auto bg-white p-6 rounded-xl shadow mb-10">
-        <h3 className="text-lg font-semibold mb-4">معلومات التوصيل وطريقة الدفع</h3>
+        <h3 className="text-lg font-semibold mb-4">📦 تفاصيل الطلب</h3>
 
         <input
           type="tel"
@@ -121,7 +121,7 @@ export default function SimilarProducts({
               className="w-4 h-4"
               disabled
             />
-            <span className="text-gray-400">بطاقة مصرفية (قريبًا)</span>
+            <span className="text-gray-400">بطاقة إلكترونية (قريبًا)</span>
           </label>
         </div>
 
@@ -130,7 +130,7 @@ export default function SimilarProducts({
           disabled={loading}
           className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-full transition"
         >
-          {loading ? "⏳ جاري الإرسال..." : "✅ تأكيد الطلب"}
+          {loading ? "⏳ جاري إرسال الطلب..." : "✅ تأكيد الطلب وإرسال واتساب"}
         </button>
 
         {orderConfirmed && (
@@ -145,6 +145,7 @@ export default function SimilarProducts({
         )}
       </div>
 
+      {/* عرض المنتجات */}
       <motion.div
         className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6"
         initial="hidden"
