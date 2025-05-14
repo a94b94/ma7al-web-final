@@ -43,7 +43,7 @@ export default function InventoryPage() {
       if (file.type === "application/pdf") {
         toast.loading("📄 جارٍ استخراج النص من PDF...");
 
-        const pdfjsLib = await import("pdfjs-dist");
+        const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.js");
         pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
         const typedarray = new Uint8Array(reader.result as ArrayBuffer);
