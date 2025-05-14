@@ -26,8 +26,8 @@ type CartContextType = {
   addToCart: (item: Omit<CartItem, "quantity">) => void;
   removeFromCart: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
-  increaseQty: (id: string) => void; // ✅ أضفناها
-  decreaseQty: (id: string) => void; // ✅ أضفناها
+  increaseQty: (id: string) => void;
+  decreaseQty: (id: string) => void;
   clearCart: () => void;
   total: number;
 };
@@ -42,17 +42,24 @@ export const useCart = () => {
   return context;
 };
 
+// ✅ دالة ترجع مفتاح التخزين حسب المحل
+const getStorageKey = () => {
+  const storeId = localStorage.getItem("selectedStoreId");
+  return storeId ? `ma7al_cart_${storeId}` : "ma7al_cart_unknown";
+};
+
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [fullCart, setFullCart] = useState<FullCart | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("cart");
+      const key = getStorageKey();
+      const stored = localStorage.getItem(key);
       if (stored) {
         try {
           setFullCart(JSON.parse(stored));
         } catch {
-          localStorage.removeItem("cart");
+          localStorage.removeItem(key);
         }
       }
     }
@@ -60,7 +67,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (typeof window !== "undefined" && fullCart) {
-      localStorage.setItem("cart", JSON.stringify(fullCart));
+      const key = getStorageKey();
+      localStorage.setItem(key, JSON.stringify(fullCart));
     }
   }, [fullCart]);
 
@@ -145,8 +153,9 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const clearCart = () => {
+    const key = getStorageKey();
     setFullCart(null);
-    localStorage.removeItem("cart");
+    localStorage.removeItem(key);
     toast.success("🗑️ تم تفريغ السلة");
   };
 
@@ -162,8 +171,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         addToCart,
         removeFromCart,
         updateQuantity,
-        increaseQty, // ✅ تمت الإضافة
-        decreaseQty, // ✅ تمت الإضافة
+        increaseQty,
+        decreaseQty,
         clearCart,
         total,
       }}

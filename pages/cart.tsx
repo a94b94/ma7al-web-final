@@ -16,7 +16,9 @@ export default function CartPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-10">
-      <h1 className="text-3xl font-bold mb-8 text-center text-gray-800">🛒 سلة الشراء</h1>
+      <h1 className="text-3xl font-bold mb-8 text-center text-gray-800">
+        🛒 سلة الشراء
+      </h1>
 
       {cart.length === 0 ? (
         <p className="text-center text-gray-500">سلتك فارغة حالياً.</p>
@@ -32,7 +34,7 @@ export default function CartPage() {
             },
           }}
         >
-          {cart.map((item: any) => (
+          {cart.map((item) => (
             <motion.div
               key={item.id}
               className="bg-white rounded-xl shadow p-4 flex items-center justify-between"
@@ -42,9 +44,9 @@ export default function CartPage() {
             >
               <div className="flex items-center gap-4">
                 <img
-                  src={item.image}
+                  src={item.image || "/no-image.png"}
                   alt={item.name}
-                  className="w-20 h-20 object-cover rounded"
+                  className="w-20 h-20 object-cover rounded border"
                 />
                 <div>
                   <h3 className="font-bold text-lg text-gray-800">
@@ -55,6 +57,7 @@ export default function CartPage() {
                   </p>
                 </div>
               </div>
+
               <div className="flex items-center gap-4">
                 <button
                   onClick={() => decreaseQty(item.id)}
@@ -84,7 +87,10 @@ export default function CartPage() {
       {cart.length > 0 && (
         <div className="mt-10 text-center">
           <p className="text-xl font-bold text-gray-700 mb-4">
-            الإجمالي: <span className="text-blue-600">{total.toLocaleString()} د.ع</span>
+            الإجمالي:{" "}
+            <span className="text-blue-600">
+              {total.toLocaleString()} د.ع
+            </span>
           </p>
           <button
             onClick={() => router.push("/checkout")}
