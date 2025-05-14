@@ -1,7 +1,7 @@
-
 import type { NextApiRequest, NextApiResponse } from "next";
 import connectToDatabase from "@/lib/mongodb";
 import Order from "@/models/Order";
+import NotificationModel from "@/models/Notification";
 import { verifyToken } from "@/middleware/auth";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -19,11 +19,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     let email = "";
+    let userName = "زائر";
     try {
       const user = verifyToken(req);
       email = user?.email || "";
+      userName = user?.name || "مستخدم";
     } catch {
-      // الزبون غير مسجل دخول؟ نكمل بدون بريد
       email = "";
     }
 
@@ -34,6 +35,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       total,
       dueDate,
       email,
+    });
+
+    // ✅ إضافة إشعار داخل الموقع للزبون
+    await NotificationModel.create({
+      userId: phone, // نستخدم رقم الهاتف كمعرف الزبون
+      orderId: order._id,
+      message: `📦 تم تسجيل طلب جديد بقيمة ${total.toLocaleString()} د.ع`,
+      type: "order",
+      sentBy: userName,
     });
 
     return res.status(201).json({ success: true, order });

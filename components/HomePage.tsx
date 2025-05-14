@@ -12,10 +12,12 @@ import {
   X,
   Moon,
   Sun,
+  Bell,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useUser } from "@/context/UserContext";
 import { useCart } from "@/context/CartContext";
+import useSWR from "swr";
 
 export default function HomePage() {
   const { user, logout } = useUser();
@@ -25,6 +27,13 @@ export default function HomePage() {
   const [discountProducts, setDiscountProducts] = useState<any[]>([]);
   const [newProducts, setNewProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const fetcher = (url: string) => fetch(url).then((res) => res.json());
+  const { data: notifData } = useSWR(
+    user?.phone ? `/api/notifications/user?phone=${user.phone}` : null,
+    fetcher
+  );
+  const unreadCount = notifData?.notifications?.filter((n: any) => !n.seen)?.length || 0;
 
   useEffect(() => {
     const theme = localStorage.getItem("theme");
@@ -84,6 +93,17 @@ export default function HomePage() {
               )}
             </a>
 
+            {user && (
+              <a href="/notifications" className="relative">
+                <Bell className="w-6 h-6" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-600 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                    {unreadCount}
+                  </span>
+                )}
+              </a>
+            )}
+
             {user ? (
               <div className="relative">
                 <button onClick={() => setMenuOpen(!menuOpen)} className="flex items-center gap-1">
@@ -116,6 +136,7 @@ export default function HomePage() {
             <a href="/cart" className="block py-1">السلة</a>
             {user ? (
               <>
+                <a href="/notifications" className="block py-1">الإشعارات</a>
                 <a href="/admin" className="block py-1">لوحة التحكم</a>
                 <button onClick={handleLogout} className="w-full text-right py-1">تسجيل خروج</button>
               </>
