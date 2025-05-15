@@ -64,10 +64,10 @@ export default function InventoryPage() {
         const extracted: any[] = [];
 
         for (const line of lines) {
-          const match = line.match(/(.*)\s+(\d+[.,]?\d*)\s+(\d+)/);
+          const match = line.match(/(XIAOMI|POCO|IPHONE|TECNO|INFINIX|REDMI|.*?\d+.*?)(?:\s+)(\d{1,3}(?:,\d{3})+)(?:\s+)(\d+)/i);
           if (match) {
             const name = match[1].trim();
-            const purchasePrice = parseFloat(match[2].replace(",", ""));
+            const purchasePrice = parseFloat(match[2].replace(/,/g, ""));
             const quantity = parseInt(match[3]);
             const category = detectCategory(name);
             const barcode = name.toLowerCase().replace(/\s+/g, "-");
@@ -94,7 +94,6 @@ export default function InventoryPage() {
         return;
       }
 
-      // OCR للصور
       toast.loading("🔍 جارٍ تحليل الصورة...");
       const { data: { text } } = await Tesseract.recognize(reader.result as string, "eng");
       toast.dismiss();
@@ -103,10 +102,10 @@ export default function InventoryPage() {
       const extracted: any[] = [];
       const lines = text.split("\n");
       for (const line of lines) {
-        const match = line.match(/(.*)\s+(\d+[.,]?\d*)\s+(\d+)/);
+        const match = line.match(/(XIAOMI|POCO|IPHONE|TECNO|INFINIX|REDMI|.*?\d+.*?)(?:\s+)(\d{1,3}(?:,\d{3})+)(?:\s+)(\d+)/i);
         if (match) {
           const name = match[1].trim();
-          const purchasePrice = parseFloat(match[2].replace(",", ""));
+          const purchasePrice = parseFloat(match[2].replace(/,/g, ""));
           const quantity = parseInt(match[3]);
           const category = detectCategory(name);
           const barcode = name.toLowerCase().replace(/\s+/g, "-");
