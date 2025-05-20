@@ -10,9 +10,11 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json());
 export default function SimilarProducts({
   currentProductId,
   category,
+  product, // ✅ المنتج الحالي للطلب
 }: {
   currentProductId: string;
   category: string;
+  product: { _id: string; name: string; price: number };
 }) {
   const { data: products, error } = useSWR(
     category ? `/api/products/similar?category=${category}&exclude=${currentProductId}` : null,
@@ -33,13 +35,37 @@ export default function SimilarProducts({
       return;
     }
 
+    const storeId = localStorage.getItem("selectedStoreId");
+    if (!storeId) {
+      toast.error("⚠️ يرجى اختيار محل قبل إتمام الطلب.");
+      return;
+    }
+
+    const cart = [
+      {
+        productId: product._id,
+        name: product.name,
+        quantity: 1,
+        price: product.price,
+      },
+    ];
+
+    const total = product.price;
+
     setLoading(true);
 
     try {
-      const res = await fetch("/api/orders/create", {
+      const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone, address, paymentMethod }),
+        body: JSON.stringify({
+          phone,
+          address,
+          cart,
+          total,
+          storeId,
+          paymentMethod,
+        }),
       });
 
       const data = await res.json();
@@ -50,14 +76,15 @@ export default function SimilarProducts({
 
         const message = `🛒 طلب جديد من Ma7al Store\n\n📱 الهاتف: ${phone}\n📍 العنوان: ${address}\n💳 طريقة الدفع: ${
           paymentMethod === "cash" ? "عند الاستلام" : "بطاقة إلكترونية"
-        }`;
+        }\n📦 المنتج: ${product.name} بسعر ${product.price.toLocaleString()} د.ع`;
+
         const url = `https://wa.me/${storePhone}?text=${encodeURIComponent(message)}`;
         window.open(url, "_blank");
 
         setPhone("");
         setAddress("");
       } else {
-        toast.error(data.message || "حدث خطأ أثناء إرسال الطلب.");
+        toast.error(data.error || "حدث خطأ أثناء إرسال الطلب.");
       }
     } catch (err) {
       toast.error("❌ فشل في إرسال الطلب، تحقق من اتصالك بالإنترنت.");
