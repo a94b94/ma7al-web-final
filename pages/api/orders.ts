@@ -12,9 +12,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     await connectToDatabase();
 
-    const { cart, phone, address, total, dueDate } = req.body;
+    const { cart, phone, address, total, dueDate, storeId } = req.body;
 
-    if (!cart || !phone || !address || !total) {
+    if (!cart || !phone || !address || !total || !storeId) {
       return res.status(400).json({ error: "❗ جميع الحقول مطلوبة" });
     }
 
@@ -35,11 +35,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       total,
       dueDate,
       email,
+      storeId,
+      seen: false,
+      status: "بانتظار التأكيد",
     });
 
-    // ✅ إضافة إشعار داخل الموقع للزبون
     await NotificationModel.create({
-      userId: phone, // نستخدم رقم الهاتف كمعرف الزبون
+      userId: phone,
       orderId: order._id,
       message: `📦 تم تسجيل طلب جديد بقيمة ${total.toLocaleString()} د.ع`,
       type: "order",

@@ -47,15 +47,22 @@ const getStatusClasses = (status: string) => {
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filterStatus, setFilterStatus] = useState("الكل");
   const router = useRouter();
 
   useEffect(() => {
     const token = localStorage.getItem("token");
     const currentStoreId = localStorage.getItem("selectedStoreId");
 
-    if (!token || !currentStoreId) {
-      toast.error("🚫 يجب تسجيل الدخول واختيار محل");
+    if (!token) {
+      toast.error("🚫 يجب تسجيل الدخول أولاً");
       router.push("/login");
+      return;
+    }
+
+    if (!currentStoreId) {
+      toast.error("⚠️ يرجى اختيار محل أولاً");
+      router.push("/select-store"); // ❗ غيّرها حسب مسار اختيار المحل عندك
       return;
     }
 
@@ -103,18 +110,41 @@ export default function OrdersPage() {
     }
   };
 
+  const filteredOrders =
+    filterStatus === "الكل"
+      ? orders
+      : orders.filter(
+          (order) => (order.status || "بانتظار التأكيد") === filterStatus
+        );
+
   return (
     <AdminLayout>
       <div className="p-6 max-w-6xl mx-auto">
         <h1 className="text-3xl font-bold mb-6 text-blue-700">📋 الطلبات</h1>
 
+        <div className="mb-4">
+          <label className="mr-2 text-sm font-semibold">فلترة حسب الحالة:</label>
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="border rounded px-3 py-1 text-sm"
+          >
+            <option value="الكل">الكل</option>
+            {STATUS_OPTIONS.map((status) => (
+              <option key={status} value={status}>
+                {status}
+              </option>
+            ))}
+          </select>
+        </div>
+
         {loading ? (
           <p className="text-gray-500">جاري التحميل...</p>
-        ) : orders.length === 0 ? (
-          <p className="text-gray-600">لا توجد طلبات مرتبطة بمتجرك.</p>
+        ) : filteredOrders.length === 0 ? (
+          <p className="text-gray-600">لا توجد طلبات بالحالة المحددة.</p>
         ) : (
           <div className="space-y-6">
-            {orders.map((order) => (
+            {filteredOrders.map((order) => (
               <div
                 key={order._id}
                 className={`border rounded-xl p-4 shadow transition hover:shadow-lg ${
@@ -132,8 +162,14 @@ export default function OrdersPage() {
 
                 <p className="text-sm mb-1">📱 {order.phone}</p>
                 <p className="text-sm mb-1">📍 {order.address}</p>
+                {order.storeName && (
+                  <p className="text-xs text-gray-500">🏬 {order.storeName}</p>
+                )}
+                {order.seen === false && (
+                  <p className="text-xs text-blue-600 font-semibold">🔔 طلب جديد</p>
+                )}
 
-                <div className="flex flex-wrap gap-3 items-center mb-3">
+                <div className="flex flex-wrap gap-3 items-center my-2">
                   <span
                     className={`px-2 py-1 rounded text-xs font-medium ${getStatusClasses(
                       order.status || "بانتظار التأكيد"
@@ -163,6 +199,24 @@ export default function OrdersPage() {
                     </li>
                   ))}
                 </ul>
+
+                <button
+                  onClick={() => {
+                    const message = `📦 طلب جديد\nالمنتجات:\n${order.cart
+                      .map((i) => `- ${i.name} × ${i.quantity}`)
+                      .join("\n")}\n📍 ${order.address}\n📞 ${order.phone}`;
+                    const phone = order.phone.startsWith("+964")
+                      ? order.phone
+                      : `+964${order.phone}`;
+                    window.open(
+                      `https://wa.me/${phone}?text=${encodeURIComponent(message)}`,
+                      "_blank"
+                    );
+                  }}
+                  className="mt-3 inline-block text-green-700 border border-green-500 rounded px-3 py-1 text-sm hover:bg-green-100"
+                >
+                  إرسال عبر واتساب
+                </button>
               </div>
             ))}
           </div>
