@@ -41,13 +41,14 @@ const InstallmentSchema = new Schema(
   { _id: false }
 );
 
+// ✅ حساب التأخير فقط عند حفظ قسط فردي (اختياري)
 InstallmentSchema.pre("save", function (next) {
   const today = new Date();
   const installment = this as any;
 
   if (!installment.paid && new Date(installment.date) < today) {
     installment.late = true;
-    installment.lateFee = 1000; // يمكن تغيير القيمة حسب سياسة المتجر
+    installment.lateFee = 1000; // قيمة غرامة التأخير - يمكنك تخصيصها
   } else {
     installment.late = false;
     installment.lateFee = 0;
@@ -91,7 +92,12 @@ const OrderSchema = new Schema<IOrder>(
       default: "بانتظار التأكيد",
     },
 
-    type: { type: String, enum: ["cash", "installment"], default: "cash" },
+    type: {
+      type: String,
+      enum: ["cash", "installment"],
+      default: "cash",
+    },
+
     downPayment: { type: Number, default: 0 },
     installmentsCount: { type: Number, default: 0 },
     remaining: { type: Number, default: 0 },
@@ -104,5 +110,7 @@ const OrderSchema = new Schema<IOrder>(
   { timestamps: true }
 );
 
-const Order: Model<IOrder> = mongoose.models.Order || mongoose.model<IOrder>("Order", OrderSchema);
+const Order: Model<IOrder> =
+  mongoose.models.Order || mongoose.model<IOrder>("Order", OrderSchema);
+
 export default Order;

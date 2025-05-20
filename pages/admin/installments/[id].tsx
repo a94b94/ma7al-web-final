@@ -14,8 +14,8 @@ import {
 } from "recharts";
 import dynamic from "next/dynamic";
 import Image from "next/image";
+import Countdown from "react-countdown";
 
-// ✅ تحميل html2pdf فقط على جهة العميل
 const html2pdf = dynamic(() => import("html2pdf.js"), { ssr: false });
 
 export default function InstallmentDetailsPage() {
@@ -25,16 +25,6 @@ export default function InstallmentDetailsPage() {
 
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [mobileFilter, setMobileFilter] = useState<"all" | "paid" | "unpaid">("all");
-
-  useEffect(() => {
-    if (id) {
-      axios.get(`/api/installments/${id}`).then((res) => {
-        setOrder(res.data);
-        setLoading(false);
-      });
-    }
-  }, [id]);
 
   const handleMarkInstallmentPaid = async (index: number) => {
     try {
@@ -57,38 +47,14 @@ export default function InstallmentDetailsPage() {
     }
   };
 
-  const handleSendReminder = async (index: number) => {
-    const installment = order.installments[index];
-    const message = `📅 تذكير: قسط مستحق بتاريخ ${new Date(
-      installment.date
-    ).toLocaleDateString("ar-IQ")} بمبلغ ${installment.amount.toLocaleString()} د.ع`;
-
-    try {
-      const res = await axios.post("/api/whatsapp/send", {
-        phone: order.phone,
-        message,
-        orderId: order._id,
-        sentBy: user?.name || "مشرف",
+  useEffect(() => {
+    if (id) {
+      axios.get(`/api/installments/${id}`).then((res) => {
+        setOrder(res.data);
+        setLoading(false);
       });
-
-      if (res.data.success) {
-        toast.success("📤 تم إرسال التذكير بنجاح");
-
-        await axios.post("/api/installments/reminder", {
-          orderId: order._id,
-          customerPhone: order.phone,
-          message,
-          sentBy: user?.name || "مشرف",
-          installmentIndex: index,
-          type: "installment",
-        });
-      } else {
-        toast.error("❌ فشل في إرسال التذكير");
-      }
-    } catch {
-      toast.error("❌ حدث خطأ أثناء إرسال التذكير");
     }
-  };
+  }, [id]);
 
   const handleExportPDF = async () => {
     const html2pdfModule = await import("html2pdf.js");
@@ -120,6 +86,7 @@ export default function InstallmentDetailsPage() {
 
   const paidInstallments = order.installments.filter((i: any) => i.paid).length;
   const unpaidInstallments = order.installments.length - paidInstallments;
+  const nextDueDate = order.dueDate ? new Date(order.dueDate) : null;
 
   const chartData = [
     { name: "مدفوع", value: paidInstallments },
@@ -128,6 +95,30 @@ export default function InstallmentDetailsPage() {
 
   return (
     <AdminLayout>
+      {/* ✅ بطاقة الزبون */}
+      <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow">
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-xl font-bold">{order.customerName || "زبون"}</h2>
+            <p className="text-sm">📱 {order.phone}</p>
+          </div>
+          <div className="text-center">
+            <p className="text-xs">المتبقي</p>
+            <p className="text-2xl font-bold text-yellow-200">
+              {order.remaining?.toLocaleString()} د.ع
+            </p>
+          </div>
+        </div>
+        {nextDueDate && (
+          <div className="mt-4">
+            <p className="text-sm mb-1">⏳ الوقت المتبقي للاستحقاق:</p>
+            <div className="text-lg font-mono">
+              <Countdown date={nextDueDate} />
+            </div>
+          </div>
+        )}
+      </div>
+
       <div className="mb-6 p-4 border rounded bg-white">
         <h2 className="text-lg font-bold mb-2">🧾 سجل التذكيرات</h2>
         <ReminderLog orderId={order._id} />
@@ -190,6 +181,7 @@ export default function InstallmentDetailsPage() {
                 <th className="p-2 border">المبلغ</th>
                 <th className="p-2 border">الحالة</th>
                 <th className="p-2 border">تاريخ الدفع</th>
+                <th className="p-2 border">إجراء</th>
               </tr>
             </thead>
             <tbody>
@@ -200,9 +192,17 @@ export default function InstallmentDetailsPage() {
                   <td className="p-2 border">{item.amount.toLocaleString()} د.ع</td>
                   <td className="p-2 border">{item.paid ? "✅ مدفوع" : "❌ غير مدفوع"}</td>
                   <td className="p-2 border">
-                    {item.paidAt
-                      ? new Date(item.paidAt).toLocaleDateString("ar-IQ")
-                      : "—"}
+                    {item.paidAt ? new Date(item.paidAt).toLocaleDateString("ar-IQ") : "—"}
+                  </td>
+                  <td className="p-2 border">
+                    {!item.paid && (
+                      <button
+                        onClick={() => handleMarkInstallmentPaid(index)}
+                        className="text-sm bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
+                      >
+                        استلام قسط
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
