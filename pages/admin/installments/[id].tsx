@@ -38,11 +38,23 @@ export default function InstallmentDetailsPage() {
     try {
       const installment = order.installments[selectedInstallmentIndex];
 
-      const reminderMessage = `*📅 إشعار بقسط مستحق*\n\n*الاسم:* ${order.customerName}\n*المبلغ:* ${installment.amount.toLocaleString()} د.ع\n*تاريخ الاستحقاق:* ${new Date(installment.date).toLocaleDateString("ar-IQ")}`;
+      const formattedDate = new Date().toLocaleString("ar-IQ", {
+        weekday: "long",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
+      const paidAmount = installment.amount;
+      const newRemaining = order.remaining - paidAmount;
+
+      const confirmMessage = `*✅ تأكيد دفع قسط*\n\n*الاسم:* ${order.customerName}\n*المبلغ المدفوع:* ${paidAmount.toLocaleString()} د.ع\n*التاريخ:* ${formattedDate}\n*المتبقي:* ${newRemaining.toLocaleString()} د.ع\n\n📌 شكراً لتسديدك، نأمل التزامك بالمواعيد القادمة.`;
 
       const whatsappRes = await axios.post("/api/whatsapp/send", {
         phone: order.phone,
-        message: reminderMessage,
+        message: confirmMessage,
         orderId: order._id,
         sentBy: user?.name || "مشرف",
       });
@@ -60,8 +72,6 @@ export default function InstallmentDetailsPage() {
 
       if (res.data.success) {
         const newPaidAt = new Date().toISOString();
-        const paidAmount = installment.amount;
-        const newRemaining = order.remaining - paidAmount;
 
         setOrder((prev: any) => {
           const updated = { ...prev };
@@ -74,24 +84,6 @@ export default function InstallmentDetailsPage() {
 
         setShowModal(false);
         toast.success("✅ تم تسجيل القسط وإرسال الإشعار");
-
-        const formattedDate = new Date().toLocaleString("ar-IQ", {
-          weekday: "long",
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-
-        const confirmMessage = `*✅ تأكيد دفع قسط*\n\n*الاسم:* ${order.customerName}\n*المبلغ المدفوع:* ${paidAmount.toLocaleString()} د.ع\n*التاريخ:* ${formattedDate}\n*المتبقي:* ${newRemaining.toLocaleString()} د.ع\n\n📌 شكراً لتسديدك، نأمل التزامك بالمواعيد القادمة.`;
-
-        await axios.post("/api/whatsapp/send", {
-          phone: order.phone,
-          message: confirmMessage,
-          orderId: order._id,
-          sentBy: user?.name || "مشرف",
-        });
       } else {
         toast.error("❌ فشل في تسجيل القسط");
       }
