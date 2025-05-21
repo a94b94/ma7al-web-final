@@ -36,35 +36,6 @@ export default function InstallmentDetailsPage() {
     setSending(true);
 
     try {
-      const installment = order.installments[selectedInstallmentIndex];
-
-      const formattedDate = new Date().toLocaleString("ar-IQ", {
-        weekday: "long",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-
-      const paidAmount = installment.amount;
-      const newRemaining = order.remaining - paidAmount;
-
-      const confirmMessage = `*✅ تأكيد دفع قسط*\n\n*الاسم:* ${order.customerName}\n*المبلغ المدفوع:* ${paidAmount.toLocaleString()} د.ع\n*التاريخ:* ${formattedDate}\n*المتبقي:* ${newRemaining.toLocaleString()} د.ع\n\n📌 شكراً لتسديدك، نأمل التزامك بالمواعيد القادمة.`;
-
-      const whatsappRes = await axios.post("/api/whatsapp/send", {
-        phone: order.phone,
-        message: confirmMessage,
-        orderId: order._id,
-        sentBy: user?.name || "مشرف",
-      });
-
-      if (!whatsappRes.data.success) {
-        toast.error("❌ فشل في إرسال رسالة الواتساب، لم يتم تسجيل القسط");
-        setSending(false);
-        return;
-      }
-
       const res = await axios.post("/api/installments/mark-one", {
         orderId: id,
         installmentIndex: selectedInstallmentIndex,
@@ -72,14 +43,34 @@ export default function InstallmentDetailsPage() {
 
       if (res.data.success) {
         const newPaidAt = new Date().toISOString();
+        const paidAmount = res.data.amount;
+        const newRemaining = res.data.remaining;
 
         setOrder((prev: any) => {
           const updated = { ...prev };
           updated.installments[selectedInstallmentIndex].paid = true;
           updated.installments[selectedInstallmentIndex].paidAt = newPaidAt;
-          updated.paid += paidAmount;
+          updated.paid = res.data.paid;
           updated.remaining = newRemaining;
           return updated;
+        });
+
+        const formattedDate = new Date().toLocaleString("ar-IQ", {
+          weekday: "long",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+
+        const confirmMessage = `*✅ تأكيد دفع قسط*\n\n*الاسم:* ${order.customerName}\n*المبلغ المدفوع:* ${paidAmount.toLocaleString()} د.ع\n*التاريخ:* ${formattedDate}\n*المتبقي:* ${newRemaining.toLocaleString()} د.ع\n\n📌 شكراً لتسديدك، نأمل التزامك بالمواعيد القادمة.`;
+
+        await axios.post("/api/whatsapp/send", {
+          phone: order.phone,
+          message: confirmMessage,
+          orderId: order._id,
+          sentBy: user?.name || "مشرف",
         });
 
         setShowModal(false);
