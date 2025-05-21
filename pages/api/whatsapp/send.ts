@@ -11,26 +11,44 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const { phone, message, orderId, sentBy } = req.body;
 
   if (!phone || !message || !orderId || !sentBy) {
-    return res.status(400).json({ error: "البيانات ناقصة" });
+    return res.status(400).json({ error: "❗ البيانات ناقصة" });
   }
 
   await connectDB();
 
   try {
-    // ✅ المسار الصحيح
+    const formattedPhone = phone.startsWith("+") ? phone.replace("+", "") : phone;
+
+    // ✅ إرسال الرسالة إلى سيرفر واتساب
     const apiRes = await fetch("https://ma7al-whatsapp-production.up.railway.app/send-message", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        phone: phone.startsWith("+") ? phone.replace("+", "") : phone,
+        phone: formattedPhone,
         message,
       }),
     });
 
-    const result = await apiRes.json();
-    if (!result.success) throw new Error("فشل في الإرسال");
+    if (!apiRes.ok) {
+      const errText = await apiRes.text();
+      console.error("❌ فشل الاتصال بسيرفر واتساب:", errText);
+      return res.status(500).json({ error: "فشل الاتصال بسيرفر الواتساب" });
+    }
 
-    // ✅ تسجيل الإشعار
+    let result;
+    try {
+      result = await apiRes.json();
+    } catch (parseErr) {
+      console.error("❌ فشل في تحليل رد السيرفر:", parseErr);
+      return res.status(500).json({ error: "الرد من السيرفر غير قابل للقراءة (Invalid JSON)" });
+    }
+
+    if (!result.success) {
+      console.error("❌ السيرفر أجاب بدون success:", result);
+      return res.status(500).json({ error: "فشل في إرسال الرسالة (الرد من API غير ناجح)" });
+    }
+
+    // ✅ حفظ الإشعار في قاعدة البيانات
     await NotificationModel.create({
       orderId,
       customerPhone: phone,
@@ -38,15 +56,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       sentBy,
     });
 
-    // ✅ تحديث الطلب
     await Order.findByIdAndUpdate(orderId, {
       reminderSent: true,
       sentBy,
     });
 
-    res.status(200).json({ success: true });
-  } catch (error) {
-    console.error("❌", error);
-    res.status(500).json({ error: "❌ فشل في إرسال الرسالة" });
+    return res.status(200).json({ success: true, msg: "✅ تم الإرسال بنجاح" });
+
+  } catch (error: any) {
+    console.error("❌ خطأ عام أثناء العملية:", error);
+    return res.status(500).json({ error: "❌ حدث خطأ أثناء محاولة إرسال الرسالة" });
   }
 }
