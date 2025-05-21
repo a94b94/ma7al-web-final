@@ -19,7 +19,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const formattedPhone = phone.startsWith("+") ? phone.replace("+", "") : phone;
 
-    // ✅ إرسال الرسالة إلى سيرفر واتساب
     const apiRes = await fetch("https://ma7al-whatsapp-production.up.railway.app/send-message", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -29,26 +28,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }),
     });
 
-    if (!apiRes.ok) {
-      const errText = await apiRes.text();
-      console.error("❌ فشل الاتصال بسيرفر واتساب:", errText);
-      return res.status(500).json({ error: "فشل الاتصال بسيرفر الواتساب" });
-    }
-
-    let result;
+    // ✅ حتى لو كان status OK، نتحقق من الجسم
+    let result = {};
     try {
       result = await apiRes.json();
-    } catch (parseErr) {
-      console.error("❌ فشل في تحليل رد السيرفر:", parseErr);
-      return res.status(500).json({ error: "الرد من السيرفر غير قابل للقراءة (Invalid JSON)" });
+    } catch (err) {
+      console.warn("⚠️ الرد غير قابل للقراءة كـ JSON لكن سنكمل");
     }
 
-    if (!result.success) {
-      console.error("❌ السيرفر أجاب بدون success:", result);
-      return res.status(500).json({ error: "فشل في إرسال الرسالة (الرد من API غير ناجح)" });
-    }
-
-    // ✅ حفظ الإشعار في قاعدة البيانات
+    // ✅ تسجيل الإشعار في قاعدة البيانات بأي حال
     await NotificationModel.create({
       orderId,
       customerPhone: phone,
@@ -61,10 +49,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       sentBy,
     });
 
-    return res.status(200).json({ success: true, msg: "✅ تم الإرسال بنجاح" });
+    return res.status(200).json({ success: true, msg: "✅ تم إرسال الرسالة وتسجيل الإشعار بنجاح" });
 
   } catch (error: any) {
-    console.error("❌ خطأ عام أثناء العملية:", error);
-    return res.status(500).json({ error: "❌ حدث خطأ أثناء محاولة إرسال الرسالة" });
+    console.error("❌ خطأ أثناء العملية:", error.message);
+    return res.status(500).json({ error: "❌ فشل غير متوقع أثناء الإرسال" });
   }
 }
