@@ -1,4 +1,4 @@
-import { NextApiRequest, NextApiResponse } from "next";
+import type { NextApiRequest, NextApiResponse } from "next";
 import { connectDB } from "@/lib/mongoose";
 import Order from "@/models/Order";
 
@@ -29,19 +29,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     installment.paid = true;
     installment.paidAt = new Date();
 
-    // تحديث المدفوع الإجمالي
+    // تحديث المبالغ
     order.paid = (order.paid || 0) + installment.amount;
+    order.remaining = order.total - order.paid;
 
-    // تحديث حالة الطلب إذا تم تسديده بالكامل
+    // تحديث الحالة إذا تم الدفع الكامل
     if (order.paid >= order.total) {
       order.status = "مكتمل";
     }
 
     await order.save();
 
-    res.status(200).json({ success: true, amount: installment.amount });
+    return res.status(200).json({
+      success: true,
+      paid: order.paid,
+      remaining: order.remaining,
+      paidAt: installment.paidAt,
+      amount: installment.amount,
+    });
   } catch (err) {
-    console.error("❌ خطأ في تحديث القسط:", err);
-    res.status(500).json({ success: false, message: "حدث خطأ أثناء الحفظ" });
+    console.error("❌ خطأ في حفظ القسط:", err);
+    return res.status(500).json({ success: false, message: "حدث خطأ أثناء الحفظ" });
   }
 }
