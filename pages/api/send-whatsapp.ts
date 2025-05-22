@@ -38,13 +38,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: "رقم الهاتف أو الرسالة مفقودة" });
   }
 
-  if (!isReady) {
+  if (!isReady || !client) {
     return res.status(503).json({ error: "واتساب غير متصل حالياً" });
   }
 
   try {
     const formatted = phone.startsWith("+") ? phone : `+964${phone}`;
-    await client.sendMessage(`${formatted}@c.us`, message);
+    // استخدم non-null assertion لأن تحققنا أن client ليس null
+    await client!.sendMessage(`${formatted}@c.us`, message);
     return res.status(200).json({ success: true });
   } catch (error) {
     console.error("❌ فشل في الإرسال:", error);

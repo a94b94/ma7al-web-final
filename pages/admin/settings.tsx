@@ -3,6 +3,7 @@ import { useUser } from "@/context/UserContext";
 import { useRouter } from "next/router";
 import axios from "axios";
 import { toast, Toaster } from "react-hot-toast";
+import Image from "next/image";
 
 export default function AdminSettingsPage() {
   const { user } = useUser();
@@ -12,6 +13,7 @@ export default function AdminSettingsPage() {
   const [storeLogo, setStoreLogo] = useState("");
   const [whatsappNumber, setWhatsappNumber] = useState("");
   const [loading, setLoading] = useState(false);
+  const [heroImages, setHeroImages] = useState({ phone: "", appliance: "", background: "" });
 
   useEffect(() => {
     if (user) {
@@ -25,11 +27,21 @@ export default function AdminSettingsPage() {
     if (!user) {
       router.push("/login");
     }
+
+    fetch("/api/settings/hero-images")
+      .then((res) => res.json())
+      .then((data) => setHeroImages(data));
   }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!/^\d{10,15}$/.test(whatsappNumber)) {
+
+    if (!user) {
+      toast.error("❗ يجب تسجيل الدخول أولاً");
+      return;
+    }
+
+    if (!/^[0-9]{10,15}$/.test(whatsappNumber)) {
       toast.error("❌ رقم الواتساب غير صحيح");
       return;
     }
@@ -58,6 +70,20 @@ export default function AdminSettingsPage() {
     dialog.done((file: any) => {
       file.done((info: any) => {
         setStoreLogo(info.cdnUrl);
+      });
+    });
+  };
+
+  const handleHeroUpload = (type: "phone" | "appliance" | "background") => {
+    const widget = (window as any).uploadcare.Widget("[role=uploadcare-uploader]");
+    widget.openDialog(null, { publicKey: "767dc761271f23d1f796" }).done((fileInfo: any) => {
+      const updated = { ...heroImages, [type]: fileInfo.cdnUrl };
+      setHeroImages(updated);
+
+      fetch("/api/settings/hero-images", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updated),
       });
     });
   };
@@ -118,6 +144,50 @@ export default function AdminSettingsPage() {
           {loading ? "جارٍ الحفظ..." : "حفظ التعديلات"}
         </button>
       </form>
+
+      <hr className="my-8" />
+
+      <h3 className="text-lg font-semibold mb-4">🖼️ صور الواجهة الرئيسية (Hero)</h3>
+
+      <div className="space-y-4">
+        <div>
+          <button
+            onClick={() => handleHeroUpload("phone")}
+            className="bg-blue-600 text-white py-2 px-4 rounded"
+          >
+            📱 رفع صورة الهاتف
+          </button>
+          {heroImages.phone && (
+            <Image src={heroImages.phone} alt="هاتف" width={150} height={150} className="rounded shadow mt-2" />
+          )}
+        </div>
+
+        <div>
+          <button
+            onClick={() => handleHeroUpload("appliance")}
+            className="bg-green-600 text-white py-2 px-4 rounded"
+          >
+            ⚡ رفع صورة الجهاز الكهربائي
+          </button>
+          {heroImages.appliance && (
+            <Image src={heroImages.appliance} alt="جهاز" width={150} height={150} className="rounded shadow mt-2" />
+          )}
+        </div>
+
+        <div>
+          <button
+            onClick={() => handleHeroUpload("background")}
+            className="bg-purple-600 text-white py-2 px-4 rounded"
+          >
+            🌌 تغيير خلفية الهيرو
+          </button>
+          {heroImages.background && (
+            <Image src={heroImages.background} alt="خلفية" width={150} height={80} className="rounded shadow mt-2" />
+          )}
+        </div>
+      </div>
+
+      <input type="hidden" role="uploadcare-uploader" />
     </div>
   );
 }

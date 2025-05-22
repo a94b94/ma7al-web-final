@@ -1,12 +1,13 @@
 import mongoose from "mongoose";
 
-const MONGODB_URI = process.env.MONGODB_URI;
+const uri = process.env.MONGODB_URI;
 
-if (!MONGODB_URI) {
+if (!uri) {
   throw new Error("❌ متغير البيئة MONGODB_URI غير موجود");
 }
 
-// نُعرّف النوع الصحيح لـ global
+const MONGODB_URI: string = uri; // ✅ الآن مؤكد أنه string فقط
+
 interface MongooseCache {
   conn: typeof mongoose | null;
   promise: Promise<typeof mongoose> | null;

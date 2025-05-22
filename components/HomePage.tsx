@@ -30,14 +30,12 @@ export default function HomePage() {
 
   const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
-  // 🛎️ إشعارات
   const { data: notifData } = useSWR(
     user?.phone ? `/api/notifications/user?phone=${user.phone}` : null,
     fetcher
   );
   const unreadCount = notifData?.notifications?.filter((n: any) => !n.seen)?.length || 0;
 
-  // 🧠 توصيات ذكية
   const guestId = typeof window !== "undefined" ? localStorage.getItem("guestId") : "";
   const { data: recData } = useSWR(
     user?.phone || guestId ? `/api/recommendations?userId=${user?.phone || guestId}` : null,
@@ -81,14 +79,14 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-100 to-white dark:from-gray-900 dark:to-gray-800 text-gray-900 dark:text-white pb-24">
-      <header className="bg-white dark:bg-gray-900 shadow-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto flex items-center justify-between px-4 py-3">
-          <a href="/" className="text-2xl font-extrabold text-indigo-600 dark:text-indigo-400">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white">
+      <header className="bg-white dark:bg-gray-800 sticky top-0 z-50 shadow-sm">
+        <div className="flex items-center justify-between px-4 py-3 max-w-7xl mx-auto">
+          <a href="/" className="text-xl font-bold text-blue-600 dark:text-blue-400">
             Ma7al Store
           </a>
 
-          <div className="hidden md:flex items-center gap-6">
+          <div className="hidden md:flex items-center gap-4">
             <button onClick={() => setDarkMode(!darkMode)}>
               {darkMode ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5 text-gray-600" />}
             </button>
@@ -120,16 +118,16 @@ export default function HomePage() {
                   <span>{user.name}</span>
                 </button>
                 {menuOpen && (
-                  <div className="absolute right-0 mt-2 bg-white dark:bg-gray-800 border rounded shadow-lg text-sm z-50">
-                    <a href="/admin" className="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">لوحة التحكم</a>
-                    <button onClick={handleLogout} className="w-full text-right px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">تسجيل خروج</button>
+                  <div className="absolute right-0 mt-2 bg-white dark:bg-gray-700 rounded shadow-lg text-sm z-50">
+                    <a href="/admin" className="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600">لوحة التحكم</a>
+                    <button onClick={handleLogout} className="w-full text-right px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600">تسجيل خروج</button>
                   </div>
                 )}
               </div>
             ) : (
-              <div className="flex gap-4">
-                <a href="/login" className="text-blue-600 dark:text-blue-400 hover:underline">تسجيل الدخول</a>
-                <a href="/register" className="text-green-600 dark:text-green-400 hover:underline">تسجيل جديد</a>
+              <div className="flex gap-3">
+                <a href="/login" className="text-blue-600 dark:text-blue-400 hover:underline">دخول</a>
+                <a href="/register" className="text-green-600 dark:text-green-400 hover:underline">تسجيل</a>
               </div>
             )}
           </div>
@@ -140,7 +138,7 @@ export default function HomePage() {
         </div>
 
         {menuOpen && (
-          <nav className="md:hidden bg-white dark:bg-gray-900 px-4 py-2">
+          <nav className="md:hidden bg-white dark:bg-gray-800 px-4 py-2">
             <a href="/" className="block py-1">الرئيسية</a>
             <a href="/cart" className="block py-1">السلة</a>
             {user ? (
@@ -151,15 +149,15 @@ export default function HomePage() {
               </>
             ) : (
               <>
-                <a href="/login" className="block py-1">تسجيل الدخول</a>
-                <a href="/register" className="block py-1">تسجيل جديد</a>
+                <a href="/login" className="block py-1">دخول</a>
+                <a href="/register" className="block py-1">تسجيل</a>
               </>
             )}
           </nav>
         )}
       </header>
 
-      <main>
+      <main className="max-w-7xl mx-auto px-4">
         <HeroSection />
         <CategoriesSection />
 

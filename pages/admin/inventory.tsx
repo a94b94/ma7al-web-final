@@ -7,6 +7,15 @@ import toast from "react-hot-toast";
 import Link from "next/link";
 import Tesseract from "tesseract.js";
 
+type Product = {
+  _id: string;
+  name: string;
+  category: string;
+  purchasePrice: number;
+  quantity: number;
+  barcode?: string;
+};
+
 const detectCategory = (name: string) => {
   const lowered = name.toLowerCase();
   if (lowered.includes("laptop") || lowered.includes("لابتوب")) return "لابتوبات";
@@ -17,7 +26,7 @@ const detectCategory = (name: string) => {
 };
 
 export default function InventoryPage() {
-  const [products, setProducts] = useState([]);
+  const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
     axios.get("/api/inventory?published=false").then((res) => {
@@ -29,7 +38,7 @@ export default function InventoryPage() {
     try {
       await axios.put(`/api/inventory/${id}/publish`);
       toast.success("✅ تم نشر المنتج");
-      setProducts((prev) => prev.filter((p: any) => p._id !== id));
+      setProducts((prev) => prev.filter((p) => p._id !== id));
     } catch (err) {
       toast.error("فشل في النشر");
     }
@@ -38,7 +47,7 @@ export default function InventoryPage() {
   const handleFileUpload = (file: File) => {
     const reader = new FileReader();
     reader.onload = async () => {
-      const existingBarcodes = new Set(products.map((p: any) => p.barcode));
+      const existingBarcodes = new Set(products.map((p) => p.barcode));
 
       if (file.type === "application/pdf") {
         toast.loading("📄 جارٍ استخراج النص من PDF...");
@@ -61,7 +70,7 @@ export default function InventoryPage() {
         toast.success("✅ تم استخراج النص، جارٍ التحليل...");
 
         const lines = fullText.split("\n");
-        const extracted: any[] = [];
+        const extracted: Product[] = [];
 
         for (const line of lines) {
           const match = line.match(/(XIAOMI|POCO|IPHONE|TECNO|INFINIX|REDMI|.*?\d+.*?)(?:\s+)(\d{1,3}(?:,\d{3})+)(?:\s+)(\d+)/i);
@@ -73,7 +82,7 @@ export default function InventoryPage() {
             const barcode = name.toLowerCase().replace(/\s+/g, "-");
 
             if (!existingBarcodes.has(barcode)) {
-              extracted.push({ name, purchasePrice, quantity, category, barcode });
+              extracted.push({ name, purchasePrice, quantity, category, barcode, _id: "" });
               existingBarcodes.add(barcode);
             }
           }
@@ -99,7 +108,7 @@ export default function InventoryPage() {
       toast.dismiss();
       toast.success("✅ تم استخراج البيانات، جارٍ تحليل النص...");
 
-      const extracted: any[] = [];
+      const extracted: Product[] = [];
       const lines = text.split("\n");
       for (const line of lines) {
         const match = line.match(/(XIAOMI|POCO|IPHONE|TECNO|INFINIX|REDMI|.*?\d+.*?)(?:\s+)(\d{1,3}(?:,\d{3})+)(?:\s+)(\d+)/i);
@@ -111,7 +120,7 @@ export default function InventoryPage() {
           const barcode = name.toLowerCase().replace(/\s+/g, "-");
 
           if (!existingBarcodes.has(barcode)) {
-            extracted.push({ name, purchasePrice, quantity, category, barcode });
+            extracted.push({ name, purchasePrice, quantity, category, barcode, _id: "" });
             existingBarcodes.add(barcode);
           }
         }
@@ -180,7 +189,7 @@ export default function InventoryPage() {
             </tr>
           </thead>
           <tbody>
-            {products.map((product: any) => (
+            {products.map((product) => (
               <tr key={product._id}>
                 <td className="p-2 border">{product.name}</td>
                 <td className="p-2 border">{product.category}</td>

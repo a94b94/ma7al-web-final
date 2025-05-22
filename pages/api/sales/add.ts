@@ -12,6 +12,12 @@ interface ProductType {
   price: number;
 }
 
+interface Installment {
+  date: Date;
+  amount: number;
+  paid: boolean;
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
@@ -26,7 +32,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   await connectDB();
 
   try {
-    // ✅ تحقق من المخزون وتحديثه
+    // تحقق من المخزون وتحديثه
     for (const item of items) {
       const product = await Product.findById(item.productId) as HydratedDocument<ProductType>;
       if (!product) throw new Error('المنتج غير موجود');
@@ -37,11 +43,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       await product.save();
     }
 
-    // ✅ حساب المجموع الكلي
+    // حساب المجموع الكلي
     const total = items.reduce((sum: number, item: any) => sum + item.price * item.quantity, 0);
 
-    // ✅ توليد الأقساط إن وجد
-    let installments = [];
+    // توليد الأقساط إن وجد
+    let installments: Installment[] = [];
     if (paymentType === 'installment') {
       const remaining = total - downPayment;
       const monthlyAmount = Math.ceil(remaining / installmentsCount);
@@ -58,7 +64,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
 
-    // ✅ إنشاء الفاتورة
+    // إنشاء الفاتورة
     const sale = new Sale({
       customer: new mongoose.Types.ObjectId(customerId),
       items: items.map((item: any) => ({
@@ -70,7 +76,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       downPayment: paymentType === 'installment' ? downPayment : 0,
       installmentsCount: paymentType === 'installment' ? installmentsCount : 0,
       dueDate: paymentType === 'installment' ? dueDate : null,
-      installments, // ✅ الأقساط هنا
+      installments, // الأقساط هنا
       total,
       paid: paymentType === 'cash' ? total : downPayment,
       createdAt: new Date(),

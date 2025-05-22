@@ -17,7 +17,6 @@ export default function MobileBottomNav() {
   const { user } = useUser();
   const { cart } = useCart();
 
-  // ✅ إصلاح مشكلة Vercel: تأكد أن الكود يعمل فقط على المتصفح
   if (typeof window === "undefined" || !pathname) return null;
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -66,7 +65,7 @@ export default function MobileBottomNav() {
                 ) : null}
 
                 {/* شارة عدد المنتجات في السلة */}
-                {item.label === "السلة" && item.badge > 0 && (
+                {item.label === "السلة" && (item.badge ?? 0) > 0 && (
                   <span className="absolute -top-1.5 -right-1.5 bg-red-600 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
                     {item.badge}
                   </span>

@@ -1,12 +1,34 @@
+// الكود الكامل بعد إضافة زر التحليلات في الأعلى
 import AdminLayout from "@/components/admin/AdminLayout";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useUser } from "@/context/UserContext";
 import Link from "next/link";
 
+type Installment = {
+  date: string;
+  amount: number;
+  paid: boolean;
+};
+
+type Order = {
+  _id: string;
+  customerName?: string;
+  phone: string;
+  total: number;
+  paid: number;
+  dueDate?: string;
+  installments?: Installment[];
+  installmentsCount?: number;
+  downPayment?: number;
+  reminderSent?: boolean;
+  sentBy?: string;
+  storeName: string;
+};
+
 export default function InstallmentsPage() {
   const { user } = useUser();
-  const [orders, setOrders] = useState([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [filter, setFilter] = useState<"all" | "paid" | "due" | "late">("all");
 
   useEffect(() => {
@@ -88,7 +110,15 @@ export default function InstallmentsPage() {
 
   return (
     <AdminLayout>
-      <h1 className="text-2xl font-bold mb-4 text-right">📋 قائمة الأقساط</h1>
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold text-right">📋 قائمة الأقساط</h1>
+        <Link
+          href="/admin/dashboard"
+          className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
+        >
+          📊 لوحة التحليلات
+        </Link>
+      </div>
 
       <div className="mb-4 flex gap-2 justify-end">
         <button onClick={() => setFilter("all")} className="px-4 py-1 border rounded">الكل</button>
@@ -124,9 +154,7 @@ export default function InstallmentsPage() {
                 : 0;
               const hasLate = order.installments?.some((i: any) => !i.paid && new Date(i.date) < new Date());
 
-              const message = `📅 تذكير: لديك قسط مستحق بتاريخ ${new Date(
-                order.dueDate
-              ).toLocaleDateString("ar-IQ")} لدى متجر ${order.storeName}.
+              const message = `📅 تذكير: لديك قسط مستحق بتاريخ ${order.dueDate ? new Date(order.dueDate).toLocaleDateString("ar-IQ") : "—"} لدى متجر ${order.storeName}.
 💰 المتبقي: ${remaining} د.ع ${
                 monthly ? `\n📤 القسط الشهري: ${monthly} د.ع` : ""
               }\n📞 للاستفسار: ${order.phone}`;
