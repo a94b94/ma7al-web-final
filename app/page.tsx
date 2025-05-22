@@ -1,7 +1,10 @@
-// app/page.tsx
-export const dynamic = "force-dynamic";
-import HomePage from "@/components/HomePage";
+// مثال في _app.tsx
+import { CartProvider } from "@/context/CartContext";
 
-export default function Index() {
-  return <HomePage />;
+export default function App({ Component, pageProps }) {
+  return (
+    <CartProvider>
+      <Component {...pageProps} />
+    </CartProvider>
+  );
 }
