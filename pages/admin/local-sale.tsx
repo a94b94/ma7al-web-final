@@ -1,208 +1,212 @@
+// pages/admin/inventory.tsx
 "use client";
 
-import React, { useState } from "react";
-import { useRouter } from "next/router";
-import dynamic from "next/dynamic";
+import { useEffect, useState } from "react";
+import axios from "axios";
 import toast from "react-hot-toast";
+import Link from "next/link";
+import Tesseract from "tesseract.js";
 
-const InvoicePrintPreview = dynamic(() => import("@/components/InvoicePrintPreview"), { ssr: false });
-
-interface CartItem {
+interface Product {
+  _id: string;
   name: string;
+  category: string;
+  purchasePrice: number;
   quantity: number;
-  price: number;
+  barcode?: string;
 }
 
-export default function LocalSalePage() {
-  const router = useRouter();
-  const { id } = router.query;
+const detectCategory = (name: string) => {
+  const lowered = name.toLowerCase();
+  if (lowered.includes("laptop") || lowered.includes("لابتوب")) return "لابتوبات";
+  if (lowered.includes("mobile") || lowered.includes("موبايل")) return "موبايلات";
+  if (lowered.includes("headphone") || lowered.includes("سماعة")) return "سماعات";
+  if (lowered.includes("watch") || lowered.includes("ساعة")) return "ساعات";
+  return "غير مصنّف";
+};
 
-  const [cart, setCart] = useState<CartItem[]>([{ name: "", quantity: 1, price: 0 }]);
-  const [customerName, setCustomerName] = useState("");
-  const [customerPhone, setCustomerPhone] = useState("");
-  const [invoiceType, setInvoiceType] = useState<"cash" | "installment">("cash");
-  const [downPayment, setDownPayment] = useState(0);
-  const [installmentsCount, setInstallmentsCount] = useState(0);
-  const [dueDate, setDueDate] = useState("");
-  const [paid, setPaid] = useState(0);
-  const [discount, setDiscount] = useState(0);
-  const [storeName] = useState("Ma7al Store");
-  const [showInvoice, setShowInvoice] = useState(false);
+export default function InventoryPage() {
+  const [products, setProducts] = useState<Product[]>([]);
 
-  const total = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
-  const totalAfterDiscount = Math.max(total - discount, 0);
-  const remaining = Math.max(totalAfterDiscount - paid, 0);
-  const monthlyInstallment = invoiceType === "installment" && installmentsCount > 0
-    ? Math.ceil((totalAfterDiscount - downPayment) / installmentsCount)
-    : 0;
+  useEffect(() => {
+    axios.get("/api/inventory?published=false").then((res) => {
+      setProducts(res.data);
+    });
+  }, []);
 
-  const fakeOrder = {
-    _id: typeof id === "string" ? id : undefined,
-    phone: customerPhone || "غير مذكور",
-    customerName: customerName || "زبون محلي",
-    cart,
-    total: totalAfterDiscount,
-    createdAt: new Date().toISOString(),
-    type: invoiceType,
-    downPayment,
-    installmentsCount: Number(installmentsCount),
-    dueDate: dueDate ? new Date(dueDate).toISOString() : null,
-    remaining,
-    paid,
-    discount,
-    monthlyInstallment,
-  };
-
-  const handleChange = (index: number, field: keyof CartItem, value: string | number) => {
-    const updated = [...cart];
-    updated[index] = {
-      ...updated[index],
-      [field]: field === "quantity" || field === "price" ? Number(value) : String(value),
-    };
-    setCart(updated);
-  };
-
-  const handleAddRow = () => {
-    setCart([...cart, { name: "", quantity: 1, price: 0 }]);
-  };
-
-  const handleSaveInvoice = async () => {
-    if (!customerName.trim() || !customerPhone.trim()) {
-      toast.error("❗ يرجى إدخال اسم الزبون ورقم الهاتف");
-      return;
+  const publishProduct = async (id: string) => {
+    try {
+      await axios.put(`/api/inventory/${id}/publish`);
+      toast.success("✅ تم نشر المنتج");
+      setProducts((prev) => prev.filter((p) => p._id !== id));
+    } catch (err) {
+      toast.error("فشل في النشر");
     }
+  };
 
-    if (cart.length === 0 || cart.some(item => !item.name.trim() || item.quantity <= 0 || item.price <= 0)) {
-      toast.error("❗ يرجى إدخال بيانات صحيحة لجميع المنتجات");
-      return;
-    }
+  const handleFileUpload = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const existingBarcodes = new Set(products.map((p) => p.barcode));
 
-    if (invoiceType === "installment") {
-      if (!installmentsCount || installmentsCount <= 0 || !dueDate) {
-        toast.error("❗ يرجى إدخال عدد الأقساط وتاريخ الاستحقاق قبل الحفظ");
+      if (file.type === "application/pdf") {
+        toast.loading("📄 جارٍ استخراج النص من PDF...");
+
+        const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.js");
+        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+
+        const typedarray = new Uint8Array(reader.result as ArrayBuffer);
+        const pdf = await pdfjsLib.getDocument({ data: typedarray }).promise;
+
+        let fullText = "";
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          const strings = content.items.map((item: any) => item.str);
+          fullText += strings.join(" ") + "\n";
+        }
+
+        toast.dismiss();
+        toast.success("✅ تم استخراج النص، جارٍ التحليل...");
+
+        const lines = fullText.split("\n");
+        const extracted: Product[] = [];
+
+        for (const line of lines) {
+          const match = line.match(/(XIAOMI|POCO|IPHONE|TECNO|INFINIX|REDMI|.*?\d+.*?)(?:\s+)(\d{1,3}(?:,\d{3})+)(?:\s+)(\d+)/i);
+          if (match) {
+            const name = match[1].trim();
+            const purchasePrice = parseFloat(match[2].replace(/,/g, ""));
+            const quantity = parseInt(match[3]);
+            const category = detectCategory(name);
+            const barcode = name.toLowerCase().replace(/\s+/g, "-");
+
+            if (!existingBarcodes.has(barcode)) {
+              extracted.push({ name, purchasePrice, quantity, category, barcode, _id: Math.random().toString() });
+              existingBarcodes.add(barcode);
+            }
+          }
+        }
+
+        if (extracted.length > 0) {
+          const confirm = window.confirm(`تم استخراج ${extracted.length} منتج جديد من PDF. هل ترغب في نشرها للمخزن؟`);
+          if (confirm) {
+            const res = await axios.post("/api/purchase/ocr", { products: extracted });
+            if (res.data.success) {
+              toast.success("📦 تم رفع المنتجات من PDF بنجاح");
+              setProducts((prev) => [...prev, ...res.data.inserted]);
+            }
+          }
+        } else {
+          toast.error("❌ لم يتم العثور على بيانات صالحة داخل PDF أو كانت مكررة");
+        }
         return;
       }
-    }
 
-    try {
-      const res = await fetch("/api/local-sale/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(fakeOrder),
-      });
-      const data = await res.json();
+      toast.loading("🔍 جارٍ تحليل الصورة...");
+      const { data: { text } } = await Tesseract.recognize(reader.result as string, "eng");
+      toast.dismiss();
+      toast.success("✅ تم استخراج البيانات، جارٍ تحليل النص...");
 
-      if (data.success) {
-        toast.success("✅ تم حفظ الفاتورة بنجاح");
-        setShowInvoice(true);
+      const extracted: Product[] = [];
+      const lines = text.split("\n");
+      for (const line of lines) {
+        const match = line.match(/(XIAOMI|POCO|IPHONE|TECNO|INFINIX|REDMI|.*?\d+.*?)(?:\s+)(\d{1,3}(?:,\d{3})+)(?:\s+)(\d+)/i);
+        if (match) {
+          const name = match[1].trim();
+          const purchasePrice = parseFloat(match[2].replace(/,/g, ""));
+          const quantity = parseInt(match[3]);
+          const category = detectCategory(name);
+          const barcode = name.toLowerCase().replace(/\s+/g, "-");
 
-        await fetch("https://ma7al-whatsapp-production.up.railway.app/send-message", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            phone: customerPhone.replace("+", ""),
-            message: `تم تسجيل فاتورة جديدة للزبون ${customerName}\nالمبلغ الكلي: ${totalAfterDiscount} د.ع\nالمتبقي: ${remaining} د.ع\n${invoiceType === "installment" ? `القسط الشهري: ${monthlyInstallment} د.ع` : "تم الدفع بالكامل"}\nشكراً لتعاملكم معنا!`,
-          }),
-        });
-
-        toast.success("📤 تم إرسال الفاتورة عبر WhatsApp");
-      } else {
-        toast.error("❌ فشل في حفظ الفاتورة");
+          if (!existingBarcodes.has(barcode)) {
+            extracted.push({ name, purchasePrice, quantity, category, barcode, _id: Math.random().toString() });
+            existingBarcodes.add(barcode);
+          }
+        }
       }
-    } catch (err) {
-      toast.error("⚠️ حدث خطأ أثناء الحفظ أو الإرسال");
-    }
-  };
 
-  const handlePrintPDF = async () => {
-    const element = document.getElementById("invoice-preview");
-    if (!element) return;
-    const html2pdf = (await import("html2pdf.js")).default;
-    html2pdf()
-      .from(element)
-      .set({ margin: 0.5, filename: `فاتورة-${customerName}.pdf`, html2canvas: { scale: 2 } })
-      .save();
+      if (extracted.length > 0) {
+        const confirm = window.confirm(`تم استخراج ${extracted.length} منتج جديد. هل ترغب في نشرها للمخزن؟`);
+        if (confirm) {
+          const res = await axios.post("/api/purchase/ocr", { products: extracted });
+          if (res.data.success) {
+            toast.success("📦 تم رفع المنتجات للمخزن بنجاح");
+            setProducts((prev) => [...prev, ...res.data.inserted]);
+          }
+        }
+      } else {
+        toast.error("❌ لم يتم العثور على بيانات منتجات جديدة أو كانت مكررة");
+      }
+    };
+
+    if (file.type === "application/pdf") {
+      reader.readAsArrayBuffer(file);
+    } else {
+      reader.readAsDataURL(file);
+    }
   };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <div className="flex justify-between mb-4">
-        <h1 className="text-2xl font-bold text-center">📎 توليد فاتورة محلية</h1>
-        <button onClick={() => router.push("/admin")} className="text-sm underline text-blue-600">← رجوع للوحة التحكم</button>
+    <div className="max-w-6xl mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-4">📦 المنتجات في المخزن (غير منشورة)</h1>
+
+      <div className="flex items-center justify-between mb-4">
+        <Link
+          href="/admin/purchase"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+        >
+          ➕ إنشاء فاتورة شراء جديدة
+        </Link>
+
+        <label className="text-sm text-gray-600">
+          أو ارفع صورة / PDF للفاتورة:
+          <input
+            type="file"
+            accept=".pdf,image/*"
+            className="block mt-1 text-sm border rounded p-1"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                handleFileUpload(file);
+              }
+            }}
+          />
+        </label>
       </div>
 
-      <div className="grid sm:grid-cols-2 gap-4 mb-4">
-        <div>
-          <label className="block mb-1 font-medium">👤 اسم الزبون</label>
-          <input className="border p-2 w-full rounded" value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
-        </div>
-        <div>
-          <label className="block mb-1 font-medium">📞 رقم الهاتف</label>
-          <input className="border p-2 w-full rounded" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} />
-        </div>
-      </div>
-
-      {cart.map((item, idx) => (
-        <div key={idx} className="flex gap-2 mb-2">
-          <input className="border p-2 flex-1 rounded" placeholder="اسم المنتج" value={item.name} onChange={(e) => handleChange(idx, "name", e.target.value)} />
-          <input type="number" className="border p-2 w-20 rounded" placeholder="الكمية" value={item.quantity} onChange={(e) => handleChange(idx, "quantity", e.target.value)} />
-          <input type="number" className="border p-2 w-32 rounded" placeholder="السعر" value={item.price} onChange={(e) => handleChange(idx, "price", e.target.value)} />
-        </div>
-      ))}
-
-      <button onClick={handleAddRow} className="bg-blue-600 text-white px-4 py-2 rounded mb-4">+ إضافة منتج</button>
-
-      <div className="grid sm:grid-cols-3 gap-4 mb-4">
-        <div>
-          <label className="block mb-1 font-medium">💵 المبلغ المدفوع</label>
-          <input type="number" className="border p-2 w-full rounded" value={paid} onChange={(e) => setPaid(+e.target.value)} />
-        </div>
-        <div>
-          <label className="block mb-1 font-medium">🔻 الخصم</label>
-          <input type="number" className="border p-2 w-full rounded" value={discount} onChange={(e) => setDiscount(+e.target.value)} />
-        </div>
-        <div>
-          <label className="block mb-1 font-medium">💰 المتبقي</label>
-          <input type="number" className="border p-2 w-full rounded" value={remaining} readOnly />
-        </div>
-      </div>
-
-      <div className="mb-4">
-        <label className="block mb-1 font-medium">نوع الفاتورة</label>
-        <select className="border p-2 w-full rounded" value={invoiceType} onChange={(e) => setInvoiceType(e.target.value as any)}>
-          <option value="cash">💵 نقد</option>
-          <option value="installment">📄 أقساط</option>
-        </select>
-      </div>
-
-      {invoiceType === "installment" && (
-        <div className="grid sm:grid-cols-3 gap-4 mb-4">
-          <div>
-            <label className="block mb-1 font-medium">💰 دفعة أولى</label>
-            <input type="number" className="border p-2 w-full rounded" value={downPayment} onChange={(e) => setDownPayment(+e.target.value)} />
-          </div>
-          <div>
-            <label className="block mb-1 font-medium">📆 عدد الأقساط</label>
-            <input type="number" className="border p-2 w-full rounded" value={installmentsCount} onChange={(e) => setInstallmentsCount(+e.target.value)} />
-          </div>
-          <div>
-            <label className="block mb-1 font-medium">📅 تاريخ أول استحقاق</label>
-            <input type="date" className="border p-2 w-full rounded" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
-          </div>
-        </div>
-      )}
-
-      <button onClick={handleSaveInvoice} className="bg-green-600 text-white px-6 py-2 rounded w-full">✅ توليد الفاتورة</button>
-
-      {showInvoice && (
-        <div>
-          <div className="flex justify-end mb-2">
-            <button onClick={handlePrintPDF} className="bg-gray-800 text-white px-4 py-1 rounded">🖨️ طباعة PDF</button>
-          </div>
-          <div id="invoice-preview" className="border p-4 bg-white shadow">
-            <InvoicePrintPreview order={fakeOrder} storeName={storeName} />
-          </div>
-        </div>
+      {products.length === 0 ? (
+        <p className="text-gray-500">لا توجد منتجات غير منشورة حالياً.</p>
+      ) : (
+        <table className="w-full border text-sm">
+          <thead className="bg-gray-100">
+            <tr>
+              <th className="p-2 border">المنتج</th>
+              <th className="p-2 border">القسم</th>
+              <th className="p-2 border">سعر الشراء</th>
+              <th className="p-2 border">الكمية</th>
+              <th className="p-2 border">نشر</th>
+            </tr>
+          </thead>
+          <tbody>
+            {products.map((product) => (
+              <tr key={product._id}>
+                <td className="p-2 border">{product.name}</td>
+                <td className="p-2 border">{product.category}</td>
+                <td className="p-2 border">{product.purchasePrice.toLocaleString()} د.ع</td>
+                <td className="p-2 border">{product.quantity}</td>
+                <td className="p-2 border text-center">
+                  <button
+                    onClick={() => publishProduct(product._id)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1 rounded"
+                  >
+                    نشر
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
     </div>
   );

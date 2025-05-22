@@ -3,6 +3,12 @@ import connectToDatabase from "@/lib/mongodb";
 import Order from "@/models/Order";
 import { generateInstallments } from "@/lib/generateInstallments";
 
+type Installment = {
+  date: Date;
+  amount: number;
+  paid: boolean;
+};
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "❌ Method Not Allowed" });
@@ -21,14 +27,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       installmentsCount = 0,
       dueDate,
       storeId,
-      storeName, // ✅ جديد
+      storeName,
     } = req.body;
 
     if (!phone || !address || !cart || !total || !type || !storeId || !storeName) {
       return res.status(400).json({ error: "❗جميع الحقول مطلوبة بما في ذلك المتجر" });
     }
 
-    let installments = [];
+    let installments: Installment[] = [];
     let remaining = total;
 
     if (type === "installment") {
@@ -51,8 +57,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       dueDate,
       remaining,
       installments,
-      storeId,     // ✅ مضاف
-      storeName,   // ✅ مضاف
+      storeId,
+      storeName,
     });
 
     return res.status(201).json({ message: "✅ تم إنشاء الطلب بنجاح", order: newOrder });

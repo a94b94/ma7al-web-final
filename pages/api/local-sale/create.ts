@@ -3,6 +3,12 @@ import dbConnect from "@/lib/dbConnect";
 import LocalInvoice from "@/models/LocalInvoice";
 import Order from "@/models/Order";
 
+interface Installment {
+  date: Date;
+  amount: number;
+  paid: boolean;
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
     return res.status(405).json({ success: false, error: "Method not allowed" });
@@ -55,7 +61,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     if (type === "installment") {
-      const installments = [];
+      const installments: Installment[] = [];
 
       if (installmentsCount > 0) {
         const installmentAmount = Math.ceil((total - downPayment) / installmentsCount);

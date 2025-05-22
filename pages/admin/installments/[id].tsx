@@ -1,21 +1,11 @@
-// الكود الكامل بعد التعديل النهائي
+// الكود الكامل بعد التعديل النهائي بدون زر التحليلات
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { useUser } from "@/context/UserContext";
-import ReminderLog from "@/components/admin/ReminderLog";
-import {
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
 import dynamic from "next/dynamic";
-import Image from "next/image";
-import Countdown from "react-countdown";
 
 const html2pdf = dynamic(() => import("html2pdf.js"), { ssr: false });
 import Modal from "@/components/ui/Modal";
@@ -73,6 +63,23 @@ export default function InstallmentDetailsPage() {
           sentBy: user?.name || "مشرف",
         });
 
+        if (newRemaining <= 0) {
+          const element = document.createElement("div");
+          element.innerHTML = `
+            <div dir='rtl' style='font-family: sans-serif; padding: 20px;'>
+              <h2 style='text-align:center;'>🧾 فاتورة السداد النهائية</h2>
+              <p>الزبون: ${order.customerName}</p>
+              <p>الهاتف: ${order.phone}</p>
+              <p>المبلغ الكلي: ${order.total.toLocaleString()} د.ع</p>
+              <p>المدفوع: ${order.paid.toLocaleString()} د.ع</p>
+              <p>الحالة: مكتمل</p>
+              <p>تاريخ السداد النهائي: ${new Date().toLocaleDateString("ar-IQ")}</p>
+            </div>
+          `;
+          const module = await import("html2pdf.js");
+          module.default().from(element).set({ filename: `Final_Installment_Receipt.pdf` }).save();
+        }
+
         setShowModal(false);
         toast.success("✅ تم تسجيل القسط وإرسال الإشعار");
       } else {
@@ -83,6 +90,29 @@ export default function InstallmentDetailsPage() {
     }
 
     setSending(false);
+  };
+
+  const exportPaymentLog = async () => {
+    if (!order) return;
+    const element = document.createElement("div");
+    const paidInstallments = order.installments?.filter((i: any) => i.paid) || [];
+    element.innerHTML = `
+      <div dir='rtl' style='font-family: sans-serif; padding: 20px;'>
+        <h2 style='text-align:center;'>📄 سجل الدفع الكامل</h2>
+        <p>الزبون: ${order.customerName}</p>
+        <p>الهاتف: ${order.phone}</p>
+        <ul>
+          ${paidInstallments
+            .map(
+              (i: any) =>
+                `<li>✅ دفع ${i.amount.toLocaleString()} د.ع بتاريخ ${new Date(i.paidAt).toLocaleDateString("ar-IQ")}</li>`
+            )
+            .join("")}
+        </ul>
+      </div>
+    `;
+    const module = await import("html2pdf.js");
+    module.default().from(element).set({ filename: `Installment_Payment_Log.pdf` }).save();
   };
 
   useEffect(() => {
@@ -144,7 +174,6 @@ export default function InstallmentDetailsPage() {
         </Modal>
       )}
 
-      {/* ✅ عرض الأقساط */}
       {!loading && order && (
         <div className="p-4 bg-white rounded-xl mt-6 border">
           <h2 className="text-xl font-bold mb-4">📋 تفاصيل الأقساط</h2>
@@ -185,6 +214,25 @@ export default function InstallmentDetailsPage() {
               ))}
             </tbody>
           </table>
+
+          <div className="mt-8">
+            <h3 className="text-lg font-bold mb-2">📄 سجل الدفع الكامل</h3>
+            <ul className="list-disc pl-5 text-sm text-gray-700">
+              {order.installments?.filter((i: any) => i.paid).map((i: any, idx: number) => (
+                <li key={idx}>
+                  ✅ دفع {i.amount.toLocaleString()} د.ع بتاريخ {new Date(i.paidAt).toLocaleDateString("ar-IQ")}
+                </li>
+              ))}
+            </ul>
+            <div className="mt-4 text-right">
+              <button
+                onClick={exportPaymentLog}
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+              >
+                🖨️ تحميل سجل الدفع PDF
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </AdminLayout>

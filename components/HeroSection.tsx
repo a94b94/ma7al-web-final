@@ -3,19 +3,61 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
+import { useEffect, useState } from "react";
 
 export default function HeroSection() {
+  const [heroImages, setHeroImages] = useState({
+    phone: "",
+    appliance: "",
+    background: "",
+  });
+
+  useEffect(() => {
+    fetch("/api/settings/hero-images")
+      .then((res) => res.json())
+      .then((data) => setHeroImages(data));
+  }, []);
+
   return (
-    <section className="relative bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white py-20 px-4 sm:px-8 lg:px-16 overflow-hidden">
-      {/* نقش إلكتروني شفاف */}
+    <section className="relative text-white py-20 px-4 sm:px-8 lg:px-16 overflow-hidden">
+      {/* ✅ الخلفية الديناميكية أو الافتراضية */}
       <div className="absolute inset-0 opacity-10 pointer-events-none z-0">
-        <Image
-          src="/images/tech-pattern.svg"
-          alt="background pattern"
-          fill
-          className="object-cover"
-        />
+        {heroImages.background ? (
+          <Image
+            src={heroImages.background}
+            alt="Hero background"
+            fill
+            className="object-cover"
+          />
+        ) : (
+          <Image
+            src="/images/tech-pattern.svg"
+            alt="background pattern"
+            fill
+            className="object-cover"
+          />
+        )}
       </div>
+
+      {/* ✅ صور الهاتف والجهاز */}
+      {heroImages.phone && heroImages.appliance && (
+        <div className="hidden lg:flex absolute top-1/2 right-16 transform -translate-y-1/2 z-10 gap-6">
+          <Image
+            src={heroImages.phone}
+            alt="هاتف حديث"
+            width={200}
+            height={200}
+            className="rounded-xl shadow-lg"
+          />
+          <Image
+            src={heroImages.appliance}
+            alt="جهاز كهربائي"
+            width={200}
+            height={200}
+            className="rounded-xl shadow-lg"
+          />
+        </div>
+      )}
 
       <div className="relative z-10 max-w-6xl mx-auto text-center">
         <motion.h1

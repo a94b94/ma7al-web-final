@@ -42,7 +42,6 @@ export const useCart = () => {
   return context;
 };
 
-// ✅ دالة ترجع مفتاح التخزين حسب المحل
 const getStorageKey = () => {
   const storeId = localStorage.getItem("selectedStoreId");
   return storeId ? `ma7al_cart_${storeId}` : "ma7al_cart_unknown";
@@ -94,9 +93,18 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     const existingItemIndex = fullCart?.cart.findIndex((i) => i.id === item.id);
     let updatedCart: FullCart;
 
-    if (fullCart && fullCart.cart && existingItemIndex !== -1) {
+    if (
+      fullCart &&
+      fullCart.cart &&
+      typeof existingItemIndex === "number" &&
+      existingItemIndex >= 0 &&
+      fullCart.cart[existingItemIndex]
+    ) {
       const newCart = [...fullCart.cart];
-      newCart[existingItemIndex].quantity += 1;
+      newCart[existingItemIndex] = {
+        ...newCart[existingItemIndex],
+        quantity: newCart[existingItemIndex].quantity + 1,
+      };
       updatedCart = {
         storeId: selectedStoreId,
         storeName: selectedStoreName,

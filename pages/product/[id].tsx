@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react"; // مهم لاستعمال JSX.Element والتعريف الصحيح
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import Image from "next/image";
@@ -41,7 +42,7 @@ export default function ProductPage() {
         .catch(() => toast.error("فشل في تحميل بيانات المنتج"))
         .finally(() => setLoading(false));
     }
-  }, [id]);
+  }, [id, user]);
 
   if (loading || !product) {
     return (
@@ -55,8 +56,9 @@ export default function ProductPage() {
     ? Math.floor(product.price * (1 - product.discount / 100))
     : product.price;
 
+  // تعريف نوع stars كمصفوفة عناصر React
   const renderStars = (rating: number) => {
-    const stars = [];
+    const stars: React.JSX.Element[] = [];
     for (let i = 1; i <= 5; i++) {
       stars.push(
         <span key={i} className={i <= rating ? "text-yellow-500" : "text-gray-300"}>
