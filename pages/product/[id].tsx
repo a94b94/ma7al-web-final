@@ -58,7 +58,7 @@ export default function ProductPage() {
 
   // تعريف نوع stars كمصفوفة عناصر React
   const renderStars = (rating: number) => {
-    const stars: React.JSX.Element[] = [];
+    const stars: JSX.Element[] = [];
     for (let i = 1; i <= 5; i++) {
       stars.push(
         <span key={i} className={i <= rating ? "text-yellow-500" : "text-gray-300"}>

@@ -7,6 +7,10 @@ import toast from "react-hot-toast";
 import Link from "next/link";
 import Tesseract from "tesseract.js";
 
+// ✅ استيراد صحيح لـ pdfjs-dist
+import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf";
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+
 type Product = {
   _id: string;
   name: string;
@@ -39,7 +43,7 @@ export default function InventoryPage() {
       await axios.put(`/api/inventory/${id}/publish`);
       toast.success("✅ تم نشر المنتج");
       setProducts((prev) => prev.filter((p) => p._id !== id));
-    } catch (err) {
+    } catch {
       toast.error("فشل في النشر");
     }
   };
@@ -49,11 +53,9 @@ export default function InventoryPage() {
     reader.onload = async () => {
       const existingBarcodes = new Set(products.map((p) => p.barcode));
 
+      // 📄 التعامل مع PDF
       if (file.type === "application/pdf") {
         toast.loading("📄 جارٍ استخراج النص من PDF...");
-
-        const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.js");
-        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
         const typedarray = new Uint8Array(reader.result as ArrayBuffer);
         const pdf = await pdfjsLib.getDocument({ data: typedarray }).promise;
@@ -103,6 +105,7 @@ export default function InventoryPage() {
         return;
       }
 
+      // 🖼️ التعامل مع الصور
       toast.loading("🔍 جارٍ تحليل الصورة...");
       const { data: { text } } = await Tesseract.recognize(reader.result as string, "eng");
       toast.dismiss();
@@ -110,6 +113,7 @@ export default function InventoryPage() {
 
       const extracted: Product[] = [];
       const lines = text.split("\n");
+
       for (const line of lines) {
         const match = line.match(/(XIAOMI|POCO|IPHONE|TECNO|INFINIX|REDMI|.*?\d+.*?)(?:\s+)(\d{1,3}(?:,\d{3})+)(?:\s+)(\d+)/i);
         if (match) {
@@ -152,10 +156,7 @@ export default function InventoryPage() {
       <h1 className="text-2xl font-bold mb-4">📦 المنتجات في المخزن (غير منشورة)</h1>
 
       <div className="flex items-center justify-between mb-4">
-        <Link
-          href="/admin/purchase"
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
-        >
+        <Link href="/admin/purchase" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
           ➕ إنشاء فاتورة شراء جديدة
         </Link>
 
@@ -167,9 +168,7 @@ export default function InventoryPage() {
             className="block mt-1 text-sm border rounded p-1"
             onChange={(e) => {
               const file = e.target.files?.[0];
-              if (file) {
-                handleFileUpload(file);
-              }
+              if (file) handleFileUpload(file);
             }}
           />
         </label>

@@ -1,3 +1,6 @@
+"use client";
+
+
 import React, {
   createContext,
   useContext,
@@ -6,7 +9,6 @@ import React, {
   ReactNode,
 } from "react";
 import toast from "react-hot-toast";
-
 type CartItem = {
   id: string;
   name: string;
