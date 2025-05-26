@@ -1,114 +1,79 @@
-import { useState, useEffect } from "react";
-import { useRouter } from "next/router";
+// /pages/admin/customers.tsx
+"use client";
+
 import AdminLayout from "@/components/admin/AdminLayout";
+import { useEffect, useState } from "react";
+import axios from "axios";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, ArrowLeft } from "lucide-react";
-import toast from "react-hot-toast";
 
-export default function AddCustomerPage() {
-  const router = useRouter();
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
-  const [paymentStatus, setPaymentStatus] = useState("paid");
-  const [dueDate, setDueDate] = useState("");
-  const [loading, setLoading] = useState(false);
+interface CustomerSummary {
+  phone: string;
+  name: string;
+  address: string;
+  totalOrders: number;
+  totalPaid: number;
+}
 
-  const handleSubmit = async () => {
-    if (!name || !phone || !address) {
-      toast.error("❗ جميع الحقول مطلوبة");
-      return;
-    }
-    setLoading(true);
-    try {
-      const res = await fetch("/api/customers/add", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, phone, address, paymentStatus, dueDate }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success("✅ تم إضافة الزبون بنجاح");
-        router.push("/admin/customers");
-      } else {
-        toast.error("❌ فشل في إضافة الزبون");
-      }
-    } catch (err) {
-      toast.error("❌ حدث خطأ أثناء الإرسال");
-    }
-    setLoading(false);
-  };
+export default function CustomersPage() {
+  const [customers, setCustomers] = useState<CustomerSummary[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    axios.get("/api/customers").then((res) => {
+      setCustomers(res.data);
+      setLoading(false);
+    });
+  }, []);
 
   return (
     <AdminLayout>
-      <div className="p-6 max-w-xl mx-auto bg-white shadow rounded-lg">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-xl font-bold text-gray-700">➕ إضافة زبون جديد</h1>
-          <Button variant="ghost" onClick={() => router.back()}>
-            <ArrowLeft className="w-4 h-4 mr-2" /> رجوع
-          </Button>
+      <div className="p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold text-blue-700">👥 الزبائن</h1>
+          <Link href="/admin/customers/add">
+            <Button className="bg-green-600 text-white hover:bg-green-700">
+              ➕ زبون جديد
+            </Button>
+          </Link>
         </div>
 
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">👤 اسم الزبون</label>
-            <input
-              className="border p-2 rounded w-full"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
+        {loading ? (
+          <p>🔄 جارٍ تحميل الزبائن...</p>
+        ) : customers.length === 0 ? (
+          <p className="text-gray-500">لا توجد بيانات زبائن حالياً.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-right border">
+              <thead className="bg-gray-100 text-gray-700">
+                <tr>
+                  <th className="p-2 border">📞 الهاتف</th>
+                  <th className="p-2 border">👤 الاسم</th>
+                  <th className="p-2 border">📍 العنوان</th>
+                  <th className="p-2 border">📦 عدد الطلبات</th>
+                  <th className="p-2 border">💰 الإجمالي المدفوع</th>
+                  <th className="p-2 border">📄 التفاصيل</th>
+                </tr>
+              </thead>
+              <tbody>
+                {customers.map((c) => (
+                  <tr key={c.phone} className="border-b">
+                    <td className="p-2 border">{c.phone}</td>
+                    <td className="p-2 border">{c.name}</td>
+                    <td className="p-2 border">{c.address}</td>
+                    <td className="p-2 border text-center">{c.totalOrders}</td>
+                    <td className="p-2 border">{c.totalPaid.toLocaleString()} د.ع</td>
+                    <td className="p-2 border text-center">
+                      <Link href={`/admin/customers/${c.phone}`}>
+                        <Button size="sm">عرض</Button>
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">📞 رقم الهاتف</label>
-            <input
-              type="text"
-              className="border p-2 rounded w-full"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">📍 العنوان</label>
-            <input
-              type="text"
-              className="border p-2 rounded w-full"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">💳 حالة الدفع</label>
-            <select
-              className="border p-2 rounded w-full"
-              value={paymentStatus}
-              onChange={(e) => setPaymentStatus(e.target.value)}
-            >
-              <option value="paid">✅ مدفوع</option>
-              <option value="cod">💵 الدفع عند الاستلام</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">⏰ تاريخ الاستحقاق</label>
-            <input
-              type="date"
-              className="border p-2 rounded w-full"
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
-            />
-          </div>
-
-          <Button
-            className="bg-green-600 hover:bg-green-700 text-white w-full"
-            onClick={handleSubmit}
-            disabled={loading}
-          >
-            {loading ? "...جاري الحفظ" : "✅ حفظ الزبون"}
-          </Button>
-        </div>
+        )}
       </div>
     </AdminLayout>
   );
