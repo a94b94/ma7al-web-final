@@ -1,28 +1,44 @@
 import AdminLayout from "@/components/admin/AdminLayout";
 import { useEffect, useState } from "react";
-import { Bell } from "lucide-react";
+import { Bell, Trash2, CheckCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import axios from "axios";
 
 interface Notification {
   _id: string;
-  title: string;
   message: string;
   createdAt: string;
+  seen?: boolean;
 }
 
 export default function AdminNotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchNotifications = async () => {
+    try {
+      const res = await axios.get("/api/notifications?userId=admin"); // استخدم ID المشرف
+      setNotifications(res.data);
+    } catch {
+      setNotifications([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    fetch("/api/admin/notifications", {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => setNotifications(data))
-      .catch(() => setNotifications([]));
+    fetchNotifications();
   }, []);
+
+  const markAllAsRead = async () => {
+    await axios.post("/api/notifications/mark-read", { userId: "admin" });
+    setNotifications((prev) => prev.map((n) => ({ ...n, seen: true })));
+  };
+
+  const deleteNotification = async (id: string) => {
+    await axios.delete(`/api/notifications/delete?id=${id}`);
+    setNotifications((prev) => prev.filter((n) => n._id !== id));
+  };
 
   return (
     <AdminLayout>
@@ -31,24 +47,49 @@ export default function AdminNotificationsPage() {
           <Bell /> إشعارات النظام
         </h1>
 
-        {notifications.length === 0 ? (
+        {loading ? (
+          <p className="text-gray-500">جارٍ التحميل...</p>
+        ) : notifications.length === 0 ? (
           <p className="text-gray-500">لا توجد إشعارات حالياً.</p>
         ) : (
-          <div className="grid gap-4">
-            {notifications.map((note) => (
-              <Card key={note._id} className="border border-gray-200 shadow-sm">
-                <CardContent className="p-4">
-                  <h2 className="text-lg font-semibold text-gray-800">
-                    {note.title}
-                  </h2>
-                  <p className="text-sm text-gray-600 mt-1">{note.message}</p>
-                  <p className="text-xs text-gray-400 mt-2 text-right">
-                    {new Date(note.createdAt).toLocaleString()}
-                  </p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <>
+            <div className="flex justify-end mb-4">
+              <button
+                onClick={markAllAsRead}
+                className="flex items-center gap-2 text-sm bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+              >
+                <CheckCircle size={16} />
+                تمييز الكل كمقروء
+              </button>
+            </div>
+
+            <div className="grid gap-4">
+              {notifications.map((note) => (
+                <Card
+                  key={note._id}
+                  className={`border ${note.seen ? "bg-white" : "bg-yellow-50"} shadow-sm`}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="text-sm text-gray-700">{note.message}</p>
+                        <p className="text-xs text-gray-400 mt-2">
+                          {new Date(note.createdAt).toLocaleString("ar-EG")}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => deleteNotification(note._id)}
+                        className="text-red-500 hover:text-red-700"
+                        title="حذف الإشعار"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </>
         )}
       </div>
     </AdminLayout>

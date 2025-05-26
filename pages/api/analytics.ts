@@ -12,14 +12,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   await connectDB();
 
   try {
-    const orders = await Order.find();
+    const { from, to } = req.query;
+    const fromDate = from ? new Date(from as string) : null;
+    const toDate = to ? new Date(to as string) : null;
+
+    const dateFilter: any = {};
+    if (fromDate) dateFilter.$gte = fromDate;
+    if (toDate) {
+      toDate.setDate(toDate.getDate() + 1);
+      dateFilter.$lte = toDate;
+    }
+
+    const orders = await Order.find(
+      Object.keys(dateFilter).length ? { createdAt: dateFilter } : {}
+    );
     const products = await Product.find();
 
     const totalOrders = orders.length;
     const totalRevenue = orders.reduce((sum, o) => sum + o.total, 0);
     const uniqueCustomers = new Set(orders.map((o) => o.phone)).size;
 
-    // أكثر المنتجات مبيعًا
     const productSales: { [key: string]: number } = {};
     for (const order of orders) {
       for (const item of order.cart) {
@@ -33,17 +45,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .sort((a, b) => b.totalSold - a.totalSold)
       .slice(0, 5);
 
-    // المبيعات حسب الأشهر
     const monthlyMap: { [key: string]: number } = {};
     for (const order of orders) {
-      const month = new Date((order as any).createdAt).toLocaleString("default", { month: "short", year: "numeric" });
+      const month = new Date(order.createdAt!).toLocaleString("default", {
+        month: "short",
+        year: "numeric",
+      });
       if (!monthlyMap[month]) monthlyMap[month] = 0;
       monthlyMap[month] += order.total;
     }
-
     const monthlySales = Object.entries(monthlyMap).map(([month, total]) => ({ month, total }));
 
-    // المبيعات حسب القسم
     const categoryMap: { [key: string]: number } = {};
     for (const order of orders) {
       for (const item of order.cart) {
@@ -53,7 +65,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         categoryMap[category] += item.quantity * item.price;
       }
     }
-
     const salesByCategory = Object.entries(categoryMap).map(([category, total]) => ({ category, total }));
 
     return res.status(200).json({
