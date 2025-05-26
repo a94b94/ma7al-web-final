@@ -26,19 +26,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [notifOpen, setNotifOpen] = useState(false);
 
   const navItems = [
-    { label: "لوحة التحكم", href: "/admin", icon: <LayoutDashboard size={18} /> },
-    { label: "الإشعارات", href: "/admin/notifications", icon: <Bell size={18} /> },
-    { label: "المنتجات", href: "/admin/products", icon: <Package size={18} /> },
-    { label: "📦 المخزن", href: "/admin/inventory", icon: <Package size={18} /> }, // ✅ تمت الإضافة هنا
-    { label: "الطلبات", href: "/admin/orders", icon: <ShoppingCart size={18} /> },
-    { label: "قائمة الأقساط", href: "/admin/installments", icon: <CreditCard size={18} /> },
-    { label: "📈 التقارير المالية", href: "/admin/reports", icon: <FileBarChart size={18} /> },
-    { label: "إضافة منتج", href: "/admin/add-product", icon: <PlusCircle size={18} /> },
-    { label: "توليد فاتورة", href: "/admin/local-sale", icon: <FilePlus size={18} /> },
-    { label: "قائمة الزبائن", href: "/admin/customers", icon: <User size={18} /> },
-    { label: "ربط واتساب", href: "/admin/qr", icon: <QrCode size={18} /> },
-    { label: "إعدادات المتجر", href: "/admin/settings", icon: <Settings size={18} /> },
-  ];
+  { label: "لوحة التحكم", href: "/admin", icon: <LayoutDashboard size={18} /> },
+  { label: "الإشعارات", href: "/admin/notifications", icon: <Bell size={18} /> },
+  { label: "المنتجات", href: "/admin/products", icon: <Package size={18} /> },
+  { label: "📦 المخزن", href: "/admin/inventory", icon: <Package size={18} /> },
+  { label: "الطلبات", href: "/admin/orders", icon: <ShoppingCart size={18} /> },
+  { label: "قائمة الأقساط", href: "/admin/installments", icon: <CreditCard size={18} /> },
+  { label: "📈 التقارير المالية", href: "/admin/analytics", icon: <FileBarChart size={18} /> }, // ✅ تم التعديل هنا
+  { label: "إضافة منتج", href: "/admin/add-product", icon: <PlusCircle size={18} /> },
+  { label: "توليد فاتورة", href: "/admin/local-sale", icon: <FilePlus size={18} /> },
+  { label: "قائمة الزبائن", href: "/admin/customers", icon: <User size={18} /> },
+  { label: "ربط واتساب", href: "/admin/qr", icon: <QrCode size={18} /> },
+  { label: "إعدادات المتجر", href: "/admin/settings", icon: <Settings size={18} /> },
+];
 
   if (user?.role === "owner") {
     navItems.splice(8, 0, {

@@ -6,16 +6,25 @@ export interface IOrder extends Document {
   customerPhone?: string;
   sentBy?: string;
   address: string;
-  cart: { name: string; quantity: number; price: number }[];
+
+  cart: {
+    name: string;
+    quantity: number;
+    price: number;
+    productId?: string; // ✅ لإحصائيات المبيعات حسب المنتج
+  }[];
+
   total: number;
   paid?: number;
   dueDate?: Date;
   seen?: boolean;
   status?: string;
+
   type: "cash" | "installment";
   downPayment?: number;
   installmentsCount?: number;
   remaining?: number;
+
   installments?: {
     date: Date;
     amount: number;
@@ -24,9 +33,13 @@ export interface IOrder extends Document {
     late?: boolean;
     lateFee?: number;
   }[];
+
   email?: string;
   storeId: string;
   storeName: string;
+
+  createdAt?: Date; // ✅ لحساب المبيعات الشهرية
+  updatedAt?: Date; // ✅ مفيد في إدارة التقارير/الطلبات
 }
 
 const InstallmentSchema = new Schema(
@@ -41,14 +54,14 @@ const InstallmentSchema = new Schema(
   { _id: false }
 );
 
-// ✅ حساب التأخير فقط عند حفظ قسط فردي (اختياري)
+// ✅ إعداد حالة القسط تلقائيًا إذا تأخر
 InstallmentSchema.pre("save", function (next) {
   const today = new Date();
   const installment = this as any;
 
   if (!installment.paid && new Date(installment.date) < today) {
     installment.late = true;
-    installment.lateFee = 1000; // قيمة غرامة التأخير - يمكنك تخصيصها
+    installment.lateFee = 1000;
   } else {
     installment.late = false;
     installment.lateFee = 0;
@@ -70,6 +83,7 @@ const OrderSchema = new Schema<IOrder>(
         name: { type: String, required: true },
         quantity: { type: Number, required: true },
         price: { type: Number, required: true },
+        productId: { type: String }, // ✅ يفضل وجوده للتحليل الدقيق
       },
     ],
 
