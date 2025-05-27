@@ -2,18 +2,18 @@ const withPWA = require("next-pwa")({
   dest: "public",
   register: true,
   skipWaiting: true,
-  disable: process.env.NODE_ENV === "development", // يعطل الـ PWA أثناء التطوير
+  disable: process.env.NODE_ENV === "development",
   buildExcludes: [
-    /app-build-manifest\.json$/,
-    /middleware-manifest\.json$/, // ✅ مهم جدًا
-    /dynamic-css-manifest\.json$/ // ✅ هذا يحل مشكلتك الأساسية
+    /app-build-manifest\\.json$/,
+    /middleware-manifest\\.json$/,
+    /dynamic-css-manifest\\.json$/,
   ],
   fallbacks: {
-    document: "/offline.html", // ✅ احتياطي في حال تعذر التحميل
+    document: "/offline.html",
   },
 });
 
-/** @type {import('next').NextConfig} */
+/** @type {import("next").NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
   images: {
