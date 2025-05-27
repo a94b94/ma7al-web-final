@@ -35,10 +35,19 @@ export default function CustomerDetailsPage() {
 
   const fetchData = async () => {
     if (!phone) return;
-    const res = await axios.get(`/api/customers/${phone}`);
-    setData(res.data);
-    setFilteredOrders(res.data.orders);
-    setLoading(false);
+    try {
+      const res = await axios.get(`/api/customers/${phone}`);
+      if (!res.data || !res.data.orders) {
+        throw new Error("البيانات غير متوفرة أو غير كاملة");
+      }
+      setData(res.data);
+      setFilteredOrders(res.data.orders);
+    } catch (error) {
+      console.error("❌ فشل تحميل بيانات الزبون:", error);
+      setData(null);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const exportToPDF = async () => {
@@ -68,7 +77,8 @@ export default function CustomerDetailsPage() {
     }
   }, [router.isReady, phone]);
 
-  if (loading || !data) return <AdminLayout><div className="p-6">⏳ تحميل...</div></AdminLayout>;
+  if (loading) return <AdminLayout><div className="p-6">⏳ تحميل...</div></AdminLayout>;
+  if (!data) return <AdminLayout><div className="p-6 text-red-600">⚠️ لا توجد بيانات لعرضها</div></AdminLayout>;
 
   return (
     <AdminLayout>
