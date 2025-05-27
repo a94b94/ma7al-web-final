@@ -31,9 +31,14 @@ export default function CustomerDetailsPage() {
 
   const fetchData = async () => {
     if (!phone) return;
-    const res = await axios.get(`/api/customers/${phone}`);
-    setData(res.data);
-    setLoading(false);
+    try {
+      const res = await axios.get(`/api/customers/${phone}`);
+      setData(res.data);
+    } catch (err) {
+      setData(null);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const exportToPDF = async () => {
@@ -51,7 +56,8 @@ export default function CustomerDetailsPage() {
     fetchData();
   }, [phone]);
 
-  if (loading || !data) return <AdminLayout><div className="p-6">⏳ تحميل...</div></AdminLayout>;
+  if (loading) return <AdminLayout><div className="p-6">⏳ تحميل...</div></AdminLayout>;
+  if (!data) return <AdminLayout><div className="p-6 text-red-600">❌ لا توجد بيانات لهذا الزبون</div></AdminLayout>;
 
   return (
     <AdminLayout>
