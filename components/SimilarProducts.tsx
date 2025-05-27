@@ -53,22 +53,24 @@ export default function SimilarProducts({
           >
             <Link
               href={`/product/${product._id}`}
-              className="bg-white rounded-xl overflow-hidden shadow hover:shadow-lg border block"
+              className="bg-white dark:bg-slate-800 rounded-xl overflow-hidden shadow hover:shadow-lg border dark:border-slate-700 block"
             >
               <div className="relative h-40 w-full">
                 <Image
                   src={product.image || "/images/default.jpg"}
-                  alt={product.name}
+                  alt={`منتج مشابه: ${product.name}`}
                   fill
+                  sizes="(max-width: 768px) 100vw, 33vw"
+                  loading="lazy"
                   className="object-cover rounded-t-xl"
                 />
               </div>
               <div className="p-4">
-                <h3 className="text-base font-semibold mb-1 line-clamp-2">
+                <h3 className="text-base font-semibold mb-1 line-clamp-2 text-slate-800 dark:text-white">
                   {product.name}
                 </h3>
-                <p className="text-blue-600 font-bold">
-                  {Number(product.price).toLocaleString()} د.ع
+                <p className="text-blue-600 dark:text-blue-400 font-bold">
+                  {(Number(product.price) || 0).toLocaleString("ar-IQ")} د.ع
                 </p>
               </div>
             </Link>

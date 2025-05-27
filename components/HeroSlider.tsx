@@ -5,15 +5,15 @@ import Link from "next/link";
 
 export default function HeroSection() {
   return (
-    <section className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white py-20 px-6">
-      <div className="max-w-6xl mx-auto text-center">
+    <section className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white py-20 px-4 sm:px-6 lg:px-8">
+      <div className="container mx-auto text-center">
         <motion.h1
           className="text-4xl md:text-5xl font-bold mb-4 text-pink-500"
           initial={{ opacity: 0, y: -40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
         >
-          أهلاً بك في <span className="text-white">Ma7al Store</span>
+          مرحبًا بك في <span className="text-white">Ma7al Store</span> 🎉
         </motion.h1>
 
         <motion.p
@@ -22,7 +22,7 @@ export default function HeroSection() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, duration: 0.8 }}
         >
-          تسوّق أفضل الإلكترونيات بأحدث العروض والأسعار
+          اكتشف أفضل الإلكترونيات 🧠 بأحدث العروض والأسعار من المحلات القريبة منك
         </motion.p>
 
         <motion.div
@@ -32,6 +32,7 @@ export default function HeroSection() {
         >
           <Link
             href="/categories"
+            aria-label="الذهاب إلى الأقسام"
             className="inline-block bg-pink-600 hover:bg-pink-700 text-white font-semibold py-3 px-8 rounded-full shadow-lg transition"
           >
             استعرض الأقسام

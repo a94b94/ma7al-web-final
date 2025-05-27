@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 
 type InstallmentTableProps = {
@@ -19,7 +21,7 @@ export default function InstallmentTable({
   count,
   startDate,
 }: InstallmentTableProps) {
-  if (count <= 0 || !startDate) return null;
+  if (count <= 0 || !startDate || totalAmount <= downPayment) return null;
 
   const remaining = totalAmount - downPayment;
   const perInstallment = Math.round(remaining / count);
@@ -27,13 +29,20 @@ export default function InstallmentTable({
   const rows: InstallmentRow[] = [];
 
   const start = new Date(startDate);
+  if (isNaN(start.getTime())) return null; // تأكيد أن التاريخ صالح
+
   for (let i = 0; i < count; i++) {
     const due = new Date(start);
-    due.setMonth(start.getMonth() + i);
+    due.setMonth(due.getMonth() + i);
+
+    const formattedDate = `${due.getDate().toString().padStart(2, "0")}/${(due.getMonth() + 1)
+      .toString()
+      .padStart(2, "0")}/${due.getFullYear()}`;
+
     rows.push({
       number: i + 1,
-      date: due.toLocaleDateString("ar-EG"),
-      amount: perInstallment.toLocaleString("en-US"),
+      date: formattedDate,
+      amount: perInstallment.toLocaleString("ar-IQ"),
     });
   }
 
