@@ -15,50 +15,46 @@ export default function HeroSection() {
   useEffect(() => {
     fetch("/api/settings/hero-images")
       .then((res) => res.json())
-      .then((data) => setHeroImages(data));
+      .then((data) => setHeroImages(data))
+      .catch((err) => {
+        console.error("فشل جلب صور الهيرو:", err);
+      });
   }, []);
 
   return (
     <section className="relative text-white py-20 px-4 sm:px-8 lg:px-16 overflow-hidden">
-      {/* ✅ الخلفية الديناميكية أو الافتراضية */}
+      {/* ✅ خلفية ديناميكية أو افتراضية */}
       <div className="absolute inset-0 opacity-10 pointer-events-none z-0">
-        {heroImages.background ? (
-          <Image
-            src={heroImages.background}
-            alt="Hero background"
-            fill
-            className="object-cover"
-          />
-        ) : (
-          <Image
-            src="/images/tech-pattern.svg"
-            alt="background pattern"
-            fill
-            className="object-cover"
-          />
-        )}
+        <Image
+          src={heroImages.background || "/images/tech-pattern.svg"}
+          alt="Hero background"
+          fill
+          loading="lazy"
+          className="object-cover"
+        />
       </div>
 
-      {/* ✅ صور الهاتف والجهاز */}
-      {heroImages.phone && heroImages.appliance && (
-        <div className="hidden lg:flex absolute top-1/2 right-16 transform -translate-y-1/2 z-10 gap-6">
-          <Image
-            src={heroImages.phone}
-            alt="هاتف حديث"
-            width={200}
-            height={200}
-            className="rounded-xl shadow-lg"
-          />
-          <Image
-            src={heroImages.appliance}
-            alt="جهاز كهربائي"
-            width={200}
-            height={200}
-            className="rounded-xl shadow-lg"
-          />
-        </div>
-      )}
+      {/* ✅ صور المنتجات الجانبية */}
+      <div className="hidden lg:flex absolute top-1/2 right-16 transform -translate-y-1/2 z-10 gap-6">
+        <Image
+          src={heroImages.phone || "/images/default-phone.png"}
+          alt="هاتف"
+          width={200}
+          height={200}
+          loading="lazy"
+          className="rounded-xl shadow-lg"
+        />
+        <Image
+          src={heroImages.appliance || "/images/default-appliance.png"}
+          alt="جهاز كهربائي"
+          width={200}
+          height={200}
+          loading="lazy"
+          className="rounded-xl shadow-lg"
+        />
+      </div>
 
+      {/* ✅ النص والمحتوى */}
       <div className="relative z-10 max-w-6xl mx-auto text-center">
         <motion.h1
           className="text-4xl sm:text-5xl font-bold mb-4 text-pink-500"
