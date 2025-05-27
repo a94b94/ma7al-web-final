@@ -21,6 +21,8 @@ interface CustomerDetails {
   phone: string;
   address: string;
   orders: Order[];
+  orderCount: number;
+  totalSpent: number;
 }
 
 export default function CustomerDetailsPage() {
@@ -28,17 +30,15 @@ export default function CustomerDetailsPage() {
   const { phone } = router.query;
   const [data, setData] = useState<CustomerDetails | null>(null);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
 
   const fetchData = async () => {
     if (!phone) return;
-    try {
-      const res = await axios.get(`/api/customers/${phone}`);
-      setData(res.data);
-    } catch (err) {
-      setData(null);
-    } finally {
-      setLoading(false);
-    }
+    const res = await axios.get(`/api/customers/${phone}`);
+    setData(res.data);
+    setFilteredOrders(res.data.orders);
+    setLoading(false);
   };
 
   const exportToPDF = async () => {
@@ -52,12 +52,23 @@ export default function CustomerDetailsPage() {
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, [phone]);
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setSearch(val);
+    if (!data) return;
+    const filtered = data.orders.filter(order =>
+      new Date(order.createdAt).toLocaleDateString("ar-EG").includes(val)
+    );
+    setFilteredOrders(filtered);
+  };
 
-  if (loading) return <AdminLayout><div className="p-6">⏳ تحميل...</div></AdminLayout>;
-  if (!data) return <AdminLayout><div className="p-6 text-red-600">❌ لا توجد بيانات لهذا الزبون</div></AdminLayout>;
+  useEffect(() => {
+    if (router.isReady && phone) {
+      fetchData();
+    }
+  }, [router.isReady, phone]);
+
+  if (loading || !data) return <AdminLayout><div className="p-6">⏳ تحميل...</div></AdminLayout>;
 
   return (
     <AdminLayout>
@@ -71,6 +82,19 @@ export default function CustomerDetailsPage() {
           <p><strong>👤 الاسم:</strong> {data.name}</p>
           <p><strong>📞 الهاتف:</strong> {data.phone}</p>
           <p><strong>📍 العنوان:</strong> {data.address}</p>
+          <p><strong>📦 عدد الطلبات:</strong> {data.orderCount}</p>
+          <p><strong>💰 مجموع الإنفاق:</strong> {data.totalSpent.toLocaleString()} د.ع</p>
+
+          <div className="my-4">
+            <label className="block text-sm font-medium mb-1">🔍 بحث بالتاريخ:</label>
+            <input
+              type="text"
+              value={search}
+              onChange={handleSearch}
+              placeholder="مثال: 2024/05/01"
+              className="w-full border px-3 py-2 rounded"
+            />
+          </div>
 
           <h2 className="mt-4 text-lg font-semibold">📦 الطلبات:</h2>
           <table className="w-full mt-2 text-sm text-right border">
@@ -84,15 +108,19 @@ export default function CustomerDetailsPage() {
               </tr>
             </thead>
             <tbody>
-              {data.orders.map((order, index) => (
-                <tr key={order._id} className="border-b">
-                  <td className="p-2 border">{index + 1}</td>
-                  <td className="p-2 border">{new Date(order.createdAt).toLocaleDateString("ar-EG")}</td>
-                  <td className="p-2 border">{order.total.toLocaleString()} د.ع</td>
-                  <td className="p-2 border">{order.paid.toLocaleString()} د.ع</td>
-                  <td className="p-2 border">{order.status}</td>
-                </tr>
-              ))}
+              {filteredOrders.length === 0 ? (
+                <tr><td colSpan={5} className="text-center p-4">لا توجد نتائج مطابقة</td></tr>
+              ) : (
+                filteredOrders.map((order, index) => (
+                  <tr key={order._id} className="border-b">
+                    <td className="p-2 border">{index + 1}</td>
+                    <td className="p-2 border">{new Date(order.createdAt).toLocaleDateString("ar-EG")}</td>
+                    <td className="p-2 border">{order.total.toLocaleString()} د.ع</td>
+                    <td className="p-2 border">{order.paid.toLocaleString()} د.ع</td>
+                    <td className="p-2 border">{order.status}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
