@@ -4,24 +4,37 @@ import Product from "@/models/Product";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
-    return res.status(405).json({ success: false, message: "الطريقة غير مدعومة" });
+    return res.status(405).json({ success: false, message: "❌ الطريقة غير مسموحة" });
   }
 
   await dbConnect();
 
   try {
-    const { name, price, category, image } = req.body;
+    const { name, price, category, image, barcode, discount, isFeatured } = req.body;
 
-    if (!name || !price || !category || !image) {
-      return res.status(400).json({ success: false, message: "الرجاء ملء جميع الحقول" });
+    // ✅ التحقق من الحقول الأساسية
+    if (
+      !name || typeof name !== "string" ||
+      !category || typeof category !== "string" ||
+      !image || typeof image !== "string" ||
+      price === undefined || typeof price !== "number"
+    ) {
+      return res.status(400).json({ success: false, message: "❗ يرجى إدخال جميع الحقول المطلوبة بشكل صحيح" });
     }
 
-    const newProduct = new Product({ name, price, category, image });
-    await newProduct.save();
+    const product = await Product.create({
+      name,
+      price,
+      category,
+      image,
+      barcode: barcode ?? "",
+      discount: discount ?? 0,
+      isFeatured: isFeatured ?? false,
+    });
 
-    res.status(201).json({ success: true, product: newProduct });
-  } catch (error) {
-    console.error("خطأ أثناء حفظ المنتج:", error);
-    res.status(500).json({ success: false, message: "فشل في حفظ المنتج" });
+    return res.status(201).json({ success: true, product });
+  } catch (error: any) {
+    console.error("❌ خطأ أثناء حفظ المنتج:", error.message);
+    return res.status(500).json({ success: false, message: "⚠️ فشل في حفظ المنتج" });
   }
 }

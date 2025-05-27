@@ -21,8 +21,9 @@ export default function AdminProductsPage() {
     const fetchProducts = async () => {
       try {
         const res = await fetch("/api/products");
+        if (!res.ok) throw new Error("فشل في الاتصال بالخادم");
         const data = await res.json();
-        setProducts(data);
+        setProducts(data.products || data); // دعم استجابة `{ products: [...] }` أو `[...]`
       } catch (err) {
         toast.error("❌ حدث خطأ أثناء جلب المنتجات");
       } finally {
@@ -36,16 +37,24 @@ export default function AdminProductsPage() {
   const handleDelete = async (id: string) => {
     if (!confirm("هل أنت متأكد من حذف هذا المنتج؟")) return;
     try {
-      const token = localStorage.getItem("user")
-        ? JSON.parse(localStorage.getItem("user")!).token
+      const token = typeof window !== "undefined"
+        ? JSON.parse(localStorage.getItem("user") || "{}")?.token
         : null;
+
+      if (!token) {
+        toast.error("❌ غير مصرح");
+        return;
+      }
+
       const res = await fetch(`/api/products/${id}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
+
       const data = await res.json();
+
       if (data.success) {
         toast.success("✅ تم حذف المنتج");
         setProducts(products.filter((p) => p._id !== id));
@@ -53,7 +62,7 @@ export default function AdminProductsPage() {
         toast.error(data.message || "❌ فشل الحذف");
       }
     } catch (err) {
-      toast.error("⚠️ خطأ أثناء الحذف");
+      toast.error("⚠️ خطأ أثناء تنفيذ الحذف");
     }
   };
 
@@ -73,7 +82,7 @@ export default function AdminProductsPage() {
         <p className="text-center">⏳ جارٍ تحميل المنتجات...</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full border">
+          <table className="w-full min-w-[600px] border">
             <thead>
               <tr className="bg-gray-100 text-right">
                 <th className="p-2">الصورة</th>
@@ -93,6 +102,9 @@ export default function AdminProductsPage() {
                       width={50}
                       height={50}
                       className="rounded object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = "/images/default.jpg";
+                      }}
                     />
                   </td>
                   <td className="p-2">{product.name}</td>
