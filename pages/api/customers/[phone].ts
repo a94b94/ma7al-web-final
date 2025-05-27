@@ -22,14 +22,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ error: "لم يتم العثور على بيانات لهذا الزبون" });
     }
 
-    const firstOrder = orders[0];
-    const name = firstOrder.customerName || "زبون";
-    const address = firstOrder.address || "غير محدد";
+    const name = orders[0].customerName || "زبون";
+    const address = orders[0].address || "غير محدد";
+    const orderCount = orders.length;
+    const totalSpent = orders.reduce((sum, order) => sum + (order.total || 0), 0);
 
     const result = {
       name,
       phone,
       address,
+      orderCount,
+      totalSpent,
       orders: orders.map((o) => ({
         _id: o._id,
         total: o.total,

@@ -11,20 +11,38 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   await connectDB();
 
   try {
-    const orders = await Order.find({}, "customerName phone").lean();
+    const orders = await Order.find({}, "customerName phone total").lean();
 
-    const unique = new Map();
+    const customerMap: {
+      [phone: string]: {
+        name: string;
+        phone: string;
+        orderCount: number;
+        totalSpent: number;
+      };
+    } = {};
+
     for (const order of orders) {
-      if (!unique.has(order.phone)) {
-        unique.set(order.phone, {
+      const phone = order.phone;
+      if (!customerMap[phone]) {
+        customerMap[phone] = {
           name: order.customerName || "زبون",
-          phone: order.phone,
-        });
+          phone,
+          orderCount: 0,
+          totalSpent: 0,
+        };
       }
+      customerMap[phone].orderCount += 1;
+      customerMap[phone].totalSpent += order.total || 0;
     }
 
-    return res.status(200).json(Array.from(unique.values()));
+    const customerList = Object.values(customerMap).sort(
+      (a, b) => b.totalSpent - a.totalSpent
+    );
+
+    return res.status(200).json(customerList);
   } catch (err) {
-    return res.status(500).json({ error: "❌ خطأ في جلب الزبائن" });
+    console.error("❌ خطأ أثناء جلب الزبائن:", err);
+    return res.status(500).json({ error: "❌ حدث خطأ أثناء تحميل الزبائن" });
   }
 }
