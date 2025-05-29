@@ -1,54 +1,39 @@
 "use client";
-
-import { useEffect, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import {
+  Smartphone,
+  Laptop,
+  Headphones,
+  Watch,
+  Power,
+  PackageSearch,
+} from "lucide-react";
 
-type Category = {
-  _id: string;
-  name: string;
-  slug: string;
-  image: string;
-  colorClass: string;
-};
+const categories = [
+  { name: "موبايلات", slug: "mobiles", icon: Smartphone },
+  { name: "لابتوبات", slug: "laptops", icon: Laptop },
+  { name: "سماعات", slug: "headphones", icon: Headphones },
+  { name: "ساعات", slug: "watches", icon: Watch },
+  { name: "أجهزة كهربائية", slug: "electronics", icon: Power },
+  { name: "أخرى", slug: "other", icon: PackageSearch },
+];
 
 export default function CategoriesSection() {
-  const [categories, setCategories] = useState<Category[]>([]);
-
-  useEffect(() => {
-    fetch("/api/categories")
-      .then((res) => res.json())
-      .then((data) => setCategories(data))
-      .catch((err) => {
-        console.error("فشل تحميل الأقسام:", err);
-      });
-  }, []);
-
   return (
-    <section className="container mx-auto px-4 py-12">
-      <h2 className="text-2xl font-bold mb-8 text-center text-gray-800">🗂️ الأقسام</h2>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {categories.map((cat) => (
-          <Link href={`/category/${cat.slug}`} key={cat._id}>
-            <motion.div
-              initial={false}
-              whileHover={{ scale: 1.03 }}
-              transition={{ type: "spring", stiffness: 300 }}
-              className={`relative flex items-center justify-center text-white h-48 rounded-2xl shadow-lg overflow-hidden ${cat.colorClass}`}
-            >
-              <div className="absolute inset-0 opacity-20">
-                <Image
-                  src={cat.image || "/images/default-category.jpg"}
-                  alt={`صورة قسم ${cat.name}`}
-                  fill
-                  loading="lazy"
-                  className="object-cover"
-                />
-              </div>
-              <h3 className="relative z-10 text-2xl font-bold">{cat.name}</h3>
-            </motion.div>
+    <section className="py-10 px-4 bg-gray-50 dark:bg-gray-900 transition">
+      <h2 className="text-2xl font-bold text-center mb-6 text-gray-800 dark:text-white">
+        🗂️ الأقسام
+      </h2>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-5 max-w-5xl mx-auto">
+        {categories.map(({ name, slug, icon: Icon }) => (
+          <Link
+            key={slug}
+            href={`/category/${slug}`}
+            title={`عرض منتجات ${name}`}
+            className="bg-white dark:bg-gray-800 rounded-xl shadow p-5 text-center hover:bg-blue-50 dark:hover:bg-blue-900 transition-all duration-200 group"
+          >
+            <Icon className="mx-auto mb-3 w-9 h-9 text-blue-600 group-hover:scale-110 transition-transform" />
+            <p className="font-semibold text-lg text-gray-900 dark:text-white">{name}</p>
           </Link>
         ))}
       </div>

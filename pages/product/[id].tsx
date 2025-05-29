@@ -1,155 +1,115 @@
 "use client";
 
-import React from "react"; // مهم لاستعمال JSX.Element والتعريف الصحيح
-import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
-import Image from "next/image";
-import { Button } from "@/components/ui/button";
+import { useRouter } from "next/router";
 import { useCart } from "@/context/CartContext";
-import { motion } from "framer-motion";
-import toast from "react-hot-toast";
-import SimilarProducts from "@/components/SimilarProducts";
-import { useUser } from "@/context/UserContext";
+import Image from "next/image";
+import Link from "next/link";
+import ProductSlider from "@/components/ProductSlider";
 
 export default function ProductPage() {
   const router = useRouter();
   const { id } = router.query;
   const { addToCart } = useCart();
-  const { user } = useUser();
+
   const [product, setProduct] = useState<any>(null);
+  const [similarProducts, setSimilarProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (id) {
-      fetch(`/api/products/${id}`)
-        .then((res) => res.json())
-        .then((data) => {
-          setProduct(data);
-          // 🧠 تسجيل النشاط لتوصيات AI
-          if (data?._id && data?.category) {
-            fetch("/api/activity/log", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                userId: user?.phone || localStorage.getItem("guestId") || "guest",
-                productId: data._id,
-                category: data.category,
-                action: "viewed",
-              }),
-            });
-          }
-        })
-        .catch(() => toast.error("فشل في تحميل بيانات المنتج"))
-        .finally(() => setLoading(false));
-    }
-  }, [id, user]);
+    if (!id) return;
 
-  if (loading || !product) {
-    return (
-      <p className="text-center py-20 text-gray-500">
-        ⏳ جاري تحميل بيانات المنتج...
-      </p>
-    );
-  }
+    const fetchData = async () => {
+      try {
+        const res = await fetch(`/api/products/${id}`);
+        const data = await res.json();
+        setProduct(data);
 
-  const discountPrice = product.discount
-    ? Math.floor(product.price * (1 - product.discount / 100))
+        if (data?.category) {
+          const simRes = await fetch(`/api/products?category=${data.category}`);
+          const simData = await simRes.json();
+          const filtered = simData.filter((p: any) => p._id !== data._id);
+          setSimilarProducts(filtered);
+        }
+      } catch {
+        setProduct(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [id]);
+
+  if (loading) return <p className="text-center py-10">جارٍ تحميل المنتج...</p>;
+  if (!product) return <p className="text-center py-10 text-red-500">المنتج غير موجود</p>;
+
+  const hasDiscount = product?.discount && product.discount > 0;
+  const discountedPrice = hasDiscount
+    ? product.price - (product.price * product.discount) / 100
     : product.price;
 
-  // تعريف نوع stars كمصفوفة عناصر React
-  const renderStars = (rating: number) => {
-    const stars: JSX.Element[] = [];
-    for (let i = 1; i <= 5; i++) {
-      stars.push(
-        <span key={i} className={i <= rating ? "text-yellow-500" : "text-gray-300"}>
-          ★
-        </span>
-      );
-    }
-    return stars;
-  };
-
-  const handleAddToCart = () => {
-    addToCart({
-      id: product._id,
-      name: product.name,
-      price: product.price,
-      image: product.image,
-    });
-
-    toast.success("✅ تم إضافة المنتج إلى السلة!");
-  };
-
   return (
-    <div className="min-h-screen bg-white py-10 px-6 text-gray-800 max-w-6xl mx-auto">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-start">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="bg-gray-50 p-6 rounded-xl shadow"
-        >
+    <div className="max-w-5xl mx-auto px-4 py-8">
+      <div className="grid md:grid-cols-2 gap-8">
+        <div>
           <Image
-            src={product.image || "/images/default.jpg"}
+            src={product.image}
             alt={product.name}
             width={500}
             height={500}
-            className="object-contain mx-auto rounded-xl"
+            className="rounded-lg object-contain w-full h-[400px] bg-white"
           />
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
-          className="space-y-6"
-        >
-          <h1 className="text-3xl font-bold text-gray-900">{product.name}</h1>
-          <div className="text-lg">{renderStars(product.rating || 4)}</div>
+        <div className="flex flex-col gap-4">
+          <h1 className="text-3xl font-bold">{product.name}</h1>
+          <p className="text-gray-500">الفئة: {product.category}</p>
 
-          <div className="flex items-center gap-4">
-            <p className="text-blue-700 text-2xl font-semibold">
-              💵 {discountPrice.toLocaleString()} د.ع
+          {hasDiscount ? (
+            <div>
+              <p className="text-red-600 text-xl font-bold">
+                {discountedPrice.toLocaleString()} د.ع
+              </p>
+              <p className="line-through text-gray-400 text-sm">
+                {product.price.toLocaleString()} د.ع
+              </p>
+              <span className="bg-red-500 text-white text-xs px-2 py-1 rounded">خصم {product.discount}%</span>
+            </div>
+          ) : (
+            <p className="text-lg font-bold text-green-700">
+              {product.price.toLocaleString()} د.ع
             </p>
-            {product.discount > 0 && (
-              <>
-                <span className="line-through text-gray-400 text-lg">
-                  {product.price.toLocaleString()} د.ع
-                </span>
-                <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-                  خصم {product.discount}%
-                </span>
-              </>
-            )}
-          </div>
+          )}
 
-          <p className="text-gray-600 leading-relaxed">
-            {product.description || "لا يوجد وصف متاح لهذا المنتج."}
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-4">
-            <Button
-              onClick={handleAddToCart}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-full"
-            >
-              🛒 أضف إلى السلة
-            </Button>
-
-            <Button
-              onClick={() => router.back()}
-              variant="outline"
-              className="rounded-full px-6 py-3"
-            >
-              ← رجوع
-            </Button>
-          </div>
-        </motion.div>
+          <button
+            onClick={() => addToCart({
+              id: product._id,
+              name: product.name,
+              price: discountedPrice,
+              image: product.image,
+            })}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded mt-4 transition"
+          >
+            أضف إلى السلة 🛒
+          </button>
+        </div>
       </div>
 
-      {/* 🌀 منتجات مشابهة */}
-      {product.category && (
-        <div className="mt-20">
-          <SimilarProducts currentProductId={product._id} category={product.category} />
+      {similarProducts.length > 0 && (
+        <div className="mt-12">
+          <h2 className="text-2xl font-bold mb-4 text-center">🧠 منتجات مشابهة</h2>
+          <ProductSlider
+            products={similarProducts}
+            onAddToCart={(product: any) =>
+              addToCart({
+                id: product._id,
+                name: product.name,
+                price: product.price,
+                image: product.image,
+              })
+            }
+          />
         </div>
       )}
     </div>

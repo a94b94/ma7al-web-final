@@ -1,59 +1,120 @@
 "use client";
 
-import Navbar from "@/components/shared/Navbar";
 import HeroSection from "@/components/HeroSection";
-import CategoriesSection from "@/components/CategoriesSection";
-import ProductSlider from "@/components/ProductSlider";
 import Footer from "@/components/Footer";
-import { useEffect, useState } from "react";
+import CategoriesSection from "@/components/CategoriesSection";
+import PromoBanner from "@/components/PromoBanner";
+import CountdownBanner from "@/components/CountdownBanner";
+import DailyDealBanner from "@/components/DailyDealBanner";
+import SeasonalHero from "@/components/SeasonalHero";
+import ProductSlider from "@/components/ProductSlider";
+import InteractiveNavbar from "@/components/shared/InteractiveNavbar";
+import MobileBottomNav from "@/components/shared/MobileBottomNav";
+import { useEffect, useState, useCallback } from "react";
+import { useUser } from "@/context/UserContext";
 import { useCart } from "@/context/CartContext";
+import useSWR from "swr";
+import { motion } from "framer-motion";
 
 export default function HomePage() {
-  const { addToCart } = useCart();
+  const { user } = useUser();
+  const { cart = [], addToCart } = useCart();
+
   const [discountProducts, setDiscountProducts] = useState<any[]>([]);
   const [newProducts, setNewProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [guestId, setGuestId] = useState("");
+
+  const fetcher = (url: string) => fetch(url).then((res) => res.json());
+
+  const { data: recData, isLoading: loadingRec } = useSWR(
+    user?.phone || guestId ? `/api/recommendations?userId=${user?.phone || guestId}` : null,
+    fetcher
+  );
 
   useEffect(() => {
-    fetch("/api/products/discount")
-      .then((res) => res.json())
-      .then((data) => (Array.isArray(data) ? setDiscountProducts(data) : []))
-      .catch(() => setDiscountProducts([]));
+    const id = localStorage.getItem("guestId");
+    if (id) setGuestId(id);
 
-    fetch("/api/products/new")
-      .then((res) => res.json())
-      .then((data) => (Array.isArray(data) ? setNewProducts(data) : []))
-      .catch(() => setNewProducts([]))
+    Promise.all([
+      fetch("/api/products/discount").then((res) => res.json()),
+      fetch("/api/products/new").then((res) => res.json()),
+    ])
+      .then(([discountData, newData]) => {
+        setDiscountProducts(Array.isArray(discountData) ? discountData : []);
+        setNewProducts(Array.isArray(newData) ? newData : []);
+      })
+      .catch(() => {
+        setDiscountProducts([]);
+        setNewProducts([]);
+      })
       .finally(() => setLoading(false));
   }, []);
 
-  const handleAddToCart = (product: any) => {
-    addToCart({
-      id: product._id,
-      name: product.name,
-      price: product.price,
-      image: product.image,
-    });
-  };
+  const handleAddToCart = useCallback(
+    (product: any) => {
+      addToCart({
+        id: product._id,
+        name: product.name,
+        price: product.price,
+        image: product.image,
+      });
+    },
+    [addToCart]
+  );
 
   return (
-    <div className="bg-gray-50 dark:bg-gray-900 min-h-screen text-gray-900 dark:text-white">
-      <Navbar />
-      <HeroSection />
-      <CategoriesSection />
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white">
+      <InteractiveNavbar />
 
-      <section className="max-w-7xl mx-auto px-4">
-        <h2 className="text-2xl font-bold text-indigo-700 dark:text-indigo-400 mt-10 mb-4 text-center">
+      <main className="max-w-7xl mx-auto px-2 sm:px-4 pb-24">
+        <HeroSection />
+        <SeasonalHero />
+        <CategoriesSection />
+        <PromoBanner />
+        <CountdownBanner />
+        <DailyDealBanner />
+
+        <motion.h2
+          className="text-2xl font-bold text-center mt-10 text-indigo-700 dark:text-indigo-400"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
           🔥 المنتجات المميزة
-        </h2>
+        </motion.h2>
         <ProductSlider products={discountProducts} loading={loading} onAddToCart={handleAddToCart} />
 
-        <h2 className="text-2xl font-bold text-green-700 dark:text-green-400 mt-10 mb-4 text-center">
+        <motion.h2
+          className="text-2xl font-bold text-center mt-10 text-green-700 dark:text-green-400"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
           🆕 وصل حديثًا
-        </h2>
+        </motion.h2>
         <ProductSlider products={newProducts} loading={loading} onAddToCart={handleAddToCart} />
-      </section>
 
+        {recData?.recommended?.length > 0 && (
+          <motion.div
+            className="mt-12"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <h3 className="text-2xl font-bold text-center text-purple-600 mb-6">
+              🧠 مقترحات مخصصة لك
+            </h3>
+            <ProductSlider
+              products={recData.recommended}
+              loading={loadingRec}
+              onAddToCart={handleAddToCart}
+            />
+          </motion.div>
+        )}
+      </main>
+
+      <MobileBottomNav />
       <Footer />
     </div>
   );
