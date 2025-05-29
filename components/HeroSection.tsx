@@ -1,93 +1,18 @@
+// components/HeroSection.tsx
 "use client";
-
-import { motion } from "framer-motion";
 import Link from "next/link";
-import Image from "next/image";
-import { useEffect, useState } from "react";
 
 export default function HeroSection() {
-  const [heroImages, setHeroImages] = useState({
-    phone: "",
-    appliance: "",
-    background: "",
-  });
-
-  useEffect(() => {
-    fetch("/api/settings/hero-images")
-      .then((res) => res.json())
-      .then((data) => setHeroImages(data))
-      .catch((err) => {
-        console.error("فشل جلب صور الهيرو:", err);
-      });
-  }, []);
-
   return (
-    <section className="relative text-white py-20 px-4 sm:px-8 lg:px-16 overflow-hidden">
-      {/* ✅ خلفية ديناميكية أو افتراضية */}
-      <div className="absolute inset-0 opacity-10 pointer-events-none z-0">
-        <Image
-          src={heroImages.background || "/images/tech-pattern.svg"}
-          alt="Hero background"
-          fill
-          loading="lazy"
-          className="object-cover"
-        />
-      </div>
-
-      {/* ✅ صور المنتجات الجانبية */}
-      <div className="hidden lg:flex absolute top-1/2 right-16 transform -translate-y-1/2 z-10 gap-6">
-        <Image
-          src={heroImages.phone || "/images/default-phone.png"}
-          alt="هاتف"
-          width={200}
-          height={200}
-          loading="lazy"
-          className="rounded-xl shadow-lg"
-        />
-        <Image
-          src={heroImages.appliance || "/images/default-appliance.png"}
-          alt="جهاز كهربائي"
-          width={200}
-          height={200}
-          loading="lazy"
-          className="rounded-xl shadow-lg"
-        />
-      </div>
-
-      {/* ✅ النص والمحتوى */}
-      <div className="relative z-10 max-w-6xl mx-auto text-center">
-        <motion.h1
-          className="text-4xl sm:text-5xl font-bold mb-4 text-pink-500"
-          initial={{ opacity: 0, y: -40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-        >
-          أهلاً بك في <span className="text-white">Ma7al Store</span>
-        </motion.h1>
-
-        <motion.p
-          className="text-gray-300 text-base sm:text-lg md:text-xl mb-8 max-w-2xl mx-auto"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.8 }}
-        >
-          اكتشف أحدث الإلكترونيات 🧠 والعروض الحصرية مباشرة من أفضل المحلات
-        </motion.p>
-
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.6, duration: 0.6 }}
-        >
-          <Link
-            href="/categories"
-            aria-label="استعرض الأقسام المتوفرة"
-            className="inline-block bg-pink-600 hover:bg-pink-700 text-white font-semibold py-3 px-8 rounded-full shadow-lg transition"
-          >
-            استعرض الأقسام
-          </Link>
-        </motion.div>
-      </div>
+    <section className="bg-gradient-to-r from-blue-900 to-blue-600 text-white py-20 px-4 text-center rounded-b-3xl shadow-lg">
+      <h1 className="text-4xl sm:text-5xl font-extrabold mb-4">أهلاً بك في Ma7al Store 👋</h1>
+      <p className="text-lg sm:text-xl mb-6">استكشف أحدث الإلكترونيات والعروض المميزة من أفضل المحلات</p>
+      <Link
+        href="/categories"
+        className="bg-white text-blue-800 font-bold py-3 px-6 rounded-full shadow hover:bg-gray-100 transition"
+      >
+        استعرض الأقسام
+      </Link>
     </section>
   );
 }
