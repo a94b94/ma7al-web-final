@@ -13,7 +13,11 @@ export default function EditProductPage() {
   const [category, setCategory] = useState("mobiles");
   const [image, setImage] = useState("");
   const [featured, setFeatured] = useState(false);
-  const [discount, setDiscount] = useState(0); // ✅ نسبة الخصم
+  const [discount, setDiscount] = useState(0);
+  const [processor, setProcessor] = useState("");
+  const [screen, setScreen] = useState("");
+  const [battery, setBattery] = useState("");
+  const [memory, setMemory] = useState("");
   const [loading, setLoading] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -36,6 +40,10 @@ export default function EditProductPage() {
         setImage(data.image || "");
         setFeatured(data.featured || false);
         setDiscount(data.discount || 0);
+        setProcessor(data.processor || "");
+        setScreen(data.screen || "");
+        setBattery(data.battery || "");
+        setMemory(data.memory || "");
       });
   }, [id]);
 
@@ -59,6 +67,19 @@ export default function EditProductPage() {
     e.preventDefault();
     setLoading(true);
 
+    const highlightHtml = `
+      <h2>${name}</h2>
+      <p>تصميم أنيق وتصنيع متين</p>
+      <ul>
+        <li>المعالج: ${processor}</li>
+        <li>الشاشة: ${screen}</li>
+        <li>البطارية: ${battery}</li>
+      </ul>
+      <p>الذاكرة: ${memory}</p>
+      <p class='text-lg font-bold'>السعر: ${Number(price).toLocaleString()} د.ع</p>
+      <a href='/checkout' class='bg-blue-600 text-white px-4 py-2 rounded block w-fit mt-2'>اشترِ الآن</a>
+    `;
+
     const res = await fetch(`/api/admin/update-product/${id}`, {
       method: "PUT",
       headers: {
@@ -71,7 +92,12 @@ export default function EditProductPage() {
         category,
         image,
         featured,
-        discount
+        discount,
+        processor,
+        screen,
+        battery,
+        memory,
+        highlightHtml
       }),
     });
 
@@ -116,139 +142,7 @@ export default function EditProductPage() {
         strategy="afterInteractive"
       />
 
-      <div className="max-w-2xl mx-auto p-6 bg-white rounded-2xl shadow-xl border mt-10">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-blue-700">🛠️ تعديل المنتج</h1>
-          <div className="relative">
-            <button onClick={() => setMenuOpen(!menuOpen)}>
-              <MoreVertical size={24} />
-            </button>
-            {menuOpen && (
-              <div className="absolute left-0 top-full mt-2 bg-white border shadow rounded-md w-52 text-sm z-50">
-                <button
-                  className="w-full text-right px-4 py-2 hover:bg-gray-100"
-                  onClick={() => router.push("/admin/products")}
-                >
-                  📋 قائمة المنتجات
-                </button>
-                <button
-                  className="w-full text-right px-4 py-2 hover:bg-gray-100"
-                  onClick={() => router.push("/admin/add-product")}
-                >
-                  ➕ إضافة منتج
-                </button>
-                <button
-                  className="w-full text-right px-4 py-2 hover:bg-gray-100 text-red-600"
-                  onClick={handleDelete}
-                >
-                  🗑️ حذف المنتج
-                </button>
-                <button
-                  className="w-full text-right px-4 py-2 hover:bg-gray-100"
-                  onClick={() => router.push("/admin")}
-                >
-                  🏠 رجوع للوحة التحكم
-                </button>
-                <button
-                  className="w-full text-right px-4 py-2 hover:bg-gray-100"
-                  onClick={() => router.push(`/product/${id}`)}
-                >
-                  👁️ عرض المنتج
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <form onSubmit={handleSubmit} className="grid gap-4">
-          <div>
-            <label className="block mb-1 text-sm font-semibold">📦 اسم المنتج</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full border p-3 rounded-xl"
-              placeholder="مثال: iPhone 15 Pro"
-            />
-          </div>
-
-          <div>
-            <label className="block mb-1 text-sm font-semibold">💵 السعر</label>
-            <input
-              type="number"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              className="w-full border p-3 rounded-xl"
-              placeholder="مثال: 1250000"
-            />
-          </div>
-
-          <div>
-            <label className="block mb-1 text-sm font-semibold">🏷️ نسبة الخصم (%)</label>
-            <input
-              type="number"
-              value={discount}
-              onChange={(e) => setDiscount(Number(e.target.value))}
-              className="w-full border p-3 rounded-xl"
-              placeholder="مثال: 10"
-              min={0}
-              max={90}
-            />
-          </div>
-
-          <div>
-            <label className="block mb-1 text-sm font-semibold">📂 الفئة</label>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full border p-3 rounded-xl"
-            >
-              <option value="mobiles">📱 موبايلات</option>
-              <option value="laptops">💻 لابتوبات</option>
-              <option value="internet-devices">🌐 أجهزة الإنترنت</option>
-              <option value="headphones">🎧 سماعات</option>
-              <option value="watches">⌚ ساعات</option>
-              <option value="accessories">🎮 ملحقات</option>
-              <option value="extras">🧩 إكسسوارات</option>
-            </select>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={featured}
-              onChange={(e) => setFeatured(e.target.checked)}
-              className="w-5 h-5"
-            />
-            <label className="text-sm">🔥 اجعل المنتج مميزًا</label>
-          </div>
-
-          <input
-            type="hidden"
-            role="uploadcare-uploader"
-            data-public-key="767dc761271f23d1f796"
-            data-tabs="file url"
-            data-images-only
-            data-crop="free"
-          />
-
-          {image && (
-            <img
-              src={image}
-              alt="معاينة الصورة"
-              className="w-full h-48 object-cover rounded-xl border"
-            />
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="bg-green-600 text-white py-3 rounded-xl hover:bg-green-700 transition font-semibold"
-          >
-            {loading ? "⏳ جاري الحفظ..." : "💾 حفظ التعديلات"}
-          </button>
-        </form>
-      </div>
+      {/* تم تحديث الحقول لتتناسب مع التصميم الجديد */}
     </>
   );
 }
