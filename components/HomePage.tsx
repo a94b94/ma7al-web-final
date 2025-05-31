@@ -24,6 +24,8 @@ export default function HomePage() {
   const [newProducts, setNewProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [guestId, setGuestId] = useState("");
+  const [activeAd, setActiveAd] = useState<any>(null);
+  const [countdown, setCountdown] = useState<string>("");
 
   const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -39,17 +41,43 @@ export default function HomePage() {
     Promise.all([
       fetch("/api/products/discount").then((res) => res.json()),
       fetch("/api/products/new").then((res) => res.json()),
+      fetch("/api/ads/active").then((res) => res.json()),
     ])
-      .then(([discountData, newData]) => {
+      .then(([discountData, newData, adData]) => {
         setDiscountProducts(Array.isArray(discountData) ? discountData : []);
         setNewProducts(Array.isArray(newData) ? newData : []);
+        if (adData && adData.expiresAt) {
+          setActiveAd(adData);
+          updateCountdown(adData.expiresAt);
+        }
       })
       .catch(() => {
         setDiscountProducts([]);
         setNewProducts([]);
+        setActiveAd(null);
       })
       .finally(() => setLoading(false));
   }, []);
+
+  const updateCountdown = (endTime: string) => {
+    const interval = setInterval(() => {
+      const now = new Date().getTime();
+      const end = new Date(endTime).getTime();
+      const distance = end - now;
+
+      if (distance <= 0) {
+        clearInterval(interval);
+        setCountdown("انتهى العرض");
+        return;
+      }
+
+      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+      setCountdown(`${hours} س ${minutes} د ${seconds} ث`);
+    }, 1000);
+  };
 
   const handleAddToCart = useCallback(
     (product: any) => {
@@ -68,6 +96,29 @@ export default function HomePage() {
       <InteractiveNavbar />
 
       <main className="max-w-7xl mx-auto px-2 sm:px-4 pb-24">
+        {activeAd && (
+          <div className="bg-gradient-to-r from-indigo-600 to-blue-500 text-white rounded-lg p-6 my-6 shadow-md relative">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="flex-1">
+                <h2 className="text-3xl font-bold mb-2">{activeAd.title}</h2>
+                <p className="text-sm mb-2">{activeAd.description}</p>
+                <p className="text-sm font-semibold mb-4">⏰ {countdown}</p>
+                <button
+                  onClick={() => window.location.href = `/product/${activeAd.product._id}`}
+                  className="bg-white text-blue-600 px-4 py-2 rounded font-semibold shadow hover:bg-gray-100"
+                >
+                  اشترِ الآن 🛒
+                </button>
+              </div>
+              <img
+                src={activeAd.product.image}
+                alt={activeAd.product.name}
+                className="w-48 h-48 object-contain bg-white rounded-lg shadow"
+              />
+            </div>
+          </div>
+        )}
+
         <HeroSection />
         <SeasonalHero />
         <CategoriesSection />

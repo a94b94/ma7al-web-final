@@ -1,3 +1,5 @@
+// pages/product/[id].tsx
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -13,6 +15,8 @@ export default function ProductPage() {
 
   const [product, setProduct] = useState<any>(null);
   const [similarProducts, setSimilarProducts] = useState<any[]>([]);
+  const [activeAd, setActiveAd] = useState<any>(null);
+  const [countdown, setCountdown] = useState<string>("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -20,12 +24,24 @@ export default function ProductPage() {
 
     const fetchData = async () => {
       try {
-        const res = await fetch(`/api/products/${id}`);
+        const [res, adRes] = await Promise.all([
+          fetch(`/api/products/${id}`),
+          fetch(`/api/ads/active`),
+        ]);
+
         const data = await res.json();
         setProduct(data);
 
+        const adData = await adRes.json();
+        if (adData?.product?._id === id) {
+          setActiveAd(adData);
+          updateCountdown(adData.expiresAt);
+        }
+
         if (data?.category) {
-          const simRes = await fetch(`/api/products?category=${data.category}&exclude=${data._id}`);
+          const simRes = await fetch(
+            `/api/products?category=${data.category}&exclude=${data._id}`
+          );
           const simData = await simRes.json();
           setSimilarProducts(simData);
         }
@@ -39,6 +55,26 @@ export default function ProductPage() {
     fetchData();
   }, [id]);
 
+  const updateCountdown = (endTime: string) => {
+    const interval = setInterval(() => {
+      const now = new Date().getTime();
+      const end = new Date(endTime).getTime();
+      const distance = end - now;
+
+      if (distance <= 0) {
+        clearInterval(interval);
+        setCountdown("انتهى العرض");
+        return;
+      }
+
+      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+      setCountdown(`${hours} س ${minutes} د ${seconds} ث`);
+    }, 1000);
+  };
+
   if (loading) return <p className="text-center py-10">⏳ جارٍ تحميل المنتج...</p>;
   if (!product) return <p className="text-center py-10 text-red-500">❌ المنتج غير موجود</p>;
 
@@ -49,6 +85,14 @@ export default function ProductPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
+      {activeAd && (
+        <div className="bg-yellow-100 text-yellow-800 p-4 rounded-lg mb-6 shadow text-center">
+          <h2 className="font-bold text-lg">🎉 {activeAd.title}</h2>
+          <p className="text-sm">{activeAd.description}</p>
+          <p className="text-sm mt-1">⏰ {countdown}</p>
+        </div>
+      )}
+
       <div className="grid md:grid-cols-2 gap-10 bg-white rounded-xl shadow p-6">
         <div className="flex items-center justify-center">
           <Image
@@ -82,16 +126,12 @@ export default function ProductPage() {
             </p>
           )}
 
-          <div className="bg-blue-50 border-l-4 border-blue-500 p-4 text-sm text-gray-700 rounded">
-            <p className="font-semibold">📝 وصف مختصر:</p>
-            <p>تصميم أنيق وتصنيع متين</p>
-            <ul className="list-disc list-inside mt-2">
-              <li>نوع المعالج: {product.processor}</li>
-              <li>نوع الشاشة: {product.screen}</li>
-              <li>البطارية: {product.battery}</li>
-              <li>الذاكرة: {product.memory}</li>
-            </ul>
-          </div>
+          {product.highlightHtml && (
+            <div
+              className="border-l-4 border-blue-500 bg-blue-50 p-4 text-sm text-gray-700 rounded"
+              dangerouslySetInnerHTML={{ __html: product.highlightHtml }}
+            />
+          )}
 
           <button
             onClick={() =>

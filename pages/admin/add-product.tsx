@@ -32,7 +32,7 @@ export default function AddProductPage() {
   const [name, setName] = useState("");
   const [price, setPrice] = useState(0);
   const [category, setCategory] = useState("");
-  const [image, setImage] = useState("");
+  const [images, setImages] = useState<string[]>([]);
   const [discount, setDiscount] = useState(0);
   const [highlightHtml, setHighlightHtml] = useState("");
   const [processor, setProcessor] = useState("");
@@ -74,7 +74,7 @@ export default function AddProductPage() {
         setName(data.product.name);
         setPrice(data.product.price);
         setCategory(data.product.category);
-        setImage(data.product.image);
+        setImages(data.product.images || []);
         toast.success("✅ تم العثور على المنتج وتعبئة البيانات");
       } else {
         toast("🔎 لم يتم العثور على باركود مطابق");
@@ -86,7 +86,7 @@ export default function AddProductPage() {
   };
 
   const handleSubmit = async () => {
-    if (!barcode || !name || !price || !category) {
+    if (!barcode || !name || !price || !category || images.length === 0) {
       toast.error("❗ جميع الحقول مطلوبة");
       return;
     }
@@ -108,7 +108,7 @@ export default function AddProductPage() {
       const res = await fetch("/api/products/add", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ barcode, name, price, category, image, discount, highlightHtml: highlightContent }),
+        body: JSON.stringify({ barcode, name, price, category, images, discount, highlightHtml: highlightContent })
       });
       const data = await res.json();
       if (data.success) {
@@ -117,7 +117,7 @@ export default function AddProductPage() {
         setName("");
         setPrice(0);
         setCategory("");
-        setImage("");
+        setImages([]);
         setDiscount(0);
         setHighlightHtml("");
         setProcessor("");
@@ -135,8 +135,8 @@ export default function AddProductPage() {
 
   const openUploadWidget = () => {
     // @ts-ignore
-    uploadcare.openDialog(null, { publicKey: "767dc761271f23d1f796" })
-      .done((file) => file.done((info: any) => setImage(info.cdnUrl)));
+    uploadcare.openDialog(null, { publicKey: "767dc761271f23d1f796", multiple: true })
+      .done((fileGroup) => fileGroup.done((info: any) => setImages(info.cdnUrls)));
   };
 
   return (
@@ -261,12 +261,14 @@ export default function AddProductPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">🖼️ صورة المنتج</label>
-            {image && (
-              <img src={image} alt="صورة المنتج" className="w-32 h-32 object-cover mb-2" />
-            )}
+            <label className="block text-sm font-medium mb-1">🖼️ صور المنتج</label>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {images.map((img, index) => (
+                <img key={index} src={img} alt="صورة المنتج" className="w-24 h-24 object-cover rounded" />
+              ))}
+            </div>
             <Button variant="outline" onClick={openUploadWidget}>
-              <Upload className="w-4 h-4 mr-2" /> اختر صورة من Uploadcare
+              <Upload className="w-4 h-4 mr-2" /> اختر صور من Uploadcare
             </Button>
           </div>
 
