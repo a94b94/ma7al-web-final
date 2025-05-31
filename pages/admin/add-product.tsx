@@ -9,15 +9,21 @@ import {
   Smartphone,
   Laptop,
   Headphones,
+  Watch,
+  PlugZap,
+  Package
 } from "lucide-react";
 import toast from "react-hot-toast";
 import * as uploadcare from "uploadcare-widget";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 
 const categories = [
-  { value: "mobiles", label: "📱 هواتف", icon: Smartphone },
+  { value: "mobiles", label: "📱 موبايلات", icon: Smartphone },
   { value: "laptops", label: "💻 لابتوبات", icon: Laptop },
-  { value: "accessories", label: "🎧 إكسسوارات", icon: Headphones },
+  { value: "headphones", label: "🎧 سماعات", icon: Headphones },
+  { value: "watches", label: "⌚ ساعات", icon: Watch },
+  { value: "electronics", label: "🔌 أجهزة كهربائية", icon: PlugZap },
+  { value: "other", label: "📦 أخرى", icon: Package }
 ];
 
 export default function AddProductPage() {
@@ -28,6 +34,11 @@ export default function AddProductPage() {
   const [category, setCategory] = useState("");
   const [image, setImage] = useState("");
   const [discount, setDiscount] = useState(0);
+  const [highlightHtml, setHighlightHtml] = useState("");
+  const [processor, setProcessor] = useState("");
+  const [screen, setScreen] = useState("");
+  const [battery, setBattery] = useState("");
+  const [memory, setMemory] = useState("");
   const [checking, setChecking] = useState(false);
   const [loading, setLoading] = useState(false);
   const [scanning, setScanning] = useState(false);
@@ -81,10 +92,23 @@ export default function AddProductPage() {
     }
     setLoading(true);
     try {
+      const highlightContent = `
+        <h2>${name}</h2>
+        <p>تصميم أنيق وتصنيع متين</p>
+        <ul>
+          <li>المعالج: ${processor}</li>
+          <li>الشاشة: ${screen}</li>
+          <li>البطارية: ${battery}</li>
+        </ul>
+        <p>الذاكرة: ${memory}</p>
+        <p class='text-lg font-bold'>السعر: ${price.toLocaleString()} د.ع</p>
+        <a href='/checkout' class='bg-blue-600 text-white px-4 py-2 rounded block w-fit mt-2'>اشترِ الآن</a>
+      `;
+
       const res = await fetch("/api/products/add", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ barcode, name, price, category, image, discount }),
+        body: JSON.stringify({ barcode, name, price, category, image, discount, highlightHtml: highlightContent }),
       });
       const data = await res.json();
       if (data.success) {
@@ -95,6 +119,11 @@ export default function AddProductPage() {
         setCategory("");
         setImage("");
         setDiscount(0);
+        setHighlightHtml("");
+        setProcessor("");
+        setScreen("");
+        setBattery("");
+        setMemory("");
       } else {
         toast.error("❌ فشل في إضافة المنتج");
       }
@@ -172,15 +201,55 @@ export default function AddProductPage() {
           </div>
 
           <div>
+            <label className="block text-sm font-medium mb-1">🖥️ نوع المعالج</label>
+            <input
+              className="border p-2 rounded w-full"
+              value={processor}
+              onChange={(e) => setProcessor(e.target.value)}
+              placeholder="مثلاً: Snapdragon 8 Gen 2"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">🖼️ نوع الشاشة</label>
+            <input
+              className="border p-2 rounded w-full"
+              value={screen}
+              onChange={(e) => setScreen(e.target.value)}
+              placeholder="مثلاً: AMOLED 120Hz"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">🔋 حجم البطارية</label>
+            <input
+              className="border p-2 rounded w-full"
+              value={battery}
+              onChange={(e) => setBattery(e.target.value)}
+              placeholder="مثلاً: 5000mAh"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">💾 السعة/الذاكرة</label>
+            <input
+              className="border p-2 rounded w-full"
+              value={memory}
+              onChange={(e) => setMemory(e.target.value)}
+              placeholder="مثلاً: 12GB RAM / 256GB"
+            />
+          </div>
+
+          <div>
             <label className="block text-sm font-medium mb-1">🗂️ القسم</label>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               {categories.map((cat) => {
                 const Icon = cat.icon;
                 return (
                   <button
                     key={cat.value}
                     onClick={() => setCategory(cat.value)}
-                    className={`flex items-center justify-center gap-2 border p-2 rounded text-sm ${
+                    className={`flex items-center justify-start gap-2 border p-2 rounded text-sm w-full text-right ${
                       category === cat.value ? "bg-blue-100 border-blue-500" : "hover:bg-gray-50"
                     }`}
                   >
