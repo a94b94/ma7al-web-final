@@ -142,7 +142,52 @@ export default function EditProductPage() {
         strategy="afterInteractive"
       />
 
-      {/* تم تحديث الحقول لتتناسب مع التصميم الجديد */}
+      <div className="max-w-2xl mx-auto p-6 bg-white rounded-2xl shadow-xl border mt-10">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold text-blue-700">🛠️ تعديل المنتج</h1>
+        </div>
+
+        <form onSubmit={handleSubmit} className="grid gap-4">
+          <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="اسم المنتج" className="border p-2 rounded" />
+          <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="السعر" className="border p-2 rounded" />
+          <input type="number" value={discount} onChange={(e) => setDiscount(Number(e.target.value))} placeholder="نسبة الخصم" className="border p-2 rounded" />
+          <input type="text" value={processor} onChange={(e) => setProcessor(e.target.value)} placeholder="نوع المعالج" className="border p-2 rounded" />
+          <input type="text" value={screen} onChange={(e) => setScreen(e.target.value)} placeholder="نوع الشاشة" className="border p-2 rounded" />
+          <input type="text" value={battery} onChange={(e) => setBattery(e.target.value)} placeholder="حجم البطارية" className="border p-2 rounded" />
+          <input type="text" value={memory} onChange={(e) => setMemory(e.target.value)} placeholder="الذاكرة" className="border p-2 rounded" />
+
+          <select value={category} onChange={(e) => setCategory(e.target.value)} className="border p-2 rounded">
+            <option value="mobiles">📱 موبايلات</option>
+            <option value="laptops">💻 لابتوبات</option>
+            <option value="headphones">🎧 سماعات</option>
+            <option value="watches">⌚ ساعات</option>
+            <option value="electronics">🔌 أجهزة كهربائية</option>
+            <option value="extras">🧩 أخرى</option>
+          </select>
+
+          <div>
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked={featured} onChange={(e) => setFeatured(e.target.checked)} />
+              منتج مميز
+            </label>
+          </div>
+
+          <input
+            type="hidden"
+            role="uploadcare-uploader"
+            data-public-key="767dc761271f23d1f796"
+            data-tabs="file url"
+            data-images-only
+            data-crop="free"
+          />
+
+          {image && <img src={image} alt="صورة المنتج" className="w-full h-48 object-cover rounded border" />}
+
+          <button type="submit" disabled={loading} className="bg-green-600 text-white py-2 rounded">
+            {loading ? "⏳ جاري الحفظ..." : "💾 حفظ التعديلات"}
+          </button>
+        </form>
+      </div>
     </>
   );
 }
