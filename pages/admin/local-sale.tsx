@@ -7,7 +7,7 @@ import toast from "react-hot-toast";
 import axios from "axios";
 
 const InvoicePreview = dynamic(() => import("@/components/InvoicePreview"), { ssr: false });
-const InstallmentTable = dynamic(() => import("@/components/InstallmentTable"), { ssr: false });
+const InstallmentTable = dynamic(() => import("@/components/installments/InstallmentTable"), { ssr: false });
 
 interface Product {
   _id: string;
@@ -188,6 +188,8 @@ export default function LocalSalePage() {
               downPayment={downPayment}
               count={autoInstallmentsCount}
               startDate={dueDate}
+              orderId={invoiceNumber}
+              customerPhone={customerPhone}
             />
           </div>
         )}

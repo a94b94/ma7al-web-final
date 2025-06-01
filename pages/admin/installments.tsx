@@ -1,17 +1,20 @@
-// الكود الكامل بعد إضافة زر التحليلات في الأعلى
+// InstallmentsPage.tsx باستخدام تصميم البطاقات مع عرض تفاصيل الأقساط ومجموع المدفوع والمتبقي
+"use client";
+
 import AdminLayout from "@/components/admin/AdminLayout";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useUser } from "@/context/UserContext";
 import Link from "next/link";
+import { BadgeCheck, Clock3 } from "lucide-react";
 
-type Installment = {
+interface Installment {
   date: string;
   amount: number;
   paid: boolean;
-};
+}
 
-type Order = {
+interface Order {
   _id: string;
   customerName?: string;
   phone: string;
@@ -24,7 +27,7 @@ type Order = {
   reminderSent?: boolean;
   sentBy?: string;
   storeName: string;
-};
+}
 
 export default function InstallmentsPage() {
   const { user } = useUser();
@@ -101,12 +104,15 @@ export default function InstallmentsPage() {
 
   const filteredOrders = orders.filter((order) => {
     const remaining = order.total - (order.paid || 0);
-    const hasLateInstallment = order.installments?.some((i: any) => !i.paid && new Date(i.date) < new Date());
+    const hasLateInstallment = order.installments?.some((i) => !i.paid && new Date(i.date) < new Date());
     if (filter === "paid") return remaining === 0;
     if (filter === "due") return remaining > 0;
     if (filter === "late") return hasLateInstallment;
     return true;
   });
+
+  const totalPaid = filteredOrders.reduce((acc, order) => acc + (order.paid || 0), 0);
+  const totalRemaining = filteredOrders.reduce((acc, order) => acc + (order.total - (order.paid || 0)), 0);
 
   return (
     <AdminLayout>
@@ -120,7 +126,12 @@ export default function InstallmentsPage() {
         </Link>
       </div>
 
-      <div className="mb-4 flex gap-2 justify-end">
+      <div className="mb-2 text-sm text-gray-700 font-medium flex gap-4 justify-end">
+        <div>✅ مجموع المدفوع: {totalPaid.toLocaleString("ar-IQ")} د.ع</div>
+        <div>⏳ مجموع المتبقي: {totalRemaining.toLocaleString("ar-IQ")} د.ع</div>
+      </div>
+
+      <div className="mb-4 flex gap-2 justify-end flex-wrap">
         <button onClick={() => setFilter("all")} className="px-4 py-1 border rounded">الكل</button>
         <button onClick={() => setFilter("paid")} className="px-4 py-1 border rounded">مدفوع</button>
         <button onClick={() => setFilter("due")} className="px-4 py-1 border rounded">متبقي</button>
@@ -130,87 +141,80 @@ export default function InstallmentsPage() {
         </button>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full border text-sm text-right">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="p-2 border">الاسم</th>
-              <th className="p-2 border">الهاتف</th>
-              <th className="p-2 border">الاستحقاق</th>
-              <th className="p-2 border">الكلي</th>
-              <th className="p-2 border">المدفوع</th>
-              <th className="p-2 border">المتبقي</th>
-              <th className="p-2 border">الإشعار</th>
-              <th className="p-2 border">الحالة</th>
-              <th className="p-2 border">أرسل بواسطة</th>
-              <th className="p-2 border">إجراء</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredOrders.map((order) => {
-              const remaining = order.total - (order.paid || 0);
-              const monthly = order.installmentsCount
-                ? Math.ceil((order.total - (order.downPayment || 0)) / order.installmentsCount)
-                : 0;
-              const hasLate = order.installments?.some((i: any) => !i.paid && new Date(i.date) < new Date());
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {filteredOrders.map((order) => {
+          const remaining = order.total - (order.paid || 0);
+          const hasLate = order.installments?.some((i) => !i.paid && new Date(i.date) < new Date());
+          const message = `📅 تذكير: لديك قسط مستحق بتاريخ ${order.dueDate || "—"} لدى متجر ${order.storeName}\n💰 المتبقي: ${remaining} د.ع`;
 
-              const message = `📅 تذكير: لديك قسط مستحق بتاريخ ${order.dueDate ? new Date(order.dueDate).toLocaleDateString("ar-IQ") : "—"} لدى متجر ${order.storeName}.
-💰 المتبقي: ${remaining} د.ع ${
-                monthly ? `\n📤 القسط الشهري: ${monthly} د.ع` : ""
-              }\n📞 للاستفسار: ${order.phone}`;
+          return (
+            <div
+              key={order._id}
+              className={`rounded-xl shadow-md border p-4 ${hasLate ? "bg-red-50 border-red-300" : "bg-white"}`}
+            >
+              <div className="flex justify-between items-center mb-2">
+                <h2 className="font-bold text-lg">{order.customerName || "—"}</h2>
+                <div className={`text-xs px-2 py-1 rounded-full ${remaining === 0 ? "bg-green-100 text-green-700" : hasLate ? "bg-red-100 text-red-700" : "bg-yellow-100 text-yellow-800"}`}>
+                  {remaining === 0 ? "مدفوع" : hasLate ? "متأخر" : "متبقي"}
+                </div>
+              </div>
 
-              return (
-                <tr key={order._id} className={hasLate ? "bg-red-100" : ""}>
-                  <td className="p-2 border">{order.customerName || "—"}</td>
-                  <td className="p-2 border">{order.phone || "—"}</td>
-                  <td className="p-2 border">
-                    {order.dueDate
-                      ? new Date(order.dueDate).toLocaleDateString("ar-IQ")
-                      : "—"}
-                  </td>
-                  <td className="p-2 border">{order.total}</td>
-                  <td className="p-2 border">{order.paid || 0}</td>
-                  <td className="p-2 border">{remaining}</td>
-                  <td className="p-2 border">{order.reminderSent ? "✅" : "❌"}</td>
-                  <td className="p-2 border">{remaining === 0 ? "مدفوع" : hasLate ? "متأخر" : "متبقي"}</td>
-                  <td className="p-2 border">{order.sentBy || "—"}</td>
-                  <td className="p-2 border space-y-1">
-                    <Link href={`/admin/installments/${order._id}`} className="text-indigo-600 hover:underline block">
-                      عرض الأقساط
-                    </Link>
+              <p className="text-sm text-gray-600 mb-1">📞 {order.phone}</p>
+              <p className="text-sm text-gray-600 mb-1">💰 الكلي: {order.total} | المدفوع: {order.paid} | المتبقي: {remaining}</p>
+              <p className="text-sm text-gray-600 mb-2">📅 الاستحقاق: {order.dueDate || "—"}</p>
 
-                    {!order.reminderSent && (
-                      <button
-                        className="text-blue-600 hover:underline block"
-                        onClick={() =>
-                          handleSendReminder(order._id, order.phone, message, user?.name || "مشرف")
-                        }
-                      >
-                        إرسال تذكير
-                      </button>
-                    )}
+              {order.installments && order.installments.length > 0 && (
+                <div className="bg-gray-50 border rounded p-2 text-xs mb-2">
+                  <div className="font-semibold mb-1">📑 تفاصيل الأقساط:</div>
+                  {order.installments.map((inst, idx) => (
+                    <div key={idx} className="flex justify-between border-b py-1">
+                      <span>#{idx + 1} - {new Date(inst.date).toLocaleDateString("ar-IQ")}</span>
+                      <span>{inst.amount.toLocaleString("ar-IQ")} د.ع</span>
+                      <span className={inst.paid ? "text-green-600" : "text-red-500"}>
+                        {inst.paid ? "✅ مدفوع" : "❌ متبقي"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
 
-                    {remaining > 0 && (
-                      <button
-                        className="text-green-600 hover:underline block"
-                        onClick={() => handleMarkPaid(order._id)}
-                      >
-                        تم الدفع
-                      </button>
-                    )}
+              <div className="text-xs text-gray-500 mb-2">
+                إشعار: {order.reminderSent ? <span className="text-green-600">✅</span> : <span className="text-red-600">❌</span>} | أرسل بواسطة: {order.sentBy || "—"}
+              </div>
 
-                    <button
-                      className="text-orange-600 hover:underline block"
-                      onClick={() => handleAddInstallment(order._id)}
-                    >
-                      إضافة قسط مدفوع
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+              <div className="flex flex-col gap-1 text-sm">
+                <Link href={`/admin/installments/${order._id}`} className="text-indigo-600 hover:underline">
+                  عرض الأقساط
+                </Link>
+
+                {!order.reminderSent && (
+                  <button
+                    className="text-blue-600 hover:underline text-right"
+                    onClick={() => handleSendReminder(order._id, order.phone, message, user?.name || "مشرف")}
+                  >
+                    إرسال تذكير
+                  </button>
+                )}
+
+                {remaining > 0 && (
+                  <button
+                    className="text-green-600 hover:underline text-right"
+                    onClick={() => handleMarkPaid(order._id)}
+                  >
+                    تم الدفع
+                  </button>
+                )}
+
+                <button
+                  className="text-orange-600 hover:underline text-right"
+                  onClick={() => handleAddInstallment(order._id)}
+                >
+                  إضافة قسط مدفوع
+                </button>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </AdminLayout>
   );

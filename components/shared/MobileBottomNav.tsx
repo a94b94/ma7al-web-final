@@ -1,25 +1,30 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import {
-  Home,
-  ShoppingCart,
-  Heart,
-  User,
-} from "lucide-react";
+import { Home, ShoppingCart, Heart, User } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useUser } from "@/context/UserContext";
 import { useCart } from "@/context/CartContext";
+import { useEffect, useState } from "react";
 
 export default function MobileBottomNav() {
   const pathname = usePathname();
   const router = useRouter();
   const { user } = useUser();
   const { cart } = useCart();
+  const [favCount, setFavCount] = useState(0);
 
-  if (typeof window === "undefined" || !pathname) return null;
+  useEffect(() => {
+    const saved = JSON.parse(localStorage.getItem("favorites") || "[]");
+    setFavCount(saved.length);
+  }, [pathname]);
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+
+  const handleClick = (href: string) => {
+    if (window?.navigator.vibrate) window.navigator.vibrate(15);
+    router.push(href);
+  };
 
   const navItems = [
     { label: "الرئيسية", icon: Home, href: "/" },
@@ -29,7 +34,12 @@ export default function MobileBottomNav() {
       href: "/cart",
       badge: cartCount,
     },
-    { label: "المفضلة", icon: Heart, href: "/favorites" },
+    {
+      label: "المفضلة",
+      icon: Heart,
+      href: "/favorites",
+      badge: favCount,
+    },
     {
       label: user ? user.name.split(" ")[0] : "حسابي",
       icon: user?.image ? null : User,
@@ -39,42 +49,45 @@ export default function MobileBottomNav() {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t shadow sm:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 border-t shadow sm:hidden backdrop-blur">
       <div className="flex justify-around items-center h-16 relative">
         {navItems.map((item) => {
+          const safePath = pathname ?? "";
           const isActive =
-            pathname === item.href || pathname.startsWith(item.href + "/");
+            safePath === item.href || safePath.startsWith(item.href + "/");
 
           return (
             <div key={item.href} className="relative flex flex-col items-center">
-              <button
-                onClick={() => router.push(item.href)}
-                className={`relative flex flex-col items-center text-xs transition-all duration-150 ${
-                  isActive ? "text-blue-600 font-semibold" : "text-gray-500"
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                whileHover={{ scale: 1.05 }}
+                transition={{ type: "spring", stiffness: 300 }}
+                onClick={() => handleClick(item.href)}
+                className={`relative flex flex-col items-center text-[11px] transition-all ${
+                  isActive
+                    ? "text-blue-600 font-bold"
+                    : "text-gray-500 dark:text-gray-300"
                 }`}
               >
-                {/* صورة البروفايل أو أيقونة */}
                 {item.avatar ? (
                   <img
                     src={item.avatar}
                     alt="avatar"
-                    className="w-6 h-6 rounded-full object-cover"
+                    className="w-6 h-6 rounded-full object-cover shadow"
                   />
                 ) : item.icon ? (
                   <item.icon size={22} strokeWidth={isActive ? 2.5 : 1.5} />
                 ) : null}
 
-                {/* شارة عدد المنتجات في السلة */}
-                {item.label === "السلة" && (item.badge ?? 0) > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 bg-red-600 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                {(item.badge ?? 0) > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-red-600 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow">
                     {item.badge}
                   </span>
                 )}
 
-                <span className="mt-0.5">{item.label}</span>
-              </button>
+                <span className="mt-1">{item.label}</span>
+              </motion.button>
 
-              {/* خط سفلي متحرك */}
               <AnimatePresence>
                 {isActive && (
                   <motion.div
