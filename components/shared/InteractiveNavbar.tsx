@@ -1,4 +1,3 @@
-// components/shared/InteractiveNavbar.tsx
 "use client";
 
 import Link from "next/link";
@@ -16,16 +15,18 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import useSWR from "swr";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function InteractiveNavbar() {
   const { user, logout } = useUser();
   const { cart = [] } = useCart();
 
-  const [menuOpen, setMenuOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLang, setSelectedLang] = useState("العربية");
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const fetcher = (url: string) => fetch(url).then((res) => res.json());
   const { data: notifData } = useSWR(
@@ -103,26 +104,31 @@ export default function InteractiveNavbar() {
           </Link>
 
           {user ? (
-            <div className="relative">
-              <button onClick={() => setMenuOpen(!menuOpen)} className="flex items-center gap-1">
-                <User className="w-5 h-5" />
-                <span>{user.name}</span>
-              </button>
-              {menuOpen && (
-                <div className="absolute right-0 mt-2 bg-white dark:bg-gray-700 rounded shadow-lg text-sm z-50">
-                  <Link href="/admin" className="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600">لوحة التحكم</Link>
-                  <button
-                    onClick={() => {
-                      logout();
-                      setMenuOpen(false);
-                    }}
-                    className="w-full text-right px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600"
-                  >
-                    تسجيل خروج
-                  </button>
-                </div>
-              )}
-            </div>
+            <DropdownMenu.Root>
+              <DropdownMenu.Trigger asChild>
+                <button className="flex items-center gap-1 focus:outline-none">
+                  <User className="w-5 h-5" />
+                  <span>{user.name}</span>
+                </button>
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Content
+                className="bg-white dark:bg-gray-700 shadow-lg rounded-md text-sm py-1 z-50"
+                sideOffset={8}
+                align="end"
+              >
+                <DropdownMenu.Item asChild>
+                  <Link href="/admin" className="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600">
+                    لوحة التحكم
+                  </Link>
+                </DropdownMenu.Item>
+                <DropdownMenu.Item
+                  onSelect={() => logout()}
+                  className="px-4 py-2 text-right hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer"
+                >
+                  تسجيل خروج
+                </DropdownMenu.Item>
+              </DropdownMenu.Content>
+            </DropdownMenu.Root>
           ) : (
             <div className="flex gap-3">
               <Link href="/login" className="text-blue-600 dark:text-blue-400 hover:underline">دخول</Link>
@@ -135,6 +141,42 @@ export default function InteractiveNavbar() {
           {menuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
       </div>
+
+      <AnimatePresence>
+        {menuOpen && (
+          <>
+            <motion.div
+              className="fixed inset-0 bg-black bg-opacity-40 backdrop-blur-sm z-40"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMenuOpen(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.25 }}
+              className="md:hidden px-4 pb-4 space-y-2 bg-white dark:bg-gray-800 border-t relative z-50"
+            >
+              <Link href="/" className="block py-2 border-b">الرئيسية</Link>
+              <Link href="/cart" className="block py-2 border-b">السلة</Link>
+              <Link href="/favorites" className="block py-2 border-b">المفضلة</Link>
+              {user ? (
+                <>
+                  <Link href="/admin" className="block py-2 border-b">لوحة التحكم</Link>
+                  <button onClick={logout} className="w-full text-right py-2">تسجيل الخروج</button>
+                </>
+              ) : (
+                <>
+                  <Link href="/login" className="block py-2 border-b">تسجيل الدخول</Link>
+                  <Link href="/register" className="block py-2">تسجيل جديد</Link>
+                </>
+              )}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </header>
   );
 }
