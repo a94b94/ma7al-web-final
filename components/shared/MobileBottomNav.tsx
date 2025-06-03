@@ -1,11 +1,12 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { Home, ShoppingCart, Heart, User } from "lucide-react";
+import { Home, ShoppingCart, Heart, User, Bell } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useUser } from "@/context/UserContext";
 import { useCart } from "@/context/CartContext";
 import { useEffect, useState } from "react";
+import useSWR from "swr";
 
 export default function MobileBottomNav() {
   const pathname = usePathname();
@@ -14,12 +15,22 @@ export default function MobileBottomNav() {
   const { cart } = useCart();
   const [favCount, setFavCount] = useState(0);
 
+  // ✅ عداد السلة
+  const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+
+  // ✅ جلب الإشعارات غير المقروءة
+  const fetcher = (url: string) => fetch(url).then((res) => res.json());
+  const { data: notifData } = useSWR(
+    user?.phone ? `/api/notifications/user?phone=${user.phone}` : null,
+    fetcher,
+    { refreshInterval: 10000 }
+  );
+  const unreadCount = notifData?.notifications?.filter((n: any) => !n.seen)?.length || 0;
+
   useEffect(() => {
     const saved = JSON.parse(localStorage.getItem("favorites") || "[]");
     setFavCount(saved.length);
   }, [pathname]);
-
-  const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   const handleClick = (href: string) => {
     if (window?.navigator.vibrate) window.navigator.vibrate(15);
@@ -39,6 +50,12 @@ export default function MobileBottomNav() {
       icon: Heart,
       href: "/favorites",
       badge: favCount,
+    },
+    {
+      label: "تنبيهات",
+      icon: Bell,
+      href: "/notifications",
+      badge: unreadCount,
     },
     {
       label: user ? user.name.split(" ")[0] : "حسابي",

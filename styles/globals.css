@@ -1,53 +1,81 @@
+/* ------------------------------------------------------------------------
+   1. استيراد أنماط Keen Slider (في حال استخدمت المكتبة في مشروعك)
+   ------------------------------------------------------------------------ */
 @import 'keen-slider/keen-slider.min.css'; /* ✅ جديد */
 
+
+/* ------------------------------------------------------------------------
+   2. قواعد Tailwind الأساسية
+   ------------------------------------------------------------------------ */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+
+/* ------------------------------------------------------------------------
+   3. تنسيقات عامة للصفحة
+   ------------------------------------------------------------------------ */
+/* الخط الافتراضي عند التصفّح العادي */
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background-color: #f9fafb;
 }
 
-/* ✅ تنسيقات الطباعة */
-@media print {
-  body {
-    margin: 0;
-    padding: 0;
-    font-size: 14px;
-    font-family: 'Segoe UI', Tahoma, sans-serif;
-    direction: rtl;
-    color: #000;
-    background: white;
-  }
-
-  .invoice-container {
-    width: 100%;
-    padding: 20px;
-    box-sizing: border-box;
-    page-break-inside: avoid;
-  }
-
-  .invoice-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
-  }
-
-  .invoice-table th,
-  .invoice-table td {
-    border: 1px solid black;
-    padding: 8px;
-    text-align: center;
-  }
-
-  @page {
-    size: A4 portrait;
-    margin: 1cm;
-  }
+/* صنف يساعد على استخدام خط Cairo عند الحاجة */
+.font-cairo {
+  font-family: 'Cairo', Tahoma, sans-serif;
 }
 
-/* ✅ دعم إخفاء الأزرار في الطباعة عبر Tailwind */
+
+/* ------------------------------------------------------------------------
+   4. تنسيقات Invoice (الظاهرة على الشاشات العاديّة)
+   قم بتطبيق هذه الأصناف في مكوّن Invoice الخاصّ بك كما يلي:
+
+     <div class="invoice-container font-cairo">
+       <table class="invoice-table">...</table>
+       ...
+     </div>
+
+   وستظهر على الشاشات بشكل مدرَج وحدود واضحة.
+   ------------------------------------------------------------------------ */
+/* حاوية الفاتورة */
+.invoice-container {
+  /* مركز المحتوى مع حدّ خارجي خفيف */
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto 2rem;
+  padding: 20px;
+  background-color: #fff;
+  color: #000;
+  direction: rtl; /* اتجاه من اليمين إلى اليسار */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid #000;
+  box-sizing: border-box;
+}
+
+/* جدول الفاتورة */
+.invoice-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+}
+
+/* رأس الجدول */
+.invoice-table thead tr {
+  background-color: #666;
+  color: #fff;
+}
+
+/* خلايا الجدول */
+.invoice-table th,
+.invoice-table td {
+  border: 1px solid #000;
+  padding: 8px 6px;
+  text-align: center;
+}
+
+/* مثال على دمج صنف لايراعى الطباعة */
 @layer utilities {
   @media print {
     .no-print {
@@ -56,6 +84,62 @@ body {
   }
 }
 
+
+/* ------------------------------------------------------------------------
+   5. تنسيقات الطباعة (عند الضغط على "طباعة")
+   ------------------------------------------------------------------------ */
+@media print {
+  /* إجبار استخدام لون الأحبار الحقيقي */
+  body {
+    margin: 0;
+    padding: 0;
+    font-size: 14px;
+    font-family: 'Cairo', Tahoma, sans-serif;
+    direction: rtl; /* تأكيد RTL في الطباعة */
+    color: #000;
+    background: #fff;
+  }
+
+  /* حاوية الفاتورة عند الطباعة */
+  .invoice-container {
+    margin: 0;
+    padding: 20px;
+    width: 100%;
+    box-sizing: border-box;
+    font-family: 'Cairo', Tahoma, sans-serif;
+    page-break-inside: avoid;
+    /* يمكنك إضافة page-break-before/after لعناصر مُعيّنة إذا كانت فاتورة طويلة */
+  }
+
+  /* جدول الفاتورة عند الطباعة */
+  .invoice-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+  }
+
+  .invoice-table th,
+  .invoice-table td {
+    border: 1px solid #000;
+    padding: 8px 6px;
+    text-align: center;
+  }
+
+  /* منع قطع المحتوى داخل الفاتورة */
+  .page-break {
+    page-break-after: always;
+  }
+
+  /* إعداد حجم الصفحة ورُدود الهوامش (حجم A4، اتجاه عمودي) */
+  @page {
+    size: A4 portrait;
+    margin: 1cm;
+  }
+}
+
+/* ------------------------------------------------------------------------
+   6. إعداد متغيّرات الألوان (قصّة التيمات Light/Dark)
+   ------------------------------------------------------------------------ */
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -113,6 +197,7 @@ body {
   }
 }
 
+/* قاعدة عامة لتطبيق الحدود وفق متغيّر الـ --border */
 @layer base {
   * {
     @apply border-border;

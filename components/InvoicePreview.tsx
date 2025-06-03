@@ -2,70 +2,140 @@
 
 import React from "react";
 
-type InvoicePreviewProps = {
-  order: {
-    _id: string;
-    phone: string;
-    customerName?: string;
-    cart: { name: string; quantity: number; price: number }[];
-    total: number;
-    createdAt: string;
-    type: "cash" | "installment";
-    downPayment?: number;
-    installmentsCount?: number;
-    dueDate?: string;
-    remaining?: number;
-    paid?: number;
-    discount?: number;
-  };
+type CartItem = {
+  name: string;
+  description?: string;
+  quantity: number;
+  price: number;
+};
+
+type OrderType = {
+  _id: string;
+  phone: string;
+  customerName?: string;
+  cart: CartItem[];
+  total: number;
+  createdAt: string;
+  type: "cash" | "installment";
+  downPayment?: number;
+  installmentsCount?: number;
+  dueDate?: string;
+  remaining?: number;
+  paid?: number;
+  discount?: number;
+};
+
+type InvoiceProps = {
+  order: OrderType;
   storeName: string;
 };
 
-export default function InvoicePreview({ order, storeName }: InvoicePreviewProps) {
-  const invoiceNumber = order._id?.slice(-6) || "------";
-
-  const createdAt = new Date(order.createdAt);
-  const formattedDate = `${createdAt.getDate().toString().padStart(2, "0")}/${(createdAt.getMonth() + 1)
-    .toString()
-    .padStart(2, "0")}/${createdAt.getFullYear()}`;
-
-  const paid = order.paid || 0;
+export default function InvoicePreview({ order, storeName }: InvoiceProps) {
+  const totalQuantity = order.cart.reduce((sum, item) => sum + item.quantity, 0);
+  const totalAmount = order.cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const discount = order.discount || 0;
-  const totalAfterDiscount = order.total - discount;
+  const paid = order.paid || 0;
+  const remaining = order.remaining || (totalAmount - paid - discount);
 
   return (
     <div
       className="invoice-container"
-      style={{ fontFamily: "Tahoma", direction: "rtl", padding: 20, color: "#000" }}
+      style={{
+        fontFamily: "'Cairo', Tahoma, sans-serif",
+        direction: "rtl",
+        padding: 20,
+        backgroundColor: "#fff",
+        color: "#000",
+        width: "100%",
+        maxWidth: 800,
+        margin: "0 auto",
+        border: "1px solid #000",
+      }}
     >
       {/* Header */}
-      <div style={{ textAlign: "center", marginBottom: 20 }}>
-        <h2 style={{ fontSize: 22, marginBottom: 4 }}>{storeName}</h2>
-        <p>رقم الفاتورة: #{invoiceNumber}</p>
-        <p>التاريخ: {formattedDate}</p>
-        <p>اسم الزبون: {order.customerName || "—"}</p>
-        <p>الهاتف: {order.phone}</p>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
+        <div>
+          <strong>اسم المتجر: </strong> {storeName}
+        </div>
+        <button
+          onClick={() => window.print()}
+          style={{
+            padding: "4px 10px",
+            cursor: "pointer",
+            border: "1px solid #333",
+            borderRadius: 4,
+            backgroundColor: "#f0f0f0",
+            fontWeight: "bold",
+          }}
+          className="no-print"
+        >
+          طباعة
+        </button>
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+        <div>
+          <strong>رقم الفاتورة:</strong>{" "}
+          <input
+            type="text"
+            value={order._id}
+            readOnly
+            style={{
+              border: "1px solid #000",
+              padding: "2px 8px",
+              width: 150,
+              textAlign: "center",
+              direction: "ltr",
+            }}
+          />
+        </div>
+        <div>
+          <strong>التاريخ:</strong>{" "}
+          <input
+            type="text"
+            value={new Date(order.createdAt).toLocaleDateString("ar-IQ")}
+            readOnly
+            style={{
+              border: "1px solid #000",
+              padding: "2px 8px",
+              width: 180,
+              textAlign: "center",
+              direction: "ltr",
+            }}
+          />
+        </div>
       </div>
 
       {/* Table */}
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14, marginBottom: 20 }}>
-        <thead>
+      <table
+        style={{
+          width: "100%",
+          borderCollapse: "collapse",
+          border: "1px solid #000",
+          marginBottom: 20,
+          textAlign: "center",
+          fontSize: 14,
+        }}
+      >
+        <thead style={{ backgroundColor: "#999", color: "#fff" }}>
           <tr>
-            <th style={cellStyle}>#</th>
-            <th style={cellStyle}>المنتج</th>
-            <th style={cellStyle}>الكمية</th>
-            <th style={cellStyle}>السعر</th>
-            <th style={cellStyle}>الإجمالي</th>
+            <th style={{ border: "1px solid #000", padding: 6 }}>اسم المادة</th>
+            <th style={{ border: "1px solid #000", padding: 6 }}>الوصف</th>
+            <th style={{ border: "1px solid #000", padding: 6 }}>العدد</th>
+            <th style={{ border: "1px solid #000", padding: 6 }}>السعر</th>
+            <th style={{ border: "1px solid #000", padding: 6 }}>المبلغ</th>
           </tr>
         </thead>
         <tbody>
-          {order.cart.map((item, i) => (
-            <tr key={i}>
-              <td style={cellStyle}>{i + 1}</td>
-              <td style={cellStyle}>{item.name}</td>
-              <td style={cellStyle}>{item.quantity}</td>
-              <td style={cellStyle}>{item.price.toLocaleString("ar-IQ")} د.ع</td>
-              <td style={cellStyle}>
+          {order.cart.map((item, idx) => (
+            <tr key={idx}>
+              <td style={{ border: "1px solid #000", padding: 6 }}>{item.name}</td>
+              <td style={{ border: "1px solid #000", padding: 6 }}>{item.description || "-"}</td>
+              <td style={{ border: "1px solid #000", padding: 6 }}>{item.quantity}</td>
+              <td style={{ border: "1px solid #000", padding: 6 }}>
+                {item.price.toLocaleString("ar-IQ")} د.ع
+              </td>
+              <td style={{ border: "1px solid #000", padding: 6 }}>
                 {(item.price * item.quantity).toLocaleString("ar-IQ")} د.ع
               </td>
             </tr>
@@ -74,35 +144,26 @@ export default function InvoicePreview({ order, storeName }: InvoicePreviewProps
       </table>
 
       {/* Summary */}
-      <div style={{ fontSize: 15, lineHeight: 1.8 }}>
-        <p>💵 المدفوع: {paid.toLocaleString("ar-IQ")} د.ع</p>
-        <p>🔻 الخصم: {discount.toLocaleString("ar-IQ")} د.ع</p>
-        <p>
-          <strong>💰 بعد الخصم: {totalAfterDiscount.toLocaleString("ar-IQ")} د.ع</strong>
-        </p>
+      <div style={{ fontSize: 15, display: "flex", flexDirection: "column", gap: 8 }}>
+        <div><strong>المجموع الكلي:</strong> {totalAmount.toLocaleString("ar-IQ")} د.ع</div>
+        <div><strong>الخصم:</strong> {discount.toLocaleString("ar-IQ")} د.ع</div>
+        <div><strong>المدفوع:</strong> {paid.toLocaleString("ar-IQ")} د.ع</div>
+        <div><strong>المتبقي:</strong> {remaining.toLocaleString("ar-IQ")} د.ع</div>
       </div>
 
-      {/* Installment Info */}
-      {order.type === "installment" && (
-        <div style={{ marginTop: 20, fontSize: 15 }}>
-          <p>📄 <strong>تفاصيل التقسيط:</strong></p>
-          <p>🔢 عدد الأقساط: {order.installmentsCount}</p>
-          <p>💳 الدفعة الأولى: {order.downPayment?.toLocaleString("ar-IQ")} د.ع</p>
-          <p>📉 المتبقي: {order.remaining?.toLocaleString("ar-IQ")} د.ع</p>
-        </div>
-      )}
-
       {/* Footer */}
-      <div style={{ marginTop: 30, borderTop: "1px dashed #000", paddingTop: 10 }}>
-        <p style={{ fontSize: 13 }}>💡 ملاحظة: يُرجى الاحتفاظ بالفاتورة كمرجع.</p>
+      <div style={{ marginTop: 60, textAlign: "center", fontSize: 13 }}>
+        <p>اسم الزبون: {order.customerName || "-"}</p>
+        <p>رقم الهاتف: {order.phone || "-"}</p>
+        {order.type === "installment" && (
+          <>
+            <p>نوع الفاتورة: أقساط</p>
+            <p>الدفعة الأولى: {order.downPayment?.toLocaleString("ar-IQ")} د.ع</p>
+            <p>عدد الأقساط: {order.installmentsCount}</p>
+            <p>تاريخ أول قسط: {order.dueDate}</p>
+          </>
+        )}
       </div>
     </div>
   );
 }
-
-const cellStyle: React.CSSProperties = {
-  border: "1px solid black",
-  padding: "6px",
-  textAlign: "center",
-  minWidth: 60,
-};
