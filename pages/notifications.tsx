@@ -3,7 +3,7 @@
 import useSWR, { mutate } from "swr";
 import { useUser } from "@/context/UserContext";
 import { Bell, Check } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import toast from "react-hot-toast";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -11,10 +11,12 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json());
 export default function NotificationsPage() {
   const { user } = useUser();
   const [loading, setLoading] = useState(false);
+  const prevCountRef = useRef(0);
 
   const { data, error } = useSWR(
     user?.phone ? `/api/notifications/user?phone=${user.phone}` : null,
-    fetcher
+    fetcher,
+    { refreshInterval: 10000 } // ✅ Polling كل 10 ثوانٍ
   );
 
   const handleMarkAllAsSeen = async () => {
@@ -38,6 +40,31 @@ export default function NotificationsPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!user?.phone) return;
+    fetch("/api/notifications/mark-seen", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone: user.phone }),
+    });
+  }, [user?.phone]);
+
+  useEffect(() => {
+    if (data?.notifications) {
+      const unseen = data.notifications.filter((n: any) => !n.seen);
+      const currentCount = unseen.length;
+      const previousCount = prevCountRef.current;
+
+      if (currentCount > previousCount) {
+        toast("🔔 لديك إشعار جديد!", {
+          icon: "📩",
+          duration: 4000,
+        });
+      }
+      prevCountRef.current = currentCount;
+    }
+  }, [data]);
 
   if (!user?.phone) {
     return <p className="p-4 text-gray-600">🔒 يجب تسجيل الدخول لعرض الإشعارات.</p>;
@@ -73,12 +100,15 @@ export default function NotificationsPage() {
           {notifications.map((notif: any) => (
             <li
               key={notif._id}
-              className={`p-4 border rounded shadow-sm ${
-                notif.seen ? "bg-white" : "bg-blue-50 border-blue-300"
+              className={`p-4 border rounded shadow-sm transition-all duration-200 ${
+                notif.seen ? "bg-white" : "bg-blue-50 border-blue-300 animate-pulse"
               }`}
             >
-              <p className="text-sm">{notif.message}</p>
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-sm font-medium text-gray-800 dark:text-white">
+                {notif.title || "إشعار"}
+              </p>
+              <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{notif.message}</p>
+              <p className="text-xs text-gray-400 mt-2">
                 {new Date(notif.createdAt).toLocaleString("ar-IQ")}
               </p>
             </li>

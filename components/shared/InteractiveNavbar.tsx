@@ -1,3 +1,4 @@
+// InteractiveNavbar.tsx — كامل مع كل الميزات:
 "use client";
 
 import Link from "next/link";
@@ -14,26 +15,34 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import useSWR from "swr";
+import useSWR, { mutate } from "swr";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { motion, AnimatePresence } from "framer-motion";
+import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 
 export default function InteractiveNavbar() {
   const { user, logout } = useUser();
   const { cart = [] } = useCart();
+  const router = useRouter();
 
   const [darkMode, setDarkMode] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const [selectedLang, setSelectedLang] = useState("العربية");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [notifMenuOpen, setNotifMenuOpen] = useState(false);
 
   const fetcher = (url: string) => fetch(url).then((res) => res.json());
   const { data: notifData } = useSWR(
     user?.phone ? `/api/notifications/user?phone=${user.phone}` : null,
-    fetcher
+    fetcher,
+    { refreshInterval: 10000 }
   );
   const unreadCount = notifData?.notifications?.filter((n: any) => !n.seen)?.length || 0;
+  const recentNotifications = notifData?.notifications?.slice(0, 5) || [];
 
   useEffect(() => {
     const theme = localStorage.getItem("theme");
@@ -48,13 +57,90 @@ export default function InteractiveNavbar() {
     localStorage.setItem("theme", darkMode ? "dark" : "light");
   }, [darkMode]);
 
+  useEffect(() => {
+    const saved = JSON.parse(localStorage.getItem("searchHistory") || "[]");
+    setSearchHistory(saved);
+  }, []);
+
+  useEffect(() => {
+    const fetchResults = async () => {
+      if (searchQuery.length < 2) {
+        setSearchResults([]);
+        return;
+      }
+      try {
+        const res = await fetch(`/api/search?q=${searchQuery}`);
+        const data = await res.json();
+        setSearchResults(data.products || []);
+      } catch {
+        setSearchResults([]);
+      }
+    };
+    const delay = setTimeout(fetchResults, 300);
+    return () => clearTimeout(delay);
+  }, [searchQuery]);
+
+  const handleSelect = (id: string, name?: string) => {
+    if (name) {
+      const updated = [name, ...searchHistory.filter((n) => n !== name)].slice(0, 5);
+      setSearchHistory(updated);
+      localStorage.setItem("searchHistory", JSON.stringify(updated));
+    }
+    router.push(`/product/${id}`);
+    setSearchQuery("");
+    setSearchOpen(false);
+  };
+
+  const deleteNotification = async (id: string) => {
+    try {
+      await fetch("/api/notifications/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      mutate(`/api/notifications/user?phone=${user?.phone}`);
+    } catch {
+      toast.error("❌ فشل حذف الإشعار");
+    }
+  };
+
+  const clearAllNotifications = async () => {
+    try {
+      const res = await fetch("/api/notifications/clear-all", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: user?.phone }),
+      });
+      if (res.ok) {
+        toast.success("🧹 تم مسح جميع الإشعارات");
+        mutate(`/api/notifications/user?phone=${user?.phone}`);
+      } else {
+        throw new Error();
+      }
+    } catch {
+      toast.error("❌ فشل مسح الإشعارات");
+    }
+  };
+
+  const markAllAsSeen = async () => {
+    try {
+      await fetch("/api/notifications/mark-seen", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: user?.phone }),
+      });
+      mutate(`/api/notifications/user?phone=${user?.phone}`);
+    } catch {
+      console.error("فشل تحديث حالة الإشعارات");
+    }
+  };
+
   return (
     <header className="bg-white dark:bg-gray-800 sticky top-0 z-50 shadow-sm">
       <div className="flex items-center justify-between px-4 py-3 max-w-7xl mx-auto">
         <Link href="/" className="text-xl font-bold text-blue-600 dark:text-blue-400">
           Ma7al Store
         </Link>
-
         <div className="hidden md:flex items-center gap-4">
           <div className="relative">
             {searchOpen ? (
@@ -63,6 +149,7 @@ export default function InteractiveNavbar() {
                 placeholder="ابحث عن منتج..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                onBlur={() => setTimeout(() => setSearchOpen(false), 200)}
                 className="px-3 py-1 border rounded-md text-sm w-64"
               />
             ) : (
@@ -71,7 +158,6 @@ export default function InteractiveNavbar() {
               </button>
             )}
           </div>
-
           <select
             value={selectedLang}
             onChange={(e) => setSelectedLang(e.target.value)}
@@ -80,20 +166,44 @@ export default function InteractiveNavbar() {
             <option>العربية</option>
             <option>English</option>
           </select>
-
-          <Link href="/notifications" className="relative">
-            <Bell className="w-5 h-5" />
+          <div
+            className="relative"
+            onMouseEnter={() => {
+              setNotifMenuOpen(true);
+              markAllAsSeen();
+            }}
+            onMouseLeave={() => setNotifMenuOpen(false)}
+          >
+            <Bell className="w-5 h-5 text-gray-700 dark:text-gray-300 cursor-pointer" />
             {unreadCount > 0 && (
               <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-1">
                 {unreadCount}
               </span>
             )}
-          </Link>
-
-          <button onClick={() => setDarkMode(!darkMode)}>
-            {darkMode ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5 text-gray-600" />}
-          </button>
-
+            {notifMenuOpen && (
+              <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 border rounded shadow z-50">
+                <ul className="max-h-60 overflow-y-auto">
+                  {recentNotifications.map((notif: any) => (
+                    <li key={notif._id} className="flex justify-between items-center px-3 py-2 border-b text-sm">
+                      <span>{notif.message}</span>
+                      <button
+                        onClick={() => deleteNotification(notif._id)}
+                        className="text-red-500 text-xs hover:underline"
+                      >
+                        حذف
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  onClick={clearAllNotifications}
+                  className="block w-full text-center py-2 text-red-500 hover:underline border-t"
+                >
+                  🧹 مسح جميع الإشعارات
+                </button>
+              </div>
+            )}
+          </div>
           <Link href="/cart" className="relative">
             <ShoppingCart className="w-6 h-6" />
             {cart.length > 0 && (
@@ -102,7 +212,6 @@ export default function InteractiveNavbar() {
               </span>
             )}
           </Link>
-
           {user ? (
             <DropdownMenu.Root>
               <DropdownMenu.Trigger asChild>
@@ -136,47 +245,7 @@ export default function InteractiveNavbar() {
             </div>
           )}
         </div>
-
-        <button className="md:hidden" onClick={() => setMenuOpen(!menuOpen)}>
-          {menuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </button>
       </div>
-
-      <AnimatePresence>
-        {menuOpen && (
-          <>
-            <motion.div
-              className="fixed inset-0 bg-black bg-opacity-40 backdrop-blur-sm z-40"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setMenuOpen(false)}
-            />
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.25 }}
-              className="md:hidden px-4 pb-4 space-y-2 bg-white dark:bg-gray-800 border-t relative z-50"
-            >
-              <Link href="/" className="block py-2 border-b">الرئيسية</Link>
-              <Link href="/cart" className="block py-2 border-b">السلة</Link>
-              <Link href="/favorites" className="block py-2 border-b">المفضلة</Link>
-              {user ? (
-                <>
-                  <Link href="/admin" className="block py-2 border-b">لوحة التحكم</Link>
-                  <button onClick={logout} className="w-full text-right py-2">تسجيل الخروج</button>
-                </>
-              ) : (
-                <>
-                  <Link href="/login" className="block py-2 border-b">تسجيل الدخول</Link>
-                  <Link href="/register" className="block py-2">تسجيل جديد</Link>
-                </>
-              )}
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
     </header>
   );
 }

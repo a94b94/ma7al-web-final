@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 
 type User = {
   name: string;
@@ -19,27 +19,27 @@ const UserContext = createContext<UserContextType>({
   logout: () => {},
 });
 
-export function UserProvider({ children }: { children: React.ReactNode }) {
+export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    const stored = localStorage.getItem("user");
-    if (stored) {
-      try {
+    try {
+      const stored = localStorage.getItem("user");
+      if (stored) {
         const parsed = JSON.parse(stored);
-        if (parsed && parsed.name) {
+        if (parsed && typeof parsed.name === "string" && typeof parsed.role === "string") {
           setUser(parsed);
         }
-      } catch {
-        console.warn("فشل تحميل المستخدم من التخزين المحلي");
       }
+    } catch {
+      console.warn("فشل تحميل بيانات المستخدم من التخزين المحلي");
     }
   }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     setUser(null);
     localStorage.removeItem("user");
-  };
+  }, []);
 
   useEffect(() => {
     if (user) {
@@ -52,7 +52,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       {children}
     </UserContext.Provider>
   );
-}
+};
 
 export function useUser() {
   return useContext(UserContext);
