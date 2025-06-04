@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState } from "react";
 import { useRouter } from "next/router";
 import toast from "react-hot-toast";
@@ -8,9 +10,7 @@ import dynamic from "next/dynamic";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 
-const InvoicePrintPreview = dynamic(() => import("@/components/InvoicePrintPreview"), {
-  ssr: false,
-});
+const InvoicePrintPreview = dynamic(() => import("@/components/InvoicePrintPreview"), { ssr: false });
 
 interface CartItem {
   name: string;
@@ -22,6 +22,7 @@ interface LocalInvoiceType {
   _id: string;
   phone: string;
   address: string;
+  customerName?: string;
   total: number;
   type: "cash" | "installment";
   createdAt: string;
@@ -56,7 +57,7 @@ export default function LocalInvoicesPage({ invoices }: { invoices: LocalInvoice
       const data = await res.json();
       if (data.success) {
         toast.success("✅ تم حذف الفاتورة");
-        window.location.reload();
+        router.replace(router.asPath); // أفضل من reload
       } else {
         toast.error("❌ فشل في الحذف");
       }
@@ -86,7 +87,7 @@ export default function LocalInvoicesPage({ invoices }: { invoices: LocalInvoice
 
   const exportToExcel = () => {
     const exportData = invoices.map((inv) => ({
-      الاسم: inv.address,
+      الاسم: inv.customerName || inv.address,
       الهاتف: inv.phone,
       المبلغ: inv.total,
       النوع: inv.type === "installment" ? "أقساط" : "نقد",
@@ -100,6 +101,8 @@ export default function LocalInvoicesPage({ invoices }: { invoices: LocalInvoice
     const dataBlob = new Blob([excelBuffer], { type: "application/octet-stream" });
     saveAs(dataBlob, "الفواتير_المحلية.xlsx");
   };
+
+  const totalSum = invoices.reduce((sum, inv) => sum + inv.total, 0);
 
   return (
     <div className="max-w-6xl mx-auto p-6">
@@ -156,22 +159,21 @@ export default function LocalInvoicesPage({ invoices }: { invoices: LocalInvoice
           <tbody>
             {invoices.map((inv) => (
               <tr key={inv._id} className="hover:bg-gray-50">
-                <td className="p-2 border">{inv.address}</td>
+                <td className="p-2 border">{inv.customerName || inv.address}</td>
                 <td className="p-2 border">{inv.phone}</td>
-                <td className="p-2 border">{inv.total.toLocaleString("ar-EG")} د.ع</td>
+                <td className="p-2 border">{inv.total.toLocaleString("ar-IQ")} د.ع</td>
                 <td className="p-2 border">{inv.type === "installment" ? "أقساط" : "نقد"}</td>
-                <td className="p-2 border">{new Date(inv.createdAt).toLocaleDateString("ar-EG")}</td>
+                <td className="p-2 border">{new Date(inv.createdAt).toLocaleDateString("ar-IQ")}</td>
                 <td className="p-2 border text-center flex flex-wrap gap-2 justify-center">
                   <button onClick={() => handleView(inv._id)} className="text-blue-600 hover:text-blue-800 font-bold">
                     📄 عرض
                   </button>
-                  <a
-                    href={`/admin/local-sale?id=${inv._id}&print=true`}
-                    target="_blank"
+                  <button
+                    onClick={() => window.open(`/admin/local-sale?id=${inv._id}&print=true`, "_blank")}
                     className="text-green-600 hover:text-green-800 font-bold"
                   >
                     🖨️ طباعة
-                  </a>
+                  </button>
                   <button onClick={() => handleDelete(inv._id)} className="text-red-600 hover:text-red-800 font-bold">
                     🗑️ حذف
                   </button>
@@ -180,16 +182,20 @@ export default function LocalInvoicesPage({ invoices }: { invoices: LocalInvoice
             ))}
           </tbody>
         </table>
+
+        {/* مجموع الفواتير */}
+        <div className="text-sm mt-4 text-gray-700 text-left">
+          📊 مجموع الفواتير: <strong>{totalSum.toLocaleString("ar-IQ")} د.ع</strong>
+        </div>
       </div>
 
       {showModal && selectedInvoice && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg max-w-4xl w-full p-4 relative overflow-y-auto max-h-[90vh]">
-            <button onClick={() => setShowModal(false)} className="absolute top-2 left-2 text-red-500 text-xl font-bold">✖</button>
-            <InvoicePrintPreview
-              order={selectedInvoice}
-              storeName="Ma7al Store"
-            />
+            <button onClick={() => setShowModal(false)} className="absolute top-2 left-2 text-red-500 text-xl font-bold">
+              ✖
+            </button>
+            <InvoicePrintPreview order={selectedInvoice} storeName="Ma7al Store" />
           </div>
         </div>
       )}
@@ -197,6 +203,7 @@ export default function LocalInvoicesPage({ invoices }: { invoices: LocalInvoice
   );
 }
 
+// ✅ جلب البيانات من السيرفر
 export const getServerSideProps: GetServerSideProps = async ({ query }) => {
   await dbConnect();
 
@@ -220,6 +227,7 @@ export const getServerSideProps: GetServerSideProps = async ({ query }) => {
     _id: inv._id.toString(),
     phone: inv.phone,
     address: inv.address,
+    customerName: inv.customerName || "",
     total: inv.total,
     type: inv.type === "installment" ? "installment" : "cash",
     createdAt: inv.createdAt.toString(),

@@ -1,4 +1,3 @@
-// InstallmentsPage.tsx باستخدام تصميم البطاقات مع عرض تفاصيل الأقساط ومجموع المدفوع والمتبقي
 "use client";
 
 import AdminLayout from "@/components/admin/AdminLayout";
@@ -6,7 +5,6 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { useUser } from "@/context/UserContext";
 import Link from "next/link";
-import { BadgeCheck, Clock3 } from "lucide-react";
 
 interface Installment {
   date: string;
@@ -145,7 +143,7 @@ export default function InstallmentsPage() {
         {filteredOrders.map((order) => {
           const remaining = order.total - (order.paid || 0);
           const hasLate = order.installments?.some((i) => !i.paid && new Date(i.date) < new Date());
-          const message = `📅 تذكير: لديك قسط مستحق بتاريخ ${order.dueDate || "—"} لدى متجر ${order.storeName}\n💰 المتبقي: ${remaining} د.ع`;
+          const message = `📅 تذكير: لديك قسط مستحق بتاريخ ${order.dueDate || "غير محدد"} لدى متجر ${order.storeName}\n💰 المتبقي: ${remaining.toLocaleString("ar-IQ")} د.ع`;
 
           return (
             <div
@@ -160,8 +158,12 @@ export default function InstallmentsPage() {
               </div>
 
               <p className="text-sm text-gray-600 mb-1">📞 {order.phone}</p>
-              <p className="text-sm text-gray-600 mb-1">💰 الكلي: {order.total} | المدفوع: {order.paid} | المتبقي: {remaining}</p>
-              <p className="text-sm text-gray-600 mb-2">📅 الاستحقاق: {order.dueDate || "—"}</p>
+              <p className="text-sm text-gray-600 mb-1">
+                💰 الكلي: {order.total.toLocaleString("ar-IQ")} | المدفوع: {order.paid.toLocaleString("ar-IQ")} | المتبقي: {remaining.toLocaleString("ar-IQ")}
+              </p>
+              <p className="text-sm text-gray-600 mb-2">
+                📅 تاريخ الاستحقاق: {order.dueDate ? new Date(order.dueDate).toLocaleDateString("ar-IQ") : "—"}
+              </p>
 
               {order.installments && order.installments.length > 0 && (
                 <div className="bg-gray-50 border rounded p-2 text-xs mb-2">
@@ -187,7 +189,7 @@ export default function InstallmentsPage() {
                   عرض الأقساط
                 </Link>
 
-                {!order.reminderSent && (
+                {!order.reminderSent && remaining > 0 && (
                   <button
                     className="text-blue-600 hover:underline text-right"
                     onClick={() => handleSendReminder(order._id, order.phone, message, user?.name || "مشرف")}
@@ -197,20 +199,21 @@ export default function InstallmentsPage() {
                 )}
 
                 {remaining > 0 && (
-                  <button
-                    className="text-green-600 hover:underline text-right"
-                    onClick={() => handleMarkPaid(order._id)}
-                  >
-                    تم الدفع
-                  </button>
+                  <>
+                    <button
+                      className="text-green-600 hover:underline text-right"
+                      onClick={() => handleMarkPaid(order._id)}
+                    >
+                      تم الدفع
+                    </button>
+                    <button
+                      className="text-orange-600 hover:underline text-right"
+                      onClick={() => handleAddInstallment(order._id)}
+                    >
+                      إضافة قسط مدفوع
+                    </button>
+                  </>
                 )}
-
-                <button
-                  className="text-orange-600 hover:underline text-right"
-                  onClick={() => handleAddInstallment(order._id)}
-                >
-                  إضافة قسط مدفوع
-                </button>
               </div>
             </div>
           );

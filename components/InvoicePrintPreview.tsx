@@ -25,33 +25,37 @@ interface InvoiceProps {
 export default function InvoicePrintPreview({ order, storeName }: InvoiceProps) {
   const invoiceNumber = order._id?.slice(-6) || "------";
   const createdAt = new Date(order.createdAt);
-  const formattedDate = `${createdAt.getDate().toString().padStart(2, "0")}/${(createdAt.getMonth() + 1)
-    .toString()
-    .padStart(2, "0")}/${createdAt.getFullYear()}`;
+  const formattedDate = createdAt.toLocaleDateString("ar-IQ");
 
   const paid = order.paid || 0;
   const discount = order.discount || 0;
-  const totalAfterDiscount = order.total - discount;
+  const totalAfterDiscount = Math.max(0, order.total - discount);
+
+  const totalQty = order.cart.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
     <div
       className="invoice-container"
-      style={{ direction: "rtl", fontFamily: "Tahoma, sans-serif", fontSize: 14 }}
+      style={{ direction: "rtl", fontFamily: "Tahoma, sans-serif", fontSize: 14, padding: 16 }}
     >
       {/* Header */}
-      <div style={{ textAlign: "center", marginBottom: 10 }}>
-        <h2 style={{ margin: 0, fontSize: 22 }}>{storeName}</h2>
+      <div style={{ textAlign: "center", marginBottom: 12 }}>
+        <h2 style={{ margin: 0, fontSize: 24 }}>{storeName}</h2>
         <p>رقم الفاتورة: #{invoiceNumber}</p>
         <p>تاريخ الفاتورة: {formattedDate}</p>
-        <p>الاسم: {order.customerName || "—"}</p>
-        <p>الهاتف: {order.phone}</p>
-        {order.address && <p>العنوان: {order.address}</p>}
+        <p>اسم الزبون: {order.customerName || "—"}</p>
+        <p>رقم الهاتف: {order.phone}</p>
+        {order.address && <p>📍 العنوان: {order.address}</p>}
       </div>
 
       {/* Products Table */}
       <table
-        className="invoice-table"
-        style={{ width: "100%", borderCollapse: "collapse", marginTop: 20 }}
+        style={{
+          width: "100%",
+          borderCollapse: "collapse",
+          marginTop: 20,
+          marginBottom: 10,
+        }}
       >
         <thead>
           <tr>
@@ -63,9 +67,9 @@ export default function InvoicePrintPreview({ order, storeName }: InvoiceProps) 
           </tr>
         </thead>
         <tbody>
-          {order.cart.map((item, i) => (
-            <tr key={i}>
-              <td style={cellStyle}>{i + 1}</td>
+          {order.cart.map((item, index) => (
+            <tr key={index}>
+              <td style={cellStyle}>{index + 1}</td>
               <td style={cellStyle}>{item.name}</td>
               <td style={cellStyle}>{item.quantity}</td>
               <td style={cellStyle}>{item.price.toLocaleString("ar-IQ")} د.ع</td>
@@ -78,27 +82,29 @@ export default function InvoicePrintPreview({ order, storeName }: InvoiceProps) 
       </table>
 
       {/* Summary */}
-      <div style={{ marginTop: 20, lineHeight: 1.8 }}>
-        <p>💵 المبلغ المدفوع: {paid.toLocaleString("ar-IQ")} د.ع</p>
+      <div style={{ marginTop: 10, lineHeight: 1.8 }}>
+        <p>🔢 مجموع الكمية: {totalQty}</p>
+        <p>💵 المدفوع: {paid.toLocaleString("ar-IQ")} د.ع</p>
         <p>🔻 الخصم: {discount.toLocaleString("ar-IQ")} د.ع</p>
         <p style={{ fontWeight: "bold" }}>
           💰 المبلغ النهائي: {totalAfterDiscount.toLocaleString("ar-IQ")} د.ع
         </p>
       </div>
 
-      {/* Installment Info */}
+      {/* Installment Details */}
       {order.type === "installment" && (
         <div style={{ marginTop: 10 }}>
-          <p>📄 <strong>تفاصيل الأقساط:</strong></p>
+          <p><strong>📄 تفاصيل الأقساط:</strong></p>
           <p>عدد الأقساط: {order.installmentsCount}</p>
           <p>الدفعة الأولى: {order.downPayment?.toLocaleString("ar-IQ")} د.ع</p>
           <p>المتبقي: {order.remaining?.toLocaleString("ar-IQ")} د.ع</p>
+          {order.dueDate && <p>📅 تاريخ أول قسط: {new Date(order.dueDate).toLocaleDateString("ar-IQ")}</p>}
         </div>
       )}
 
       {/* Footer */}
       <div style={{ marginTop: 30, borderTop: "1px dashed #000", paddingTop: 10 }}>
-        <p>💡 الرجاء الاحتفاظ بالفاتورة كمرجع.</p>
+        <p style={{ textAlign: "center" }}>💡 الرجاء الاحتفاظ بالفاتورة كمرجع.</p>
       </div>
     </div>
   );
@@ -106,7 +112,7 @@ export default function InvoicePrintPreview({ order, storeName }: InvoiceProps) 
 
 const cellStyle: React.CSSProperties = {
   border: "1px solid black",
-  padding: "6px",
+  padding: "6px 4px",
   textAlign: "center",
   whiteSpace: "nowrap",
 };

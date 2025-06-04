@@ -1,3 +1,5 @@
+"use client";
+
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { useEffect, useState } from "react";
@@ -34,9 +36,12 @@ export default function AdminHomePage() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
         const res = await fetch("/api/admin/stats", {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            Authorization: `Bearer ${token}`,
           },
         });
         const data = await res.json();
@@ -46,16 +51,20 @@ export default function AdminHomePage() {
           setTodayRevenue(data.todayRevenue);
           setTopProduct(data.topProduct);
           setDailyRevenue(data.dailyRevenue);
+        } else {
+          console.warn("فشل في تحميل البيانات:", data.message);
         }
       } catch (error) {
-        console.error("Error fetching stats:", error);
+        console.error("حدث خطأ أثناء جلب الإحصائيات:", error);
       }
     };
     fetchStats();
   }, []);
 
   const chartData = {
-    labels: dailyRevenue.map((entry) => entry.date),
+    labels: dailyRevenue.map((entry) =>
+      new Date(entry.date).toLocaleDateString("ar-IQ", { weekday: "short", day: "numeric", month: "short" })
+    ),
     datasets: [
       {
         label: "الأرباح اليومية (د.ع)",
@@ -87,7 +96,7 @@ export default function AdminHomePage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatCard icon={<Package className="text-blue-600" />} label="المنتجات" value={productsCount} link="/admin/products" />
           <StatCard icon={<ShoppingCart className="text-green-600" />} label="الطلبات" value={ordersCount} link="/admin/orders" />
-          <StatCard icon={<DollarSign className="text-yellow-500" />} label="أرباح اليوم" value={`${todayRevenue.toLocaleString()} د.ع`} />
+          <StatCard icon={<DollarSign className="text-yellow-500" />} label="أرباح اليوم" value={`${todayRevenue.toLocaleString("ar-IQ")} د.ع`} />
           <StatCard icon={<BarChart2 className="text-purple-600" />} label="الأكثر مبيعاً" value={`${topProduct.name} (${topProduct.quantity})`} />
         </div>
 
@@ -120,7 +129,7 @@ function StatCard({
   const router = useRouter();
   return (
     <Card
-      className="shadow-md hover:shadow-xl transition transform hover:-translate-y-1 border border-gray-100 bg-white/90 backdrop-blur-md"
+      className={`shadow-md hover:shadow-xl transition transform hover:-translate-y-1 cursor-pointer border border-gray-100 bg-white/90 backdrop-blur-md`}
       onClick={() => link && router.push(link)}
     >
       <CardContent className="p-6">

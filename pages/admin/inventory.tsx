@@ -6,9 +6,8 @@ import axios from "axios";
 import toast from "react-hot-toast";
 import Link from "next/link";
 import Tesseract from "tesseract.js";
-
-// ✅ استيراد صحيح لـ pdfjs-dist
 import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf";
+
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 type Product = {
@@ -22,10 +21,11 @@ type Product = {
 
 const detectCategory = (name: string) => {
   const lowered = name.toLowerCase();
-  if (lowered.includes("laptop") || lowered.includes("لابتوب")) return "لابتوبات";
-  if (lowered.includes("mobile") || lowered.includes("موبايل")) return "موبايلات";
-  if (lowered.includes("headphone") || lowered.includes("سماعة")) return "سماعات";
-  if (lowered.includes("watch") || lowered.includes("ساعة")) return "ساعات";
+  if (/(laptop|لابتوب|notebook)/i.test(lowered)) return "لابتوبات";
+  if (/(mobile|موبايل|phone|smartphone)/i.test(lowered)) return "موبايلات";
+  if (/(headphone|سماعة|earbuds)/i.test(lowered)) return "سماعات";
+  if (/(watch|ساعة|smartwatch)/i.test(lowered)) return "ساعات";
+  if (/(tv|شاشة|monitor|شاشات)/i.test(lowered)) return "شاشات";
   return "غير مصنّف";
 };
 
@@ -52,14 +52,30 @@ export default function InventoryPage() {
     const reader = new FileReader();
     reader.onload = async () => {
       const existingBarcodes = new Set(products.map((p) => p.barcode));
+      const extracted: Product[] = [];
 
-      // 📄 التعامل مع PDF
+      const processLine = (line: string) => {
+        const match = line.match(/(XIAOMI|POCO|IPHONE|TECNO|INFINIX|REDMI|.*?\d+.*?)(?:\s+)(\d{1,3}(?:,\d{3})+)(?:\s+)(\d+)/i);
+        if (match) {
+          const name = match[1].trim();
+          const purchasePrice = parseFloat(match[2].replace(/,/g, ""));
+          const quantity = parseInt(match[3]);
+          const category = detectCategory(name);
+
+          const barcodeMatch = line.match(/(?:باركود|barcode)[:\s]*(\d{6,})/i);
+          const barcode = barcodeMatch ? barcodeMatch[1] : name.toLowerCase().replace(/\s+/g, "-");
+
+          if (!existingBarcodes.has(barcode)) {
+            extracted.push({ name, purchasePrice, quantity, category, barcode, _id: "" });
+            existingBarcodes.add(barcode);
+          }
+        }
+      };
+
       if (file.type === "application/pdf") {
         toast.loading("📄 جارٍ استخراج النص من PDF...");
-
         const typedarray = new Uint8Array(reader.result as ArrayBuffer);
         const pdf = await pdfjsLib.getDocument({ data: typedarray }).promise;
-
         let fullText = "";
         for (let i = 1; i <= pdf.numPages; i++) {
           const page = await pdf.getPage(i);
@@ -67,67 +83,15 @@ export default function InventoryPage() {
           const strings = content.items.map((item: any) => item.str);
           fullText += strings.join(" ") + "\n";
         }
-
         toast.dismiss();
         toast.success("✅ تم استخراج النص، جارٍ التحليل...");
-
-        const lines = fullText.split("\n");
-        const extracted: Product[] = [];
-
-        for (const line of lines) {
-          const match = line.match(/(XIAOMI|POCO|IPHONE|TECNO|INFINIX|REDMI|.*?\d+.*?)(?:\s+)(\d{1,3}(?:,\d{3})+)(?:\s+)(\d+)/i);
-          if (match) {
-            const name = match[1].trim();
-            const purchasePrice = parseFloat(match[2].replace(/,/g, ""));
-            const quantity = parseInt(match[3]);
-            const category = detectCategory(name);
-            const barcode = name.toLowerCase().replace(/\s+/g, "-");
-
-            if (!existingBarcodes.has(barcode)) {
-              extracted.push({ name, purchasePrice, quantity, category, barcode, _id: "" });
-              existingBarcodes.add(barcode);
-            }
-          }
-        }
-
-        if (extracted.length > 0) {
-          const confirm = window.confirm(`تم استخراج ${extracted.length} منتج جديد من PDF. هل ترغب في نشرها للمخزن؟`);
-          if (confirm) {
-            const res = await axios.post("/api/purchase/ocr", { products: extracted });
-            if (res.data.success) {
-              toast.success("📦 تم رفع المنتجات من PDF بنجاح");
-              setProducts((prev) => [...prev, ...res.data.inserted]);
-            }
-          }
-        } else {
-          toast.error("❌ لم يتم العثور على بيانات صالحة داخل PDF أو كانت مكررة");
-        }
-        return;
-      }
-
-      // 🖼️ التعامل مع الصور
-      toast.loading("🔍 جارٍ تحليل الصورة...");
-      const { data: { text } } = await Tesseract.recognize(reader.result as string, "eng");
-      toast.dismiss();
-      toast.success("✅ تم استخراج البيانات، جارٍ تحليل النص...");
-
-      const extracted: Product[] = [];
-      const lines = text.split("\n");
-
-      for (const line of lines) {
-        const match = line.match(/(XIAOMI|POCO|IPHONE|TECNO|INFINIX|REDMI|.*?\d+.*?)(?:\s+)(\d{1,3}(?:,\d{3})+)(?:\s+)(\d+)/i);
-        if (match) {
-          const name = match[1].trim();
-          const purchasePrice = parseFloat(match[2].replace(/,/g, ""));
-          const quantity = parseInt(match[3]);
-          const category = detectCategory(name);
-          const barcode = name.toLowerCase().replace(/\s+/g, "-");
-
-          if (!existingBarcodes.has(barcode)) {
-            extracted.push({ name, purchasePrice, quantity, category, barcode, _id: "" });
-            existingBarcodes.add(barcode);
-          }
-        }
+        fullText.split("\n").forEach(processLine);
+      } else {
+        toast.loading("🔍 جارٍ تحليل الصورة...");
+        const { data: { text } } = await Tesseract.recognize(reader.result as string, "eng");
+        toast.dismiss();
+        toast.success("✅ تم استخراج البيانات، جارٍ التحليل...");
+        text.split("\n").forEach(processLine);
       }
 
       if (extracted.length > 0) {
@@ -135,12 +99,12 @@ export default function InventoryPage() {
         if (confirm) {
           const res = await axios.post("/api/purchase/ocr", { products: extracted });
           if (res.data.success) {
-            toast.success("📦 تم رفع المنتجات للمخزن بنجاح");
+            toast.success("📦 تم رفع المنتجات بنجاح");
             setProducts((prev) => [...prev, ...res.data.inserted]);
           }
         }
       } else {
-        toast.error("❌ لم يتم العثور على بيانات منتجات جديدة أو كانت مكررة");
+        toast.error("❌ لم يتم العثور على منتجات جديدة أو كانت مكررة");
       }
     };
 
@@ -173,6 +137,33 @@ export default function InventoryPage() {
           />
         </label>
       </div>
+
+      <p className="text-sm text-gray-600 mb-2">
+        عدد المنتجات غير المنشورة: <strong>{products.length}</strong>
+      </p>
+
+      {products.length > 0 && (
+        <button
+          onClick={async () => {
+            const confirm = window.confirm("هل تريد نشر جميع المنتجات دفعة واحدة؟");
+            if (!confirm) return;
+
+            for (const product of products) {
+              try {
+                await axios.put(`/api/inventory/${product._id}/publish`);
+              } catch {
+                toast.error(`فشل نشر المنتج: ${product.name}`);
+              }
+            }
+
+            toast.success("✅ تم نشر جميع المنتجات");
+            setProducts([]);
+          }}
+          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm mb-4"
+        >
+          🚀 نشر الكل
+        </button>
+      )}
 
       {products.length === 0 ? (
         <p className="text-gray-500">لا توجد منتجات غير منشورة حالياً.</p>
