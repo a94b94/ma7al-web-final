@@ -62,7 +62,7 @@ export default function OrdersPage() {
 
     if (!currentStoreId) {
       toast.error("⚠️ يرجى اختيار محل أولاً");
-      router.push("/select-store"); // ❗ غيّرها حسب مسار اختيار المحل عندك
+      router.push("/select-store");
       return;
     }
 
@@ -74,9 +74,7 @@ export default function OrdersPage() {
       .then((res) => res.json())
       .then((data) => {
         const allOrders = data.orders || [];
-        const filtered = allOrders.filter(
-          (order: Order) => order.storeId === currentStoreId
-        );
+        const filtered = allOrders.filter((order: Order) => order.storeId === currentStoreId);
         setOrders(filtered);
         if (data.newOrdersCount && filtered.length > 0) {
           toast.success(`🔔 ${filtered.length} طلب جديد لمتجرك`);
@@ -113,9 +111,7 @@ export default function OrdersPage() {
   const filteredOrders =
     filterStatus === "الكل"
       ? orders
-      : orders.filter(
-          (order) => (order.status || "بانتظار التأكيد") === filterStatus
-        );
+      : orders.filter((order) => (order.status || "بانتظار التأكيد") === filterStatus);
 
   return (
     <AdminLayout>
@@ -139,86 +135,91 @@ export default function OrdersPage() {
         </div>
 
         {loading ? (
-          <p className="text-gray-500">جاري التحميل...</p>
+          <p className="text-gray-500">⏳ جاري التحميل...</p>
         ) : filteredOrders.length === 0 ? (
           <p className="text-gray-600">لا توجد طلبات بالحالة المحددة.</p>
         ) : (
           <div className="space-y-6">
-            {filteredOrders.map((order) => (
-              <div
-                key={order._id}
-                className={`border rounded-xl p-4 shadow transition hover:shadow-lg ${
-                  order.seen === false ? "bg-blue-50 border-blue-400" : "bg-white"
-                }`}
-              >
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm text-gray-500">
-                    📅 {new Date(order.createdAt).toLocaleString("ar-EG")}
-                  </span>
-                  <span className="text-green-600 font-bold">
-                    💰 {order.total.toLocaleString()} د.ع
-                  </span>
-                </div>
+            {filteredOrders.map((order) => {
+              const status = order.status || "بانتظار التأكيد";
+              const formattedDate = new Intl.DateTimeFormat("ar-IQ", {
+                dateStyle: "medium",
+                timeStyle: "short",
+              }).format(new Date(order.createdAt));
+              const phone = order.phone.startsWith("+964")
+                ? order.phone
+                : `+964${order.phone.replace(/^0/, "")}`;
 
-                <p className="text-sm mb-1">📱 {order.phone}</p>
-                <p className="text-sm mb-1">📍 {order.address}</p>
-                {order.storeName && (
-                  <p className="text-xs text-gray-500">🏬 {order.storeName}</p>
-                )}
-                {order.seen === false && (
-                  <p className="text-xs text-blue-600 font-semibold">🔔 طلب جديد</p>
-                )}
-
-                <div className="flex flex-wrap gap-3 items-center my-2">
-                  <span
-                    className={`px-2 py-1 rounded text-xs font-medium ${getStatusClasses(
-                      order.status || "بانتظار التأكيد"
-                    )}`}
-                  >
-                    {order.status || "بانتظار التأكيد"}
-                  </span>
-
-                  <select
-                    value={order.status || "بانتظار التأكيد"}
-                    onChange={(e) => updateStatus(order._id, e.target.value)}
-                    className="border rounded px-2 py-1 text-sm"
-                  >
-                    {STATUS_OPTIONS.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <ul className="text-sm text-gray-700 list-disc pl-5 space-y-1">
-                  {order.cart.map((item, idx) => (
-                    <li key={idx}>
-                      {item.name} × {item.quantity} -{" "}
-                      {item.price.toLocaleString()} د.ع
-                    </li>
-                  ))}
-                </ul>
-
-                <button
-                  onClick={() => {
-                    const message = `📦 طلب جديد\nالمنتجات:\n${order.cart
-                      .map((i) => `- ${i.name} × ${i.quantity}`)
-                      .join("\n")}\n📍 ${order.address}\n📞 ${order.phone}`;
-                    const phone = order.phone.startsWith("+964")
-                      ? order.phone
-                      : `+964${order.phone}`;
-                    window.open(
-                      `https://wa.me/${phone}?text=${encodeURIComponent(message)}`,
-                      "_blank"
-                    );
-                  }}
-                  className="mt-3 inline-block text-green-700 border border-green-500 rounded px-3 py-1 text-sm hover:bg-green-100"
+              return (
+                <div
+                  key={order._id}
+                  className={`border rounded-xl p-4 shadow transition hover:shadow-lg ${
+                    order.seen === false ? "bg-blue-50 border-blue-400" : "bg-white"
+                  }`}
                 >
-                  إرسال عبر واتساب
-                </button>
-              </div>
-            ))}
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm text-gray-500">📅 {formattedDate}</span>
+                    <span className="text-green-600 font-bold">
+                      💰 {order.total.toLocaleString("ar-IQ")} د.ع
+                    </span>
+                  </div>
+
+                  <p className="text-sm mb-1">📱 {order.phone}</p>
+                  <p className="text-sm mb-1">📍 {order.address}</p>
+                  {order.storeName && (
+                    <p className="text-xs text-gray-500">🏬 {order.storeName}</p>
+                  )}
+                  {order.seen === false && (
+                    <p className="text-xs text-blue-600 font-semibold">🔔 طلب جديد</p>
+                  )}
+
+                  <div className="flex flex-wrap gap-3 items-center my-2">
+                    <span
+                      className={`px-2 py-1 rounded text-xs font-medium ${getStatusClasses(
+                        status
+                      )}`}
+                    >
+                      {status}
+                    </span>
+
+                    <select
+                      value={status}
+                      onChange={(e) => updateStatus(order._id, e.target.value)}
+                      className="border rounded px-2 py-1 text-sm"
+                    >
+                      {STATUS_OPTIONS.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <ul className="text-sm text-gray-700 list-disc pl-5 space-y-1">
+                    {order.cart.map((item, idx) => (
+                      <li key={idx}>
+                        {item.name} × {item.quantity} — {item.price.toLocaleString("ar-IQ")} د.ع
+                      </li>
+                    ))}
+                  </ul>
+
+                  <button
+                    onClick={() => {
+                      const message = `📦 طلب جديد\nالمنتجات:\n${order.cart
+                        .map((i) => `- ${i.name} × ${i.quantity}`)
+                        .join("\n")}\n📍 ${order.address}\n📞 ${order.phone}`;
+                      window.open(
+                        `https://wa.me/${phone}?text=${encodeURIComponent(message)}`,
+                        "_blank"
+                      );
+                    }}
+                    className="mt-3 inline-block text-green-700 border border-green-500 rounded px-3 py-1 text-sm hover:bg-green-100"
+                  >
+                    إرسال عبر واتساب
+                  </button>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

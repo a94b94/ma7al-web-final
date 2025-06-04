@@ -30,7 +30,8 @@ export default function AdminSettingsPage() {
 
     fetch("/api/settings/hero-images")
       .then((res) => res.json())
-      .then((data) => setHeroImages(data));
+      .then((data) => setHeroImages(data))
+      .catch(() => toast.error("❌ فشل تحميل صور الواجهة"));
   }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -41,8 +42,9 @@ export default function AdminSettingsPage() {
       return;
     }
 
-    if (!/^[0-9]{10,15}$/.test(whatsappNumber)) {
-      toast.error("❌ رقم الواتساب غير صحيح");
+    const cleanedNumber = whatsappNumber.replace(/^\+?964|^0/, "");
+    if (!/^\d{9,11}$/.test(cleanedNumber)) {
+      toast.error("❌ رقم الواتساب غير صالح، يجب أن يكون 9-11 رقم بدون رمز البلد");
       return;
     }
 
@@ -52,11 +54,11 @@ export default function AdminSettingsPage() {
         userId: user._id,
         storeName,
         storeLogo,
-        whatsappNumber,
+        whatsappNumber: `964${cleanedNumber}`,
       });
       toast.success("✅ تم حفظ التعديلات بنجاح");
-    } catch (err) {
-      toast.error("فشل في حفظ الإعدادات");
+    } catch {
+      toast.error("❌ فشل في حفظ الإعدادات");
     } finally {
       setLoading(false);
     }
@@ -75,6 +77,9 @@ export default function AdminSettingsPage() {
   };
 
   const handleHeroUpload = (type: "phone" | "appliance" | "background") => {
+    const confirmChange = confirm("هل أنت متأكد من استبدال الصورة؟");
+    if (!confirmChange) return;
+
     const widget = (window as any).uploadcare.Widget("[role=uploadcare-uploader]");
     widget.openDialog(null, { publicKey: "767dc761271f23d1f796" }).done((fileInfo: any) => {
       const updated = { ...heroImages, [type]: fileInfo.cdnUrl };
@@ -84,7 +89,9 @@ export default function AdminSettingsPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updated),
-      });
+      })
+        .then(() => toast.success("✅ تم تحديث الصورة"))
+        .catch(() => toast.error("❌ فشل رفع الصورة"));
     });
   };
 
@@ -110,7 +117,7 @@ export default function AdminSettingsPage() {
             type="tel"
             value={whatsappNumber}
             onChange={(e) => setWhatsappNumber(e.target.value)}
-            placeholder="مثال: 9647701234567"
+            placeholder="مثال: 07701234567 أو +9647701234567"
             className="w-full rounded border px-3 py-2 dark:bg-gray-700 dark:border-gray-600"
           />
         </div>
@@ -139,7 +146,9 @@ export default function AdminSettingsPage() {
         <button
           type="submit"
           disabled={loading}
-          className={`bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
+          className={`bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 ${
+            loading ? "opacity-50 cursor-not-allowed" : ""
+          }`}
         >
           {loading ? "جارٍ الحفظ..." : "حفظ التعديلات"}
         </button>
@@ -158,7 +167,13 @@ export default function AdminSettingsPage() {
             📱 رفع صورة الهاتف
           </button>
           {heroImages.phone && (
-            <Image src={heroImages.phone} alt="هاتف" width={150} height={150} className="rounded shadow mt-2" />
+            <Image
+              src={heroImages.phone}
+              alt="هاتف"
+              width={150}
+              height={150}
+              className="rounded shadow mt-2"
+            />
           )}
         </div>
 
@@ -170,7 +185,13 @@ export default function AdminSettingsPage() {
             ⚡ رفع صورة الجهاز الكهربائي
           </button>
           {heroImages.appliance && (
-            <Image src={heroImages.appliance} alt="جهاز" width={150} height={150} className="rounded shadow mt-2" />
+            <Image
+              src={heroImages.appliance}
+              alt="جهاز"
+              width={150}
+              height={150}
+              className="rounded shadow mt-2"
+            />
           )}
         </div>
 
@@ -182,7 +203,13 @@ export default function AdminSettingsPage() {
             🌌 تغيير خلفية الهيرو
           </button>
           {heroImages.background && (
-            <Image src={heroImages.background} alt="خلفية" width={150} height={80} className="rounded shadow mt-2" />
+            <Image
+              src={heroImages.background}
+              alt="خلفية"
+              width={150}
+              height={80}
+              className="rounded shadow mt-2"
+            />
           )}
         </div>
       </div>

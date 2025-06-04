@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
-import InvoicePreview from "@/components/InvoicePreview";
+import Invoice from "@/components/Invoice"; // ✅ استيراد المكون الجديد
 
 interface Order {
   _id: string;
@@ -27,6 +27,7 @@ export default function OrderPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [storeName, setStoreName] = useState("اسم متجرك هنا");
+  const [storeAddress, setStoreAddress] = useState("");
 
   // جلب بيانات الطلب
   const fetchOrder = async (orderId: string) => {
@@ -36,8 +37,6 @@ export default function OrderPage() {
       const res = await fetch(`/api/orders/${orderId}`);
       if (!res.ok) throw new Error("فشل تحميل الطلب");
       const data = await res.json();
-
-      // دعم استجابة تكون مباشرة أو داخل حقل order
       setOrder(data.order || data);
     } catch (err: any) {
       setError(err.message || "حدث خطأ غير متوقع");
@@ -47,22 +46,24 @@ export default function OrderPage() {
     }
   };
 
-  // جلب اسم المتجر من API منفصل
-  const fetchStoreName = async () => {
+  // جلب اسم وعنوان المتجر من API
+  const fetchStoreInfo = async () => {
     try {
       const res = await fetch("/api/store-info");
       if (!res.ok) throw new Error("فشل تحميل بيانات المتجر");
       const data = await res.json();
       setStoreName(data.name || "اسم متجرك هنا");
+      setStoreAddress(data.address || "");
     } catch {
       setStoreName("اسم متجرك هنا");
+      setStoreAddress("");
     }
   };
 
   useEffect(() => {
     if (!id || typeof id !== "string") return;
     fetchOrder(id);
-    fetchStoreName();
+    fetchStoreInfo();
   }, [id]);
 
   if (loading) return <p className="p-4 text-center">جاري التحميل...</p>;
@@ -86,7 +87,14 @@ export default function OrderPage() {
 
   return (
     <div className="max-w-3xl mx-auto p-6 bg-white dark:bg-gray-800 rounded shadow my-8">
-      <InvoicePreview order={order} storeName={storeName} />
+      <Invoice
+        invoiceNumber={order._id}
+        date={new Date(order.createdAt).toLocaleDateString("ar-EG")}
+        companyName={storeName}
+        phone={order.phone}
+        address={storeAddress}
+        items={order.cart}
+      />
     </div>
   );
 }

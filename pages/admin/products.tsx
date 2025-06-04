@@ -18,28 +18,28 @@ export default function AdminProductsPage() {
   const router = useRouter();
 
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const res = await fetch("/api/products");
-        if (!res.ok) throw new Error("فشل في الاتصال بالخادم");
-        const data = await res.json();
-        setProducts(data.products || data); // دعم استجابة `{ products: [...] }` أو `[...]`
-      } catch (err) {
-        toast.error("❌ حدث خطأ أثناء جلب المنتجات");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchProducts();
   }, []);
 
+  const fetchProducts = async () => {
+    try {
+      const res = await fetch("/api/products");
+      if (!res.ok) throw new Error("فشل في الاتصال بالخادم");
+      const data = await res.json();
+      setProducts(data.products || data);
+    } catch {
+      toast.error("❌ حدث خطأ أثناء جلب المنتجات");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm("هل أنت متأكد من حذف هذا المنتج؟")) return;
+
     try {
-      const token = typeof window !== "undefined"
-        ? JSON.parse(localStorage.getItem("user") || "{}")?.token
-        : null;
+      const localUser = typeof window !== "undefined" ? localStorage.getItem("user") : null;
+      const token = localUser ? JSON.parse(localUser).token : null;
 
       if (!token) {
         toast.error("❌ غير مصرح");
@@ -48,20 +48,17 @@ export default function AdminProductsPage() {
 
       const res = await fetch(`/api/products/${id}`, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       const data = await res.json();
-
       if (data.success) {
         toast.success("✅ تم حذف المنتج");
-        setProducts(products.filter((p) => p._id !== id));
+        setProducts((prev) => prev.filter((p) => p._id !== id));
       } else {
         toast.error(data.message || "❌ فشل الحذف");
       }
-    } catch (err) {
+    } catch {
       toast.error("⚠️ خطأ أثناء تنفيذ الحذف");
     }
   };
@@ -82,44 +79,48 @@ export default function AdminProductsPage() {
         <p className="text-center">⏳ جارٍ تحميل المنتجات...</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[600px] border">
-            <thead>
-              <tr className="bg-gray-100 text-right">
-                <th className="p-2">الصورة</th>
-                <th className="p-2">الاسم</th>
-                <th className="p-2">السعر</th>
-                <th className="p-2">الفئة</th>
-                <th className="p-2">إجراءات</th>
+          <table className="w-full min-w-[700px] border text-sm">
+            <thead className="bg-gray-100 text-right">
+              <tr>
+                <th className="p-2 border">الصورة</th>
+                <th className="p-2 border">الاسم</th>
+                <th className="p-2 border">السعر</th>
+                <th className="p-2 border">الفئة</th>
+                <th className="p-2 border">إجراءات</th>
               </tr>
             </thead>
             <tbody>
               {products.map((product) => (
                 <tr key={product._id} className="border-t text-right">
-                  <td className="p-2">
-                    <Image
-                      src={product.image}
-                      alt={product.name}
-                      width={50}
-                      height={50}
-                      className="rounded object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = "/images/default.jpg";
-                      }}
-                    />
+                  <td className="p-2 border">
+                    <div className="w-[50px] h-[50px] relative">
+                      <Image
+                        src={product.image || "/images/default.jpg"}
+                        alt={product.name}
+                        fill
+                        className="rounded object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = "/images/default.jpg";
+                        }}
+                      />
+                    </div>
                   </td>
-                  <td className="p-2">{product.name}</td>
-                  <td className="p-2">{product.price.toLocaleString()} د.ع</td>
-                  <td className="p-2">{product.category}</td>
-                  <td className="p-2 flex gap-2">
-                    <Link href={`/admin/edit-product/${product._id}`}>
-                      <span className="text-blue-600 hover:underline cursor-pointer">تعديل</span>
-                    </Link>
-                    <button
-                      onClick={() => handleDelete(product._id)}
-                      className="text-red-600 hover:underline"
-                    >
-                      حذف
-                    </button>
+                  <td className="p-2 border">{product.name}</td>
+                  <td className="p-2 border">{product.price.toLocaleString()} د.ع</td>
+                  <td className="p-2 border">{product.category}</td>
+                  <td className="p-2 border">
+                    <div className="flex gap-3">
+                      <Link href={`/admin/edit-product/${product._id}`}>
+                        <span className="text-blue-600 hover:underline cursor-pointer">تعديل</span>
+                      </Link>
+                      <button
+                        onClick={() => handleDelete(product._id)}
+                        className="text-red-600 hover:underline"
+                      >
+                        حذف
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

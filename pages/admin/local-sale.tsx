@@ -5,8 +5,9 @@ import { useRouter } from "next/router";
 import dynamic from "next/dynamic";
 import toast from "react-hot-toast";
 import axios from "axios";
+import Invoice from "@/components/Invoice";
+import { useUser } from "@/context/UserContext";
 
-const InvoicePreview = dynamic(() => import("@/components/InvoicePreview"), { ssr: false });
 const InstallmentTable = dynamic(() => import("@/components/installments/InstallmentTable"), { ssr: false });
 
 interface Product {
@@ -24,6 +25,7 @@ interface CartItem {
 
 export default function LocalSalePage() {
   const router = useRouter();
+  const { user } = useUser();
   const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [customerName, setCustomerName] = useState("");
@@ -55,7 +57,8 @@ export default function LocalSalePage() {
     setCart([...cart, { productId: product._id, name: product.name, quantity: 1, price: product.price }]);
   };
 
-  const totalAmount = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const totalBeforeDiscount = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const totalAmount = Math.max(0, totalBeforeDiscount - discount);
   const autoInstallmentsCount = Math.max(1, Math.round((totalAmount - downPayment) / 100000));
 
   const handleSaveInvoice = async () => {
@@ -81,13 +84,13 @@ export default function LocalSalePage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-4">
-      <h2 className="text-2xl font-bold mb-2">🧾 إنشاء فاتورة جديدة</h2>
-      <p className="mb-2 text-sm text-gray-600">📅 التاريخ: {today}</p>
-      <p className="mb-4 text-sm text-gray-600">رقم الفاتورة: <strong>{invoiceNumber}</strong></p>
+    <div className="max-w-6xl mx-auto p-4 print:p-0">
+      <h2 className="text-2xl font-bold mb-2 print:hidden">🧾 إنشاء فاتورة جديدة</h2>
+      <p className="mb-2 text-sm text-gray-600 print:hidden">📅 التاريخ: {today}</p>
+      <p className="mb-4 text-sm text-gray-600 print:hidden">رقم الفاتورة: <strong>{invoiceNumber}</strong></p>
 
       {/* نوع الفاتورة */}
-      <div className="mb-4">
+      <div className="mb-4 print:hidden">
         <label className="mr-4">
           <input
             type="radio"
@@ -113,7 +116,7 @@ export default function LocalSalePage() {
       </div>
 
       {/* بيانات الزبون */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 print:hidden">
         <div>
           <label className="block text-sm mb-1">اسم الزبون</label>
           <input type="text" className="input" value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
@@ -144,8 +147,8 @@ export default function LocalSalePage() {
         </div>
       </div>
 
-      {/* اختيار المنتجات من المخزون */}
-      <div className="mb-6">
+      {/* اختيار المنتجات */}
+      <div className="mb-6 print:hidden">
         <h3 className="font-semibold mb-2">📦 المنتجات المتاحة:</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
           {products.map((product) => (
@@ -160,25 +163,15 @@ export default function LocalSalePage() {
         </div>
       </div>
 
-      {/* ✅ عرض الفاتورة + الأقساط داخل تنسيق الطباعة */}
+      {/* ✅ عرض الفاتورة + الأقساط */}
       <div className="invoice-container mt-8">
-        <InvoicePreview
-          order={{
-            _id: invoiceNumber,
-            phone: customerPhone,
-            customerName,
-            cart,
-            total: totalAmount,
-            createdAt: new Date().toISOString(),
-            type: invoiceType,
-            downPayment,
-            installmentsCount: invoiceType === "installment" ? autoInstallmentsCount : 0,
-            dueDate,
-            remaining: invoiceType === "installment" ? totalAmount - downPayment : 0,
-            paid,
-            discount,
-          }}
-          storeName="Ma7al Store"
+        <Invoice
+          invoiceNumber={invoiceNumber}
+          date={today}
+          companyName={user?.storeName || "المتجر"}
+          phone={customerPhone}
+          address={user?.storeAddress || ""}
+          items={cart}
         />
 
         {invoiceType === "installment" && (
@@ -195,8 +188,8 @@ export default function LocalSalePage() {
         )}
       </div>
 
-      {/* الأزرار */}
-      <div className="flex gap-4 mt-4">
+      {/* أزرار */}
+      <div className="flex gap-4 mt-4 print:hidden">
         <button onClick={handleSaveInvoice} className="bg-green-600 text-white px-6 py-2 rounded">
           💾 حفظ الفاتورة
         </button>

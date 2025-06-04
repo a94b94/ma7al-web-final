@@ -12,6 +12,8 @@ interface ProductInput {
   quantity: number;
 }
 
+const categories = ["موبايلات", "لابتوبات", "سماعات", "ساعات", "أجهزة كهربائية", "أخرى"];
+
 export default function PurchasePage() {
   const [supplierName, setSupplierName] = useState("");
   const [invoiceNumber, setInvoiceNumber] = useState("");
@@ -19,7 +21,6 @@ export default function PurchasePage() {
     { name: "", barcode: "", category: "", purchasePrice: 0, quantity: 1 },
   ]);
 
-  // ✅ الدالة المعدلة لتجنب Type Error
   const handleChange = <K extends keyof ProductInput>(
     index: number,
     field: K,
@@ -38,13 +39,24 @@ export default function PurchasePage() {
   };
 
   const removeProductRow = (index: number) => {
+    if (products.length === 1) return toast.error("لا يمكن حذف آخر منتج");
     const updated = products.filter((_, i) => i !== index);
     setProducts(updated);
   };
 
+  const total = products.reduce((sum, item) => sum + item.purchasePrice * item.quantity, 0);
+
   const handleSubmit = async () => {
     if (!supplierName || !invoiceNumber || products.length === 0) {
       toast.error("يرجى ملء جميع الحقول المطلوبة");
+      return;
+    }
+
+    const hasInvalid = products.some(
+      (p) => !p.name || p.purchasePrice <= 0 || p.quantity <= 0
+    );
+    if (hasInvalid) {
+      toast.error("يرجى التحقق من صحة بيانات المنتجات");
       return;
     }
 
@@ -55,12 +67,12 @@ export default function PurchasePage() {
         products,
       });
       if (res.data.success) {
-        toast.success("✅ تم تسجيل الفاتورة وإدخال المنتجات إلى المخزن");
+        toast.success("✅ تم تسجيل الفاتورة بنجاح");
         setProducts([{ name: "", barcode: "", category: "", purchasePrice: 0, quantity: 1 }]);
         setSupplierName("");
         setInvoiceNumber("");
       }
-    } catch (err) {
+    } catch {
       toast.error("حدث خطأ أثناء الحفظ");
     }
   };
@@ -87,7 +99,7 @@ export default function PurchasePage() {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full border text-sm">
+        <table className="w-full border text-sm text-right">
           <thead className="bg-gray-100">
             <tr>
               <th className="p-2 border">الاسم</th>
@@ -95,7 +107,7 @@ export default function PurchasePage() {
               <th className="p-2 border">القسم</th>
               <th className="p-2 border">سعر الشراء</th>
               <th className="p-2 border">الكمية</th>
-              <th className="p-2 border">❌</th>
+              <th className="p-2 border">إزالة</th>
             </tr>
           </thead>
           <tbody>
@@ -118,37 +130,45 @@ export default function PurchasePage() {
                   />
                 </td>
                 <td className="p-1 border">
-                  <input
-                    type="text"
+                  <select
                     className="w-full p-1 border rounded"
                     value={product.category}
                     onChange={(e) => handleChange(index, "category", e.target.value)}
-                  />
+                  >
+                    <option value="">اختر قسم</option>
+                    {categories.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
                 </td>
                 <td className="p-1 border">
                   <input
                     type="number"
+                    min={0}
                     className="w-full p-1 border rounded"
                     value={product.purchasePrice}
                     onChange={(e) =>
-                      handleChange(index, "purchasePrice", parseFloat(e.target.value))
+                      handleChange(index, "purchasePrice", parseFloat(e.target.value) || 0)
                     }
                   />
                 </td>
                 <td className="p-1 border">
                   <input
                     type="number"
+                    min={1}
                     className="w-full p-1 border rounded"
                     value={product.quantity}
                     onChange={(e) =>
-                      handleChange(index, "quantity", parseInt(e.target.value))
+                      handleChange(index, "quantity", parseInt(e.target.value) || 1)
                     }
                   />
                 </td>
                 <td className="text-center">
                   <button
-                    className="text-red-500 hover:text-red-700"
                     onClick={() => removeProductRow(index)}
+                    className="text-red-600 hover:text-red-800 text-sm"
                   >
                     حذف
                   </button>
@@ -158,12 +178,12 @@ export default function PurchasePage() {
           </tbody>
         </table>
 
-        <div className="mt-4 flex gap-4">
+        <div className="mt-4 flex flex-wrap gap-4 items-center">
           <button
             onClick={addProductRow}
             className="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded"
           >
-            ➕ إضافة منتج آخر
+            ➕ إضافة منتج
           </button>
 
           <button
@@ -172,6 +192,10 @@ export default function PurchasePage() {
           >
             💾 تسجيل الفاتورة
           </button>
+
+          <span className="ml-auto font-bold text-green-700">
+            💰 المجموع: {total.toLocaleString()} د.ع
+          </span>
         </div>
       </div>
     </div>
