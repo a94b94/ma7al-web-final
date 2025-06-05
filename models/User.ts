@@ -8,6 +8,7 @@ export interface IUser extends Document {
   storeLogo?: string;
   storeStamp?: string;
   image?: string;
+  role?: "owner" | "manager" | "support"; // ✅ تمت الإضافة هنا
 }
 
 const UserSchema = new Schema<IUser>(
@@ -19,6 +20,7 @@ const UserSchema = new Schema<IUser>(
     storeLogo: { type: String, default: "" },
     storeStamp: { type: String, default: "" },
     image: { type: String, default: "" },
+    role: { type: String, enum: ["owner", "manager", "support"], default: "manager" }, // ✅ تمت الإضافة هنا
   },
   { timestamps: true }
 );

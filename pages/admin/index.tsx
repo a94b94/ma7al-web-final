@@ -13,6 +13,7 @@ import {
   BarChart2,
 } from "lucide-react";
 import { Line } from "react-chartjs-2";
+import toast from "react-hot-toast";
 import {
   Chart as ChartJS,
   LineElement,
@@ -31,6 +32,7 @@ export default function AdminHomePage() {
   const [todayRevenue, setTodayRevenue] = useState(0);
   const [topProduct, setTopProduct] = useState({ name: "-", quantity: 0 });
   const [dailyRevenue, setDailyRevenue] = useState<{ date: string; total: number }[]>([]);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
@@ -46,16 +48,19 @@ export default function AdminHomePage() {
         });
         const data = await res.json();
         if (res.ok) {
-          setProductsCount(data.productsCount);
-          setOrdersCount(data.ordersCount);
-          setTodayRevenue(data.todayRevenue);
-          setTopProduct(data.topProduct);
-          setDailyRevenue(data.dailyRevenue);
+          setProductsCount(data.productsCount || 0);
+          setOrdersCount(data.ordersCount || 0);
+          setTodayRevenue(data.todayRevenue || 0);
+          setTopProduct(data.topProduct || { name: "-", quantity: 0 });
+          setDailyRevenue(data.dailyRevenue || []);
         } else {
-          console.warn("فشل في تحميل البيانات:", data.message);
+          toast.error("فشل في تحميل الإحصائيات");
         }
       } catch (error) {
-        console.error("حدث خطأ أثناء جلب الإحصائيات:", error);
+        toast.error("حدث خطأ أثناء جلب البيانات");
+        console.error(error);
+      } finally {
+        setLoading(false);
       }
     };
     fetchStats();
@@ -63,7 +68,11 @@ export default function AdminHomePage() {
 
   const chartData = {
     labels: dailyRevenue.map((entry) =>
-      new Date(entry.date).toLocaleDateString("ar-IQ", { weekday: "short", day: "numeric", month: "short" })
+      new Date(entry.date).toLocaleDateString("ar-IQ", {
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+      })
     ),
     datasets: [
       {
@@ -93,23 +102,29 @@ export default function AdminHomePage() {
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <StatCard icon={<Package className="text-blue-600" />} label="المنتجات" value={productsCount} link="/admin/products" />
-          <StatCard icon={<ShoppingCart className="text-green-600" />} label="الطلبات" value={ordersCount} link="/admin/orders" />
-          <StatCard icon={<DollarSign className="text-yellow-500" />} label="أرباح اليوم" value={`${todayRevenue.toLocaleString("ar-IQ")} د.ع`} />
-          <StatCard icon={<BarChart2 className="text-purple-600" />} label="الأكثر مبيعاً" value={`${topProduct.name} (${topProduct.quantity})`} />
-        </div>
-
-        <Card className="shadow-lg border border-blue-100 bg-gradient-to-br from-white to-blue-50">
-          <CardContent className="p-6">
-            <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center gap-2">
-              <BarChart2 /> تحليل الأرباح خلال 7 أيام
-            </h2>
-            <div className="h-96">
-              <Line data={chartData} />
+        {loading ? (
+          <p className="text-gray-500 text-center">جارٍ تحميل الإحصائيات...</p>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              <StatCard icon={<Package className="text-blue-600" />} label="المنتجات" value={productsCount} link="/admin/products" />
+              <StatCard icon={<ShoppingCart className="text-green-600" />} label="الطلبات" value={ordersCount} link="/admin/orders" />
+              <StatCard icon={<DollarSign className="text-yellow-500" />} label="أرباح اليوم" value={`${todayRevenue.toLocaleString("ar-IQ")} د.ع`} />
+              <StatCard icon={<BarChart2 className="text-purple-600" />} label="الأكثر مبيعاً" value={`${topProduct.name} (${topProduct.quantity})`} />
             </div>
-          </CardContent>
-        </Card>
+
+            <Card className="shadow-lg border border-blue-100 bg-gradient-to-br from-white to-blue-50">
+              <CardContent className="p-6">
+                <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center gap-2">
+                  <BarChart2 /> تحليل الأرباح خلال 7 أيام
+                </h2>
+                <div className="h-96">
+                  <Line data={chartData} />
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
     </AdminLayout>
   );
