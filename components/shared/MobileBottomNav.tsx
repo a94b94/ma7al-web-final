@@ -61,13 +61,15 @@ export default function MobileBottomNav() {
       label: (
         <span
           className="max-w-[80px] truncate inline-block"
-          title={user?.name}
+          title={user?.storeName || user?.name || "حسابي"}
         >
-          {user ? user.name.split(" ")[0] : "حسابي"}
+          {user
+            ? user.storeName?.split(" ")[0] || user.name?.split(" ")[0]
+            : "حسابي"}
         </span>
       ),
       icon: user?.image ? null : User,
-      href: user ? "/profile" : "/login",
+      href: user ? "/account" : "/login", // ✅ توجيه إلى صفحة "حسابي"
       avatar: user?.image,
     },
   ];
@@ -98,6 +100,7 @@ export default function MobileBottomNav() {
                     src={item.avatar}
                     alt="avatar"
                     className="w-6 h-6 rounded-full object-cover shadow"
+                    loading="lazy"
                   />
                 ) : item.icon ? (
                   <motion.div
