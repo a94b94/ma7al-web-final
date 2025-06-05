@@ -11,7 +11,24 @@ interface FavoriteItem {
   name: string;
   price: number;
   image?: string;
+  storeId: string;
+  storeName: string;
 }
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 },
+};
 
 export default function FavoritesPage() {
   const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
@@ -26,12 +43,21 @@ export default function FavoritesPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-10">
-      <h1 className="text-3xl font-bold mb-8 text-center text-gray-800 dark:text-white">
+      <motion.h1
+        className="text-3xl font-bold mb-8 text-center text-gray-800 dark:text-white"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
         ❤️ المنتجات المفضلة
-      </h1>
+      </motion.h1>
 
       {favorites.length === 0 ? (
-        <div className="flex flex-col items-center text-gray-500 dark:text-gray-300">
+        <motion.div
+          className="flex flex-col items-center text-gray-500 dark:text-gray-300"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        >
           <HeartOff className="w-12 h-12 mb-4" />
           <p>لم تقم بإضافة منتجات إلى المفضلة بعد.</p>
           <Link
@@ -40,12 +66,18 @@ export default function FavoritesPage() {
           >
             🔙 العودة إلى المتجر
           </Link>
-        </div>
+        </motion.div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        <motion.div
+          className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
           {favorites.map((item) => (
             <motion.div
               key={item.id}
+              variants={itemVariants}
               whileHover={{ scale: 1.04 }}
               whileTap={{ scale: 0.97 }}
               className="bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-lg transition flex flex-col"
@@ -75,6 +107,8 @@ export default function FavoritesPage() {
                     name: item.name,
                     price: item.price,
                     image: item.image,
+                    storeId: item.storeId,
+                    storeName: item.storeName,
                   })
                 }
                 className="mt-auto m-3 bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-full flex items-center justify-center gap-1 transition"
@@ -84,7 +118,7 @@ export default function FavoritesPage() {
               </button>
             </motion.div>
           ))}
-        </div>
+        </motion.div>
       )}
     </div>
   );

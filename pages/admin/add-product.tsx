@@ -18,12 +18,12 @@ import * as uploadcare from "uploadcare-widget";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 
 const categories = [
-  { value: "mobiles", label: "📱 موبايلات", icon: Smartphone },
-  { value: "laptops", label: "💻 لابتوبات", icon: Laptop },
-  { value: "headphones", label: "🎧 سماعات", icon: Headphones },
-  { value: "watches", label: "⌚ ساعات", icon: Watch },
-  { value: "electronics", label: "🔌 أجهزة كهربائية", icon: PlugZap },
-  { value: "other", label: "📦 أخرى", icon: Package }
+  { value: "mobiles", label: "\ud83d\udcf1 موبايلات", icon: Smartphone },
+  { value: "laptops", label: "\ud83d\udcbb لابتوبات", icon: Laptop },
+  { value: "headphones", label: "\ud83c\udfa7 سماعات", icon: Headphones },
+  { value: "watches", label: "\u231a ساعات", icon: Watch },
+  { value: "electronics", label: "\ud83d\udd0c أجهزة كهربائية", icon: PlugZap },
+  { value: "other", label: "\ud83d\udce6 أخرى", icon: Package }
 ];
 
 export default function AddProductPage() {
@@ -34,7 +34,6 @@ export default function AddProductPage() {
   const [category, setCategory] = useState("");
   const [images, setImages] = useState<string[]>([]);
   const [discount, setDiscount] = useState(0);
-  const [highlightHtml, setHighlightHtml] = useState("");
   const [processor, setProcessor] = useState("");
   const [screen, setScreen] = useState("");
   const [battery, setBattery] = useState("");
@@ -68,7 +67,11 @@ export default function AddProductPage() {
   const checkBarcode = async (code: string) => {
     setChecking(true);
     try {
-      const res = await fetch(`/api/products/barcode-check?barcode=${code}`);
+      const res = await fetch(`/api/products/barcode-check`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ barcode: code })
+      });
       const data = await res.json();
       if (data.exists) {
         setName(data.product.name);
@@ -92,7 +95,7 @@ export default function AddProductPage() {
     }
     setLoading(true);
     try {
-      const highlightContent = `
+      const highlightHtml = `
         <h2>${name}</h2>
         <p>تصميم أنيق وتصنيع متين</p>
         <ul>
@@ -108,7 +111,7 @@ export default function AddProductPage() {
       const res = await fetch("/api/products/add", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ barcode, name, price, category, images, discount, highlightHtml: highlightContent })
+        body: JSON.stringify({ barcode, name, price, category, images, discount, highlightHtml })
       });
       const data = await res.json();
       if (data.success) {
@@ -119,7 +122,6 @@ export default function AddProductPage() {
         setCategory("");
         setImages([]);
         setDiscount(0);
-        setHighlightHtml("");
         setProcessor("");
         setScreen("");
         setBattery("");

@@ -7,8 +7,10 @@ import Link from "next/link";
 
 export default function RegisterPage() {
   const router = useRouter();
+
   const [name, setName] = useState("");
   const [storeName, setStoreName] = useState("");
+  const [location, setLocation] = useState(""); // ✅ المحافظة
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [storeLogo, setStoreLogo] = useState("");
@@ -18,8 +20,8 @@ export default function RegisterPage() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!name || !storeName || !email || !password || !storeLogo) {
-      toast.error("❗ جميع الحقول مطلوبة بما فيها الشعار");
+    if (!name || !storeName || !email || !password || !storeLogo || !location) {
+      toast.error("❗ جميع الحقول مطلوبة بما فيها الشعار والموقع");
       return;
     }
 
@@ -32,6 +34,7 @@ export default function RegisterPage() {
         body: JSON.stringify({
           name,
           storeName,
+          location,
           email,
           password,
           storeLogo,
@@ -83,7 +86,6 @@ export default function RegisterPage() {
           placeholder="👤 الاسم الكامل"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          required
           className="w-full border p-3 rounded-xl"
         />
 
@@ -92,16 +94,29 @@ export default function RegisterPage() {
           placeholder="🏪 اسم المتجر"
           value={storeName}
           onChange={(e) => setStoreName(e.target.value)}
-          required
           className="w-full border p-3 rounded-xl"
         />
+
+        <select
+          value={location}
+          onChange={(e) => setLocation(e.target.value)}
+          className="w-full border p-3 rounded-xl text-gray-700"
+        >
+          <option value="">📍 اختر المحافظة</option>
+          <option value="بغداد">بغداد</option>
+          <option value="أربيل">أربيل</option>
+          <option value="البصرة">البصرة</option>
+          <option value="نينوى">نينوى</option>
+          <option value="النجف">النجف</option>
+          <option value="ذي قار">ذي قار</option>
+          <option value="صلاح الدين">صلاح الدين</option>
+        </select>
 
         <input
           type="email"
           placeholder="📧 البريد الإلكتروني"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          required
           className="w-full border p-3 rounded-xl"
         />
 
@@ -110,7 +125,6 @@ export default function RegisterPage() {
           placeholder="🔒 كلمة المرور"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          required
           className="w-full border p-3 rounded-xl"
         />
 
@@ -129,7 +143,7 @@ export default function RegisterPage() {
           onClick={handleUploadLogo}
           className="w-full bg-gray-100 text-blue-600 py-2 rounded-xl hover:bg-gray-200 transition font-semibold"
         >
-          📤 {storeLogo ? "تم رفع الشعار ✅" : "رفع شعار المتجر"}
+          📤 {storeLogo ? "✅ تم رفع الشعار" : "رفع شعار المتجر"}
         </button>
 
         <button

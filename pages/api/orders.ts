@@ -3,21 +3,29 @@ import connectToDatabase from "@/lib/mongodb";
 import Order from "@/models/Order";
 import NotificationModel from "@/models/Notification";
 import { verifyToken } from "@/middleware/auth";
+import type { HydratedDocument } from "mongoose";
+import type { IOrder } from "@/models/Order"; // تأكد من وجود هذا النوع داخل موديل Order
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method Not Allowed" });
+    return res.status(405).json({ error: "❌ Method Not Allowed" });
   }
 
   try {
     await connectToDatabase();
 
-    const { cart, phone, address, total, dueDate, storeId } = req.body;
+    const { cart, phone, address, total, dueDate } = req.body;
 
-    if (!cart || !phone || !address || !total || !storeId) {
-      return res.status(400).json({ error: "❗ جميع الحقول مطلوبة" });
+    if (
+      !Array.isArray(cart) || cart.length === 0 ||
+      !phone || typeof phone !== "string" ||
+      !address || typeof address !== "string" ||
+      typeof total !== "number"
+    ) {
+      return res.status(400).json({ error: "❗ تأكد من جميع الحقول" });
     }
 
+    // ✅ استخراج بيانات المستخدم من التوكن
     let email = "";
     let userName = "زائر";
     try {
@@ -25,32 +33,50 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       email = user?.email || "";
       userName = user?.name || "مستخدم";
     } catch {
-      email = "";
+      // لا تفعل شيء، المستخدم زائر
     }
 
-    const order = await Order.create({
-      cart,
-      phone,
-      address,
-      total,
-      dueDate,
-      email,
-      storeId,
-      seen: false,
-      status: "بانتظار التأكيد",
+    // ✅ تجميع المنتجات حسب المتجر
+    const groupedByStore: { [key: string]: typeof cart } = {};
+    cart.forEach((item) => {
+      if (!groupedByStore[item.storeId]) {
+        groupedByStore[item.storeId] = [];
+      }
+      groupedByStore[item.storeId].push(item);
     });
 
-    await NotificationModel.create({
-      userId: phone,
-      orderId: order._id,
-      message: `📦 تم تسجيل طلب جديد بقيمة ${total.toLocaleString()} د.ع`,
-      type: "order",
-      sentBy: userName,
-    });
+    const createdOrders: HydratedDocument<IOrder>[] = [];
 
-    return res.status(201).json({ success: true, order });
+    for (const storeId in groupedByStore) {
+      const storeCart = groupedByStore[storeId];
+      const storeTotal = storeCart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+      const order = await Order.create({
+        cart: storeCart,
+        phone,
+        address,
+        total: storeTotal,
+        dueDate,
+        email,
+        storeId,
+        seen: false,
+        status: "بانتظار التأكيد",
+      });
+
+      await NotificationModel.create({
+        userId: phone,
+        orderId: order._id,
+        message: `📦 تم تسجيل طلب جديد بقيمة ${storeTotal.toLocaleString()} د.ع`,
+        type: "order",
+        sentBy: userName,
+      });
+
+      createdOrders.push(order);
+    }
+
+    return res.status(201).json({ success: true, orders: createdOrders });
   } catch (err: any) {
-    console.error("⛔ خطأ أثناء حفظ الطلب:", err.message);
-    return res.status(500).json({ error: "حدث خطأ أثناء الحفظ" });
+    console.error("⛔ خطأ أثناء حفظ الطلبات:", err.message);
+    return res.status(500).json({ error: "⚠️ حدث خطأ أثناء حفظ الطلبات" });
   }
 }

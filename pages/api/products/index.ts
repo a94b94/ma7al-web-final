@@ -10,9 +10,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     await connectToDatabase();
 
-    const products = await Product.find({})
-      .sort({ createdAt: -1 }) // ✅ ترتيب حسب الأحدث
-      .lean(); // ✅ لتحسين الأداء
+    const products = await Product.find({ published: true }) // ✅ فقط المنتجات المنشورة
+      .populate("storeId", "storeName location") // ✅ جلب اسم المحل والموقع
+      .sort({ createdAt: -1 }) // ✅ الأحدث أولاً
+      .lean(); // ✅ تحسين الأداء
 
     return res.status(200).json(products);
   } catch (error: any) {

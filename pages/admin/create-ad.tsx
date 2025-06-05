@@ -13,15 +13,18 @@ export default function CreateAdPage() {
   const [selectedProductId, setSelectedProductId] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [expiresAt, setExpiresAt] = useState("");
+  const [expiresAt, setExpiresAt] = useState(
+    new Date().toISOString().slice(0, 16) // تعيين وقت افتراضي الآن
+  );
   const [loading, setLoading] = useState(false);
   const [loadingProducts, setLoadingProducts] = useState(true);
 
+  // 🟡 تحميل المنتجات من السيرفر
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         const res = await axios.get("/api/products");
-        setProducts(res.data);
+        setProducts(Array.isArray(res.data) ? res.data : []);
       } catch (err) {
         toast.error("❌ فشل تحميل المنتجات");
       } finally {
@@ -32,6 +35,7 @@ export default function CreateAdPage() {
     fetchProducts();
   }, []);
 
+  // 🟡 عند إرسال النموذج
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedProductId || !title || !description || !expiresAt) {
@@ -40,20 +44,23 @@ export default function CreateAdPage() {
 
     setLoading(true);
     try {
-      await axios.post("/api/ads", {
+      const res = await axios.post("/api/ads/create", {
         productId: selectedProductId,
         title,
         description,
         expiresAt,
       });
 
+      if (!res.data.success) throw new Error(res.data.message || "فشل الإنشاء");
+
       toast.success("✅ تم إنشاء الإعلان بنجاح");
+      // إعادة تعيين الحقول
       setSelectedProductId("");
       setTitle("");
       setDescription("");
-      setExpiresAt("");
-    } catch (err) {
-      toast.error("حدث خطأ أثناء إنشاء الإعلان");
+      setExpiresAt(new Date().toISOString().slice(0, 16));
+    } catch (err: any) {
+      toast.error(err.message || "حدث خطأ أثناء إنشاء الإعلان");
     } finally {
       setLoading(false);
     }
@@ -64,6 +71,7 @@ export default function CreateAdPage() {
       <div className="max-w-xl mx-auto bg-white p-6 rounded shadow">
         <h1 className="text-2xl font-bold mb-6 text-center">📝 إنشاء إعلان جديد</h1>
         <form onSubmit={handleSubmit} className="space-y-5">
+          {/* اختيار المنتج */}
           <div>
             <label className="block text-sm font-medium mb-1">🔍 اختر المنتج</label>
             <select
@@ -81,6 +89,7 @@ export default function CreateAdPage() {
             </select>
           </div>
 
+          {/* العنوان */}
           <div>
             <label className="block text-sm font-medium mb-1">📢 عنوان الإعلان</label>
             <input
@@ -92,6 +101,7 @@ export default function CreateAdPage() {
             />
           </div>
 
+          {/* الوصف */}
           <div>
             <label className="block text-sm font-medium mb-1">📝 وصف مختصر</label>
             <textarea
@@ -103,6 +113,7 @@ export default function CreateAdPage() {
             />
           </div>
 
+          {/* تاريخ الانتهاء */}
           <div>
             <label className="block text-sm font-medium mb-1">⏳ تاريخ انتهاء العرض</label>
             <input
@@ -113,6 +124,7 @@ export default function CreateAdPage() {
             />
           </div>
 
+          {/* زر الحفظ */}
           <button
             type="submit"
             disabled={loading}

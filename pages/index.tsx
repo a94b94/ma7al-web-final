@@ -58,6 +58,8 @@ export default function HomePage() {
         name: product.name,
         price: product.price,
         image: product.image,
+        storeId: product.storeId,
+        storeName: product.storeName,
       });
     },
     [addToCart]
@@ -67,7 +69,12 @@ export default function HomePage() {
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white">
       <InteractiveNavbar />
 
-      <main className="max-w-7xl mx-auto px-2 sm:px-4 pb-24">
+      <motion.main
+        className="max-w-7xl mx-auto px-2 sm:px-4 pb-24"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.6 }}
+      >
         <HeroSection />
         <SeasonalHero />
         <CategoriesSection />
@@ -112,7 +119,7 @@ export default function HomePage() {
             />
           </motion.div>
         )}
-      </main>
+      </motion.main>
 
       <MobileBottomNav />
       <Footer />

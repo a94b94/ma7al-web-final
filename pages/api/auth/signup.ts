@@ -11,30 +11,60 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     await dbConnect();
 
-    const { name, storeName, email, password, role } = req.body;
+    const {
+      name,
+      storeName,
+      location,
+      storeLogo,
+      email,
+      password,
+      role,
+    } = req.body;
 
-    if (!name || !email || !password || !storeName || !role) {
+    // ✅ التحقق من كل الحقول المطلوبة
+    if (!name || !email || !password || !storeName || !location || !storeLogo || !role) {
       return res.status(400).json({ error: '⚠️ جميع الحقول مطلوبة' });
     }
 
-    const existing = await User.findOne({ email });
-    if (existing) {
-      return res.status(400).json({ error: '📧 البريد الإلكتروني مستخدم مسبقاً' });
+    // ✅ التحقق من وجود البريد مسبقًا
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ error: '📧 البريد الإلكتروني مستخدم مسبقًا' });
     }
 
-    const hashed = await bcrypt.hash(password, 10);
+    // ✅ التحقق من تكرار اسم المتجر
+    const existingStore = await User.findOne({ storeName });
+    if (existingStore) {
+      return res.status(400).json({ error: '🏪 اسم المتجر مستخدم مسبقًا' });
+    }
 
+    // ✅ تشفير كلمة المرور
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // ✅ إنشاء المستخدم
     const newUser = await User.create({
       name,
       storeName,
+      location,
+      storeLogo,
       email,
-      password: hashed,
+      password: hashedPassword,
       role,
     });
 
-    res.status(201).json({ message: '✅ تم إنشاء الحساب بنجاح', user: newUser });
+    return res.status(201).json({
+      message: '✅ تم إنشاء الحساب بنجاح',
+      user: {
+        _id: newUser._id,
+        name: newUser.name,
+        email: newUser.email,
+        storeName: newUser.storeName,
+        location: newUser.location,
+        role: newUser.role,
+      },
+    });
   } catch (error: any) {
     console.error('⛔ Error in signup:', error.message);
-    res.status(500).json({ error: '❌ خطأ في الخادم الداخلي' });
+    return res.status(500).json({ error: '❌ خطأ في الخادم الداخلي' });
   }
 }

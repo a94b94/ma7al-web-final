@@ -16,14 +16,23 @@ export default function CartPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-10">
-      <h1 className="text-3xl font-bold mb-8 text-center text-gray-800 dark:text-white">
+      <motion.h1
+        className="text-3xl font-bold mb-8 text-center text-gray-800 dark:text-white"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
         🛒 سلة الشراء
-      </h1>
+      </motion.h1>
 
       {cart.length === 0 ? (
-        <p className="text-center text-gray-500 dark:text-gray-300">
+        <motion.p
+          className="text-center text-gray-500 dark:text-gray-300"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        >
           سلتك فارغة حالياً.
-        </p>
+        </motion.p>
       ) : (
         <motion.div
           className="space-y-6"
@@ -42,7 +51,7 @@ export default function CartPage() {
               className="bg-white dark:bg-gray-800 rounded-xl shadow p-4 flex items-center justify-between"
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
+              transition={{ duration: 0.4 }}
             >
               <div className="flex items-center gap-4 w-full">
                 <img
@@ -57,6 +66,9 @@ export default function CartPage() {
                   </h3>
                   <p className="text-blue-600 font-semibold">
                     {item.price.toLocaleString()} د.ع
+                  </p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    🏪 {item.storeName}
                   </p>
                 </div>
 
@@ -97,7 +109,12 @@ export default function CartPage() {
       )}
 
       {cart.length > 0 && (
-        <div className="mt-10 text-center space-y-4">
+        <motion.div
+          className="mt-10 text-center space-y-4"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+        >
           <p className="text-xl font-bold text-gray-700 dark:text-white">
             الإجمالي: <span className="text-blue-600">{total.toLocaleString()} د.ع</span>
           </p>
@@ -111,17 +128,19 @@ export default function CartPage() {
             🧾 إتمام الطلب
           </motion.button>
 
-          <button
+          <motion.button
             onClick={() => {
               if (confirm("هل أنت متأكد من تفريغ السلة بالكامل؟")) {
                 clearCart();
               }
             }}
+            whileTap={{ scale: 0.95 }}
+            whileHover={{ scale: 1.05 }}
             className="text-red-500 hover:text-red-600 underline text-sm"
           >
             🗑️ تفريغ السلة بالكامل
-          </button>
-        </div>
+          </motion.button>
+        </motion.div>
       )}
     </div>
   );
