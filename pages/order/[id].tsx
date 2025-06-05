@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
-import Invoice from "@/components/Invoice"; // ✅ استيراد المكون الجديد
+import Invoice from "@/components/Invoice"; // ✅ مكون الفاتورة
 
 interface Order {
   _id: string;
@@ -23,34 +23,30 @@ interface Order {
 export default function OrderPage() {
   const router = useRouter();
   const { id } = router.query;
+
   const [order, setOrder] = useState<Order | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [storeName, setStoreName] = useState("اسم متجرك هنا");
   const [storeAddress, setStoreAddress] = useState("");
 
-  // جلب بيانات الطلب
   const fetchOrder = async (orderId: string) => {
-    setLoading(true);
-    setError(null);
     try {
       const res = await fetch(`/api/orders/${orderId}`);
-      if (!res.ok) throw new Error("فشل تحميل الطلب");
+      if (!res.ok) throw new Error("❌ فشل تحميل الطلب");
       const data = await res.json();
       setOrder(data.order || data);
     } catch (err: any) {
-      setError(err.message || "حدث خطأ غير متوقع");
-      setOrder(null);
+      setError(err.message || "⚠️ حدث خطأ غير متوقع");
     } finally {
       setLoading(false);
     }
   };
 
-  // جلب اسم وعنوان المتجر من API
   const fetchStoreInfo = async () => {
     try {
       const res = await fetch("/api/store-info");
-      if (!res.ok) throw new Error("فشل تحميل بيانات المتجر");
+      if (!res.ok) throw new Error();
       const data = await res.json();
       setStoreName(data.name || "اسم متجرك هنا");
       setStoreAddress(data.address || "");
@@ -61,29 +57,31 @@ export default function OrderPage() {
   };
 
   useEffect(() => {
-    if (!id || typeof id !== "string") return;
-    fetchOrder(id);
-    fetchStoreInfo();
+    if (typeof id === "string") {
+      setLoading(true);
+      setError(null);
+      fetchOrder(id);
+      fetchStoreInfo();
+    }
   }, [id]);
 
-  if (loading) return <p className="p-4 text-center">جاري التحميل...</p>;
+  if (loading) return <p className="p-4 text-center">⏳ جاري التحميل...</p>;
 
-  if (error)
+  if (error) {
     return (
       <div className="p-4 text-center text-red-600">
         <p>{error}</p>
         <button
-          onClick={() => {
-            if (id && typeof id === "string") fetchOrder(id);
-          }}
-          className="mt-2 px-4 py-2 bg-blue-600 text-white rounded"
+          onClick={() => id && typeof id === "string" && fetchOrder(id)}
+          className="mt-3 px-4 py-2 bg-blue-600 text-white rounded"
         >
-          إعادة المحاولة
+          🔁 إعادة المحاولة
         </button>
       </div>
     );
+  }
 
-  if (!order) return <p className="p-4 text-center">لم يتم العثور على الطلب</p>;
+  if (!order) return <p className="p-4 text-center">📭 لم يتم العثور على الطلب</p>;
 
   return (
     <div className="max-w-3xl mx-auto p-6 bg-white dark:bg-gray-800 rounded shadow my-8">

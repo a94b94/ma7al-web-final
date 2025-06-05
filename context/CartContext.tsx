@@ -1,6 +1,5 @@
 "use client";
 
-
 import React, {
   createContext,
   useContext,
@@ -9,18 +8,16 @@ import React, {
   ReactNode,
 } from "react";
 import toast from "react-hot-toast";
-type CartItem = {
+
+// ✅ تعريف العنصر في السلة
+export type CartItem = {
   id: string;
   name: string;
   price: number;
-  image?: string;
   quantity: number;
-};
-
-type FullCart = {
+  image?: string;
   storeId: string;
   storeName: string;
-  cart: CartItem[];
 };
 
 type CartContextType = {
@@ -44,140 +41,84 @@ export const useCart = () => {
   return context;
 };
 
-const getStorageKey = () => {
-  const storeId = localStorage.getItem("selectedStoreId");
-  return storeId ? `ma7al_cart_${storeId}` : "ma7al_cart_unknown";
-};
+const CART_KEY = "ma7al_cart_multi";
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
-  const [fullCart, setFullCart] = useState<FullCart | null>(null);
+  const [cart, setCart] = useState<CartItem[]>([]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const key = getStorageKey();
-      const stored = localStorage.getItem(key);
+      const stored = localStorage.getItem(CART_KEY);
       if (stored) {
         try {
-          setFullCart(JSON.parse(stored));
+          setCart(JSON.parse(stored));
         } catch {
-          localStorage.removeItem(key);
+          localStorage.removeItem(CART_KEY);
         }
       }
     }
   }, []);
 
   useEffect(() => {
-    if (typeof window !== "undefined" && fullCart) {
-      const key = getStorageKey();
-      localStorage.setItem(key, JSON.stringify(fullCart));
+    if (typeof window !== "undefined") {
+      localStorage.setItem(CART_KEY, JSON.stringify(cart));
     }
-  }, [fullCart]);
+  }, [cart]);
 
   const addToCart = (item: Omit<CartItem, "quantity">) => {
-    const selectedStoreId = localStorage.getItem("selectedStoreId");
-    const selectedStoreName = localStorage.getItem("selectedStoreName");
-
-    if (!item.id || !item.price) {
+    if (!item.id || !item.price || !item.storeId || !item.storeName) {
       toast.error("❗ معلومات المنتج غير مكتملة");
       return;
     }
 
-    if (!selectedStoreId || !selectedStoreName) {
-      toast.error("❗ يرجى اختيار محل أولاً قبل إضافة المنتجات.");
-      return;
-    }
+    const existingIndex = cart.findIndex((i) => i.id === item.id);
+    let updated: CartItem[];
 
-    if (fullCart && fullCart.storeId !== selectedStoreId) {
-      toast.error("⚠️ لا يمكنك إضافة منتجات من محل مختلف. أفرغ السلة أولاً.");
-      return;
-    }
-
-    const existingItemIndex = fullCart?.cart.findIndex((i) => i.id === item.id);
-    let updatedCart: FullCart;
-
-    if (
-      fullCart &&
-      fullCart.cart &&
-      typeof existingItemIndex === "number" &&
-      existingItemIndex >= 0 &&
-      fullCart.cart[existingItemIndex]
-    ) {
-      const newCart = [...fullCart.cart];
-      newCart[existingItemIndex] = {
-        ...newCart[existingItemIndex],
-        quantity: newCart[existingItemIndex].quantity + 1,
-      };
-      updatedCart = {
-        storeId: selectedStoreId,
-        storeName: selectedStoreName,
-        cart: newCart,
-      };
+    if (existingIndex >= 0) {
+      updated = [...cart];
+      updated[existingIndex].quantity += 1;
     } else {
-      updatedCart = {
-        storeId: selectedStoreId,
-        storeName: selectedStoreName,
-        cart: fullCart?.cart
-          ? [...fullCart.cart, { ...item, quantity: 1 }]
-          : [{ ...item, quantity: 1 }],
-      };
+      updated = [...cart, { ...item, quantity: 1 }];
     }
 
-    setFullCart(updatedCart);
+    setCart(updated);
     toast.success("✅ تم إضافة المنتج إلى السلة");
   };
 
   const removeFromCart = (id: string) => {
-    if (!fullCart) return;
-    const updated = {
-      ...fullCart,
-      cart: fullCart.cart.filter((item) => item.id !== id),
-    };
-    setFullCart(updated);
+    setCart(cart.filter((item) => item.id !== id));
   };
 
   const updateQuantity = (id: string, quantity: number) => {
-    if (!fullCart) return;
-    const updated = {
-      ...fullCart,
-      cart: fullCart.cart.map((item) =>
+    setCart(
+      cart.map((item) =>
         item.id === id ? { ...item, quantity: Math.max(1, quantity) } : item
-      ),
-    };
-    setFullCart(updated);
+      )
+    );
   };
 
   const increaseQty = (id: string) => {
-    if (!fullCart) return;
-    const item = fullCart.cart.find((item) => item.id === id);
-    if (item) {
-      updateQuantity(id, item.quantity + 1);
-    }
+    const item = cart.find((item) => item.id === id);
+    if (item) updateQuantity(id, item.quantity + 1);
   };
 
   const decreaseQty = (id: string) => {
-    if (!fullCart) return;
-    const item = fullCart.cart.find((item) => item.id === id);
-    if (item && item.quantity > 1) {
-      updateQuantity(id, item.quantity - 1);
-    }
+    const item = cart.find((item) => item.id === id);
+    if (item && item.quantity > 1) updateQuantity(id, item.quantity - 1);
   };
 
   const clearCart = () => {
-    const key = getStorageKey();
-    setFullCart(null);
-    localStorage.removeItem(key);
+    setCart([]);
+    localStorage.removeItem(CART_KEY);
     toast.success("🗑️ تم تفريغ السلة");
   };
 
-  const total =
-    fullCart?.cart && Array.isArray(fullCart.cart)
-      ? fullCart.cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
-      : 0;
+  const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   return (
     <CartContext.Provider
       value={{
-        cart: fullCart?.cart || [],
+        cart,
         addToCart,
         removeFromCart,
         updateQuantity,

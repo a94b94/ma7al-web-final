@@ -11,33 +11,44 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     await dbConnect();
 
-    // ✅ تحقق من التوكن وأخرج المستخدم
+    // ✅ تحقق من التوكن
     const user = verifyToken(req);
     if (!user || !user._id) {
-      return res.status(401).json({ message: "❌ غير مصرح" });
+      return res.status(401).json({ message: "❌ غير مصرح لك" });
     }
 
-    const { name, price, category, image, featured, discount } = req.body;
-
-    // ✅ تحقق من الحقول المطلوبة
-    if (!name || !price || !category || !image) {
-      return res.status(400).json({ message: "❌ جميع الحقول مطلوبة" });
-    }
-
-    // ✅ إنشاء المنتج
-    const product = await Product.create({
+    const {
       name,
       price,
       category,
-      image,
-      isFeatured: featured ?? false,
-      discount: discount ?? 0,
-      storeId: user._id,
+      images,
+      isFeatured = false,
+      discount = 0,
+      stock = 0,
+      location = "",
+    } = req.body;
+
+    // ✅ تحقق من الحقول المطلوبة
+    if (!name || !price || !category || !images || !Array.isArray(images) || images.length === 0) {
+      return res.status(400).json({ message: "❌ تأكد من إدخال الاسم، السعر، القسم، والصورة" });
+    }
+
+    // ✅ إنشاء المنتج الجديد
+    const newProduct = await Product.create({
+      name: name.trim(),
+      price: Number(price),
+      category: category.trim(),
+      images: images.map((img: string) => img.trim()),
+      isFeatured,
+      discount: Number(discount),
+      stock: Number(stock),
+      location: location?.trim() || "",
+      storeId: user._id, // ربط المنتج بصاحب الحساب
     });
 
-    return res.status(201).json({ success: true, product });
+    return res.status(201).json({ success: true, product: newProduct });
   } catch (err: any) {
     console.error("❌ فشل في إنشاء المنتج:", err.message);
-    return res.status(500).json({ message: "⚠️ خطأ في السيرفر" });
+    return res.status(500).json({ message: "⚠️ خطأ في السيرفر، حاول لاحقًا" });
   }
 }

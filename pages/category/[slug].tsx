@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useCart } from "@/context/CartContext";
 import toast from "react-hot-toast";
 import { ShoppingCart, Eye } from "lucide-react";
+import { motion } from "framer-motion";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -24,6 +25,8 @@ export default function CategoryPage() {
       name: product.name,
       price: product.price,
       image: product.image,
+      storeId: product.storeId, // ✅ مضافة
+      storeName: product.storeName, // ✅ مضافة
     });
     toast.success("✅ تم إضافة المنتج إلى السلة!");
   };
@@ -36,14 +39,31 @@ export default function CategoryPage() {
   return (
     <div className="bg-[#f9f9f9] min-h-screen py-12 px-4 sm:px-8">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl sm:text-4xl font-bold text-gray-800 mb-10 text-center">
+        <motion.h1
+          className="text-3xl sm:text-4xl font-bold text-gray-800 mb-10 text-center"
+          initial={{ opacity: 0, y: -30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
           🛒 تصفّح قسم <span className="text-blue-600 capitalize">{slug}</span>
-        </h1>
+        </motion.h1>
 
         {products.length === 0 ? (
           <p className="text-center text-gray-500 text-lg">لا توجد منتجات حالياً بهذا القسم.</p>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
+          <motion.div
+            className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6"
+            initial="hidden"
+            animate="visible"
+            variants={{
+              hidden: {},
+              visible: {
+                transition: {
+                  staggerChildren: 0.08,
+                },
+              },
+            }}
+          >
             {products.map((product: any) => {
               const hasDiscount = product.discount > 0;
               const finalPrice = hasDiscount
@@ -51,9 +71,12 @@ export default function CategoryPage() {
                 : product.price;
 
               return (
-                <div
+                <motion.div
                   key={product._id}
                   className="bg-white dark:bg-slate-800 rounded-2xl shadow-md hover:shadow-lg transition-all overflow-hidden border dark:border-slate-700 group"
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4 }}
                 >
                   <div className="relative w-full h-48 overflow-hidden">
                     <Image
@@ -105,10 +128,10 @@ export default function CategoryPage() {
                       </button>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               );
             })}
-          </div>
+          </motion.div>
         )}
       </div>
     </div>
