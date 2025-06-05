@@ -1,4 +1,6 @@
-import { useState } from "react";
+"use client";
+
+import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -12,9 +14,16 @@ export default function AddCustomerPage() {
   const [address, setAddress] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const isValidPhone = (val: string) => /^\d{10,15}$/.test(val);
+
   const handleSubmit = async () => {
     if (!name || !phone || !address) {
       toast.error("❗ جميع الحقول مطلوبة");
+      return;
+    }
+
+    if (!isValidPhone(phone)) {
+      toast.error("📞 رقم الهاتف غير صالح (يجب أن يكون بين 10 و15 رقمًا)");
       return;
     }
 
@@ -26,7 +35,8 @@ export default function AddCustomerPage() {
         body: JSON.stringify({ name, phone, address }),
       });
 
-      const data = await res.json();
+      const data: { success: boolean; error?: string } = await res.json();
+
       if (data.success) {
         toast.success("✅ تم إضافة الزبون بنجاح");
         router.push("/admin/customers");
@@ -35,9 +45,18 @@ export default function AddCustomerPage() {
       }
     } catch (err) {
       toast.error("❌ حدث خطأ أثناء الإرسال");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
+
+  useEffect(() => {
+    const handleEnter = (e: KeyboardEvent) => {
+      if (e.key === "Enter") handleSubmit();
+    };
+    window.addEventListener("keydown", handleEnter);
+    return () => window.removeEventListener("keydown", handleEnter);
+  }, [name, phone, address]);
 
   return (
     <AdminLayout>
@@ -56,16 +75,18 @@ export default function AddCustomerPage() {
               className="border p-2 rounded w-full"
               value={name}
               onChange={(e) => setName(e.target.value)}
+              placeholder="مثال: محمد علي"
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium mb-1">📞 رقم الهاتف</label>
             <input
-              type="text"
+              type="tel"
               className="border p-2 rounded w-full"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
+              placeholder="مثال: 07800000000"
             />
           </div>
 
@@ -76,6 +97,7 @@ export default function AddCustomerPage() {
               className="border p-2 rounded w-full"
               value={address}
               onChange={(e) => setAddress(e.target.value)}
+              placeholder="مثال: بغداد - الكرادة"
             />
           </div>
 
@@ -84,7 +106,7 @@ export default function AddCustomerPage() {
             onClick={handleSubmit}
             disabled={loading}
           >
-            {loading ? "...جاري الحفظ" : "✅ حفظ الزبون"}
+            {loading ? "⏳ جاري الحفظ..." : "✅ حفظ الزبون"}
           </Button>
         </div>
       </div>

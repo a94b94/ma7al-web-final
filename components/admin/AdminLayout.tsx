@@ -20,18 +20,54 @@ import {
   Settings,
   CreditCard,
   FileBarChart,
-  Megaphone
+  Megaphone,
+  Truck, // ✅ أيقونة الشحن
 } from "lucide-react";
+
+type NotificationType = {
+  title?: string;
+  message: string;
+  createdAt: string;
+};
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useUser();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<NotificationType[]>([]);
 
   const menuRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
+
+  const NAV_ITEMS_BASE = [
+    { label: "لوحة التحكم", href: "/admin", icon: <LayoutDashboard size={18} /> },
+    { label: "الإشعارات", href: "/admin/notifications", icon: <Bell size={18} /> },
+    { label: "المنتجات", href: "/admin/products", icon: <Package size={18} /> },
+    { label: "📦 المخزن", href: "/admin/inventory", icon: <Package size={18} /> },
+    { label: "الطلبات", href: "/admin/orders", icon: <ShoppingCart size={18} /> },
+
+    // ✅ زر إدارة الشحنات
+    { label: "🚚 إدارة الشحنات", href: "/admin/shipments", icon: <Truck size={18} /> },
+
+    { label: "قائمة الأقساط", href: "/admin/installments", icon: <CreditCard size={18} /> },
+    { label: "📈 التقارير المالية", href: "/admin/analytics", icon: <FileBarChart size={18} /> },
+    { label: "إضافة منتج", href: "/admin/add-product", icon: <PlusCircle size={18} /> },
+    { label: "📝 إنشاء إعلان", href: "/admin/create-ad", icon: <Megaphone size={18} /> },
+    { label: "توليد فاتورة", href: "/admin/local-sale", icon: <FilePlus size={18} /> },
+    { label: "قائمة الزبائن", href: "/admin/customers", icon: <User size={18} /> },
+    { label: "ربط واتساب", href: "/admin/qr", icon: <QrCode size={18} /> },
+    { label: "إعدادات المتجر", href: "/admin/settings", icon: <Settings size={18} /> },
+  ];
+
+  const navItems = [...NAV_ITEMS_BASE];
+  if (user?.role === "owner") {
+    navItems.splice(8, 0, {
+      label: "إدارة المشرفين",
+      href: "/admin/users",
+      icon: <ShieldCheck size={18} />,
+    });
+  }
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -43,36 +79,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, []);
 
   useEffect(() => {
-    if (notifOpen) {
+    if (notifOpen && notifications.length === 0) {
       axios.get("/api/notifications").then((res) => {
         setNotifications(res.data || []);
       });
     }
   }, [notifOpen]);
-
-  const navItems = [
-    { label: "لوحة التحكم", href: "/admin", icon: <LayoutDashboard size={18} /> },
-    { label: "الإشعارات", href: "/admin/notifications", icon: <Bell size={18} /> },
-    { label: "المنتجات", href: "/admin/products", icon: <Package size={18} /> },
-    { label: "📦 المخزن", href: "/admin/inventory", icon: <Package size={18} /> },
-    { label: "الطلبات", href: "/admin/orders", icon: <ShoppingCart size={18} /> },
-    { label: "قائمة الأقساط", href: "/admin/installments", icon: <CreditCard size={18} /> },
-    { label: "📈 التقارير المالية", href: "/admin/analytics", icon: <FileBarChart size={18} /> },
-    { label: "إضافة منتج", href: "/admin/add-product", icon: <PlusCircle size={18} /> },
-    { label: "📝 إنشاء إعلان", href: "/admin/create-ad", icon: <Megaphone size={18} /> },
-    { label: "توليد فاتورة", href: "/admin/local-sale", icon: <FilePlus size={18} /> },
-    { label: "قائمة الزبائن", href: "/admin/customers", icon: <User size={18} /> },
-    { label: "ربط واتساب", href: "/admin/qr", icon: <QrCode size={18} /> },
-    { label: "إعدادات المتجر", href: "/admin/settings", icon: <Settings size={18} /> },
-  ];
-
-  if (user?.role === "owner") {
-    navItems.splice(8, 0, {
-      label: "إدارة المشرفين",
-      href: "/admin/users",
-      icon: <ShieldCheck size={18} />,
-    });
-  }
 
   return (
     <div className="min-h-screen flex font-sans text-gray-900 bg-gray-50">

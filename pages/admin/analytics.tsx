@@ -39,17 +39,27 @@ interface AnalyticsData {
 
 export default function AnalyticsPage() {
   const [data, setData] = useState<AnalyticsData | null>(null);
-  const [fromDate, setFromDate] = useState<string>("");
-  const [toDate, setToDate] = useState<string>("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [loading, setLoading] = useState(false);
   const [selectedDetail, setSelectedDetail] = useState<string | null>(null);
 
   const fetchData = async () => {
-    const params = new URLSearchParams();
-    if (fromDate) params.append("from", fromDate);
-    if (toDate) params.append("to", toDate);
+    setLoading(true);
+    setSelectedDetail(null);
+    try {
+      const params = new URLSearchParams();
+      if (fromDate) params.append("from", fromDate);
+      if (toDate) params.append("to", toDate);
 
-    const res = await axios.get(`/api/analytics?${params.toString()}`);
-    setData(res.data);
+      const res = await axios.get(`/api/analytics?${params.toString()}`);
+      setData(res.data);
+    } catch (err) {
+      console.error("خطأ في تحميل البيانات:", err);
+      alert("❌ فشل في تحميل البيانات");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const exportToPDF = async () => {
@@ -71,7 +81,8 @@ export default function AnalyticsPage() {
     fetchData();
   }, []);
 
-  if (!data) return <p className="p-4">📊 جارٍ تحميل التقارير...</p>;
+  if (!data)
+    return <p className="p-4 text-center">📊 جارٍ تحميل البيانات...</p>;
 
   return (
     <div className="max-w-6xl mx-auto p-4">
@@ -98,9 +109,10 @@ export default function AnalyticsPage() {
         </div>
         <button
           onClick={fetchData}
+          disabled={loading}
           className="self-end bg-blue-600 text-white px-4 py-2 rounded"
         >
-          🔍 فلترة
+          {loading ? "⏳ جاري التصفية..." : "🔍 فلترة"}
         </button>
         <button
           onClick={exportToPDF}
@@ -111,109 +123,132 @@ export default function AnalyticsPage() {
       </div>
 
       {selectedDetail && (
-        <div className="mb-4 p-4 bg-yellow-100 rounded border">
+        <div className="mb-4 p-4 bg-yellow-100 rounded border text-sm font-medium">
           <strong>📌 تفاصيل:</strong> {selectedDetail}
         </div>
       )}
 
       <div id="report-content">
+        {/* مؤشرات عامة */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-white rounded shadow p-4 text-center">
-            <h2 className="text-lg font-bold">📦 عدد الطلبات</h2>
-            <p className="text-2xl">{data.totalOrders}</p>
-          </div>
-          <div className="bg-white rounded shadow p-4 text-center">
-            <h2 className="text-lg font-bold">💰 إجمالي المبيعات</h2>
-            <p className="text-2xl">{data.totalRevenue.toLocaleString()} د.ع</p>
-          </div>
-          <div className="bg-white rounded shadow p-4 text-center">
-            <h2 className="text-lg font-bold">👤 عدد الزبائن</h2>
-            <p className="text-2xl">{data.uniqueCustomers}</p>
-          </div>
+          <StatCard title="📦 عدد الطلبات" value={data.totalOrders} />
+          <StatCard
+            title="💰 إجمالي المبيعات"
+            value={`${data.totalRevenue.toLocaleString()} د.ع`}
+          />
+          <StatCard title="👤 عدد الزبائن" value={data.uniqueCustomers} />
         </div>
 
-        <div className="bg-white rounded shadow p-4 mb-6">
-          <h2 className="text-lg font-bold mb-2">🏆 أكثر المنتجات مبيعًا</h2>
-          <Bar
-            data={{
-              labels: data.topProducts.map((p) => p.name),
-              datasets: [
-                {
-                  label: "الكمية المباعة",
-                  data: data.topProducts.map((p) => p.totalSold),
-                  backgroundColor: "rgba(54, 162, 235, 0.6)",
+        {/* المنتجات الأكثر مبيعًا */}
+        <ChartSection
+          title="🏆 أكثر المنتجات مبيعًا"
+          chart={
+            <Bar
+              data={{
+                labels: data.topProducts.map((p) => p.name),
+                datasets: [
+                  {
+                    label: "الكمية المباعة",
+                    data: data.topProducts.map((p) => p.totalSold),
+                    backgroundColor: "rgba(54, 162, 235, 0.6)",
+                  },
+                ],
+              }}
+              options={{
+                onClick: (_, elements) => {
+                  if (elements.length > 0) {
+                    const i = elements[0].index;
+                    const p = data.topProducts[i];
+                    setSelectedDetail(`المنتج: ${p.name} - مبيعات: ${p.totalSold}`);
+                  }
                 },
-              ],
-            }}
-            options={{
-              onClick: (_, elements) => {
-                if (elements.length > 0) {
-                  const index = elements[0].index;
-                  const product = data.topProducts[index];
-                  setSelectedDetail(`المنتج: ${product.name} - مبيعات: ${product.totalSold}`);
-                }
-              },
-            }}
-          />
-        </div>
+              }}
+            />
+          }
+        />
 
-        <div className="bg-white rounded shadow p-4 mb-6">
-          <h2 className="text-lg font-bold mb-2">📆 المبيعات الشهرية</h2>
-          <Line
-            data={{
-              labels: data.monthlySales.map((m) => m.month),
-              datasets: [
-                {
-                  label: "إجمالي المبيعات",
-                  data: data.monthlySales.map((m) => m.total),
-                  fill: false,
-                  borderColor: "rgba(75, 192, 192, 1)",
+        {/* المبيعات الشهرية */}
+        <ChartSection
+          title="📆 المبيعات الشهرية"
+          chart={
+            <Line
+              data={{
+                labels: data.monthlySales.map((m) => m.month),
+                datasets: [
+                  {
+                    label: "إجمالي المبيعات",
+                    data: data.monthlySales.map((m) => m.total),
+                    fill: false,
+                    borderColor: "rgba(75, 192, 192, 1)",
+                    tension: 0.4,
+                  },
+                ],
+              }}
+              options={{
+                onClick: (_, elements) => {
+                  if (elements.length > 0) {
+                    const i = elements[0].index;
+                    const m = data.monthlySales[i];
+                    setSelectedDetail(`📅 شهر ${m.month} - المبيعات: ${m.total.toLocaleString()} د.ع`);
+                  }
                 },
-              ],
-            }}
-            options={{
-              onClick: (_, elements) => {
-                if (elements.length > 0) {
-                  const index = elements[0].index;
-                  const month = data.monthlySales[index];
-                  setSelectedDetail(`📅 شهر ${month.month} - المبيعات: ${month.total.toLocaleString()} د.ع`);
-                }
-              },
-            }}
-          />
-        </div>
+              }}
+            />
+          }
+        />
 
-        <div className="bg-white rounded shadow p-4 mb-6">
-          <h2 className="text-lg font-bold mb-2">📂 المبيعات حسب القسم</h2>
-          <Pie
-            data={{
-              labels: data.salesByCategory.map((c) => c.category),
-              datasets: [
-                {
-                  label: "القسم",
-                  data: data.salesByCategory.map((c) => c.total),
-                  backgroundColor: [
-                    "#36A2EB",
-                    "#FF6384",
-                    "#FFCE56",
-                    "#4BC0C0",
-                    "#9966FF",
-                  ],
+        {/* المبيعات حسب القسم */}
+        <ChartSection
+          title="📂 المبيعات حسب القسم"
+          chart={
+            <Pie
+              data={{
+                labels: data.salesByCategory.map((c) => c.category),
+                datasets: [
+                  {
+                    label: "القسم",
+                    data: data.salesByCategory.map((c) => c.total),
+                    backgroundColor: [
+                      "#36A2EB",
+                      "#FF6384",
+                      "#FFCE56",
+                      "#4BC0C0",
+                      "#9966FF",
+                    ],
+                  },
+                ],
+              }}
+              options={{
+                onClick: (_, elements) => {
+                  if (elements.length > 0) {
+                    const i = elements[0].index;
+                    const c = data.salesByCategory[i];
+                    setSelectedDetail(`القسم: ${c.category} - المبيعات: ${c.total.toLocaleString()} د.ع`);
+                  }
                 },
-              ],
-            }}
-            options={{
-              onClick: (_, elements) => {
-                if (elements.length > 0) {
-                  const index = elements[0].index;
-                  const category = data.salesByCategory[index];
-                  setSelectedDetail(`القسم: ${category.category} - مبيعات: ${category.total.toLocaleString()} د.ع`);
-                }
-              },
-            }}
-          />
-        </div>
+              }}
+            />
+          }
+        />
       </div>
+    </div>
+  );
+}
+
+function StatCard({ title, value }: { title: string; value: number | string }) {
+  return (
+    <div className="bg-white rounded shadow p-4 text-center">
+      <h2 className="text-lg font-bold mb-2">{title}</h2>
+      <p className="text-2xl font-semibold">{value}</p>
+    </div>
+  );
+}
+
+function ChartSection({ title, chart }: { title: string; chart: React.ReactNode }) {
+  return (
+    <div className="bg-white rounded shadow p-4 mb-6">
+      <h2 className="text-lg font-bold mb-4">{title}</h2>
+      {chart}
     </div>
   );
 }

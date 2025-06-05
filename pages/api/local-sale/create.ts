@@ -35,22 +35,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     } = req.body;
 
     const address = customerName;
-    const dueDate = new Date().toISOString(); // التاريخ الأول تلقائي = اليوم
+    const invoiceDate = createdAt ? new Date(createdAt) : new Date();
 
     if (!phone || !customerName || !Array.isArray(cart) || cart.length === 0 || !total || !type) {
       return res.status(400).json({ success: false, error: "❗ البيانات ناقصة أو غير صحيحة" });
     }
 
+    // ✅ إنشاء الفاتورة
     const invoice = await LocalInvoice.create({
       phone,
       address,
       cart,
       total,
-      createdAt,
+      createdAt: invoiceDate,
       type,
       downPayment,
       installmentsCount,
-      dueDate,
+      dueDate: invoiceDate.toISOString(), // التاريخ الأول (مبدئي)
       remaining,
       paid,
       discount,
@@ -60,20 +61,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       sentBy,
     });
 
-    if (type === "installment") {
+    // ✅ إنشاء أقساط إذا كان نوع الفاتورة "تقسيط"
+    if (type === "installment" && installmentsCount > 0) {
       const installments: Installment[] = [];
 
-      if (installmentsCount > 0) {
-        const installmentAmount = Math.ceil((total - downPayment) / installmentsCount);
-        for (let i = 0; i < installmentsCount; i++) {
-          const due = new Date();
-          due.setMonth(due.getMonth() + i);
-          installments.push({
-            date: due,
-            amount: installmentAmount,
-            paid: false,
-          });
-        }
+      const installmentAmount = Math.ceil((total - downPayment) / installmentsCount);
+      const baseDate = new Date(invoiceDate);
+
+      for (let i = 1; i <= installmentsCount; i++) {
+        const dueDate = new Date(baseDate);
+        dueDate.setMonth(dueDate.getMonth() + i);
+        installments.push({
+          date: dueDate,
+          amount: installmentAmount,
+          paid: false,
+        });
       }
 
       await Order.create({
@@ -84,7 +86,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         type,
         downPayment,
         installmentsCount,
-        dueDate,
+        dueDate: installments[0].date.toISOString(), // أول تاريخ استحقاق
         remaining,
         paid,
         discount,

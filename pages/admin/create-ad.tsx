@@ -15,18 +15,29 @@ export default function CreateAdPage() {
   const [description, setDescription] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingProducts, setLoadingProducts] = useState(true);
 
   useEffect(() => {
-    axios.get("/api/products").then((res) => {
-      setProducts(res.data);
-    });
+    const fetchProducts = async () => {
+      try {
+        const res = await axios.get("/api/products");
+        setProducts(res.data);
+      } catch (err) {
+        toast.error("❌ فشل تحميل المنتجات");
+      } finally {
+        setLoadingProducts(false);
+      }
+    };
+
+    fetchProducts();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedProductId || !title || !description || !expiresAt) {
-      return toast.error("يرجى ملء جميع الحقول");
+      return toast.error("❗ جميع الحقول مطلوبة");
     }
+
     setLoading(true);
     try {
       await axios.post("/api/ads", {
@@ -35,11 +46,12 @@ export default function CreateAdPage() {
         description,
         expiresAt,
       });
+
       toast.success("✅ تم إنشاء الإعلان بنجاح");
+      setSelectedProductId("");
       setTitle("");
       setDescription("");
       setExpiresAt("");
-      setSelectedProductId("");
     } catch (err) {
       toast.error("حدث خطأ أثناء إنشاء الإعلان");
     } finally {
@@ -50,16 +62,17 @@ export default function CreateAdPage() {
   return (
     <AdminLayout>
       <div className="max-w-xl mx-auto bg-white p-6 rounded shadow">
-        <h1 className="text-2xl font-bold mb-4 text-center">📝 إنشاء إعلان جديد</h1>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <h1 className="text-2xl font-bold mb-6 text-center">📝 إنشاء إعلان جديد</h1>
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className="block text-sm font-medium mb-1">🔍 اختر المنتج</label>
             <select
               value={selectedProductId}
               onChange={(e) => setSelectedProductId(e.target.value)}
               className="w-full border rounded px-3 py-2"
+              disabled={loadingProducts}
             >
-              <option value="">اختر منتجاً...</option>
+              <option value="">{loadingProducts ? "جاري التحميل..." : "اختر منتجاً..."}</option>
               {products.map((product) => (
                 <option key={product._id} value={product._id}>
                   {product.name}
@@ -75,6 +88,7 @@ export default function CreateAdPage() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="w-full border rounded px-3 py-2"
+              placeholder="مثال: عرض خاص على الموبايل"
             />
           </div>
 
@@ -85,6 +99,7 @@ export default function CreateAdPage() {
               onChange={(e) => setDescription(e.target.value)}
               className="w-full border rounded px-3 py-2"
               rows={3}
+              placeholder="تفاصيل العرض، مثل الخصم أو المميزات"
             />
           </div>
 
@@ -101,9 +116,9 @@ export default function CreateAdPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
           >
-            {loading ? "...جارٍ الحفظ" : "💾 حفظ الإعلان"}
+            {loading ? "⏳ جارٍ الحفظ..." : "💾 حفظ الإعلان"}
           </button>
         </form>
       </div>
