@@ -15,16 +15,15 @@ export default function MobileBottomNav() {
   const { cart } = useCart();
   const [favCount, setFavCount] = useState(0);
 
-  // ✅ عداد السلة
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
-  // ✅ جلب الإشعارات غير المقروءة
   const fetcher = (url: string) => fetch(url).then((res) => res.json());
   const { data: notifData } = useSWR(
     user?.phone ? `/api/notifications/user?phone=${user.phone}` : null,
     fetcher,
     { refreshInterval: 10000 }
   );
+
   const unreadCount = notifData?.notifications?.filter((n: any) => !n.seen)?.length || 0;
 
   useEffect(() => {
@@ -56,9 +55,17 @@ export default function MobileBottomNav() {
       icon: Bell,
       href: "/notifications",
       badge: unreadCount,
+      animate: unreadCount > 0,
     },
     {
-      label: user ? user.name.split(" ")[0] : "حسابي",
+      label: (
+        <span
+          className="max-w-[80px] truncate inline-block"
+          title={user?.name}
+        >
+          {user ? user.name.split(" ")[0] : "حسابي"}
+        </span>
+      ),
       icon: user?.image ? null : User,
       href: user ? "/profile" : "/login",
       avatar: user?.image,
@@ -93,7 +100,14 @@ export default function MobileBottomNav() {
                     className="w-6 h-6 rounded-full object-cover shadow"
                   />
                 ) : item.icon ? (
-                  <item.icon size={22} strokeWidth={isActive ? 2.5 : 1.5} />
+                  <motion.div
+                    animate={
+                      item.animate ? { rotate: [0, -10, 10, -10, 10, 0] } : {}
+                    }
+                    transition={{ duration: 0.6 }}
+                  >
+                    <item.icon size={22} strokeWidth={isActive ? 2.5 : 1.5} />
+                  </motion.div>
                 ) : null}
 
                 {(item.badge ?? 0) > 0 && (

@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Script from "next/script";
@@ -34,6 +36,7 @@ export default function EditProductPage() {
     fetch(`/api/products/${id}`)
       .then((res) => res.json())
       .then((data) => {
+        if (!data) return toast.error("❌ لا توجد بيانات");
         setName(data.name || "");
         setPrice(data.price?.toString() || "");
         setCategory(data.category || "mobiles");
@@ -49,14 +52,12 @@ export default function EditProductPage() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      if ((window as any).uploadcare && (window as any).uploadcare.Widget) {
+      if ((window as any).uploadcare?.Widget) {
         clearInterval(interval);
-        const widget = (window as any).uploadcare.Widget(
-          "[role=uploadcare-uploader]"
-        );
+        const widget = (window as any).uploadcare.Widget("[role=uploadcare-uploader]");
         widget.onUploadComplete((info: any) => {
           setImage(info.cdnUrl);
-          toast.success("✅ تم رفع الصورة بنجاح!");
+          toast.success("✅ تم رفع الصورة");
         });
       }
     }, 500);
@@ -80,50 +81,54 @@ export default function EditProductPage() {
       <a href='/checkout' class='bg-blue-600 text-white px-4 py-2 rounded block w-fit mt-2'>اشترِ الآن</a>
     `;
 
-    const res = await fetch(`/api/admin/update-product/${id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-      body: JSON.stringify({
-        name,
-        price: Number(price),
-        category,
-        image,
-        featured,
-        discount,
-        processor,
-        screen,
-        battery,
-        memory,
-        highlightHtml
-      }),
-    });
+    try {
+      const res = await fetch(`/api/admin/update-product/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({
+          name,
+          price: Number(price),
+          category,
+          image,
+          featured,
+          discount,
+          processor,
+          screen,
+          battery,
+          memory,
+          highlightHtml,
+        }),
+      });
 
-    const data = await res.json();
-    if (res.ok) {
-      toast.success("✅ تم تحديث المنتج");
-      router.push(`/product/${id}`);
-    } else {
-      console.error("❌ خطأ من الخادم:", data.message);
-      toast.error("❌ " + data.message);
+      const data = await res.json();
+
+      if (res.ok) {
+        toast.success("✅ تم التحديث بنجاح");
+        router.push(`/product/${id}`);
+      } else {
+        toast.error("❌ " + (data.message || "حدث خطأ"));
+      }
+    } catch (err) {
+      toast.error("❌ فشل الاتصال بالخادم");
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   const handleDelete = async () => {
     if (!id) return;
-    const confirm = window.confirm("هل أنت متأكد أنك تريد حذف هذا المنتج؟");
-    if (!confirm) return;
+    const confirmDelete = window.confirm("هل أنت متأكد أنك تريد حذف هذا المنتج؟");
+    if (!confirmDelete) return;
+
     try {
       const res = await fetch(`/api/admin/delete-product/${id}`, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
+
       if (res.ok) {
         toast.success("🗑️ تم حذف المنتج");
         router.push("/admin/products");
@@ -137,14 +142,14 @@ export default function EditProductPage() {
 
   return (
     <>
-      <Script
-        src="https://ucarecdn.com/libs/widget/3.x/uploadcare.full.min.js"
-        strategy="afterInteractive"
-      />
+      <Script src="https://ucarecdn.com/libs/widget/3.x/uploadcare.full.min.js" strategy="afterInteractive" />
 
       <div className="max-w-2xl mx-auto p-6 bg-white rounded-2xl shadow-xl border mt-10">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-blue-700">🛠️ تعديل المنتج</h1>
+          <h1 className="text-2xl font-bold text-blue-700">🛠️ تعديل المنتج</h1>
+          <button onClick={handleDelete} className="text-red-600 hover:underline text-sm">
+            🗑️ حذف المنتج
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="grid gap-4">
@@ -165,12 +170,10 @@ export default function EditProductPage() {
             <option value="extras">🧩 أخرى</option>
           </select>
 
-          <div>
-            <label className="flex items-center gap-2">
-              <input type="checkbox" checked={featured} onChange={(e) => setFeatured(e.target.checked)} />
-              منتج مميز
-            </label>
-          </div>
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={featured} onChange={(e) => setFeatured(e.target.checked)} />
+            منتج مميز
+          </label>
 
           <input
             type="hidden"
@@ -181,7 +184,11 @@ export default function EditProductPage() {
             data-crop="free"
           />
 
-          {image && <img src={image} alt="صورة المنتج" className="w-full h-48 object-cover rounded border" />}
+          {image ? (
+            <img src={image} alt="صورة المنتج" className="w-full h-48 object-cover rounded border" />
+          ) : (
+            <p className="text-sm text-gray-500">لم يتم رفع صورة حتى الآن</p>
+          )}
 
           <button type="submit" disabled={loading} className="bg-green-600 text-white py-2 rounded">
             {loading ? "⏳ جاري الحفظ..." : "💾 حفظ التعديلات"}

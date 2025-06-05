@@ -10,7 +10,7 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json());
 export default function SimilarProducts({
   currentProductId,
   category,
-  product, // ✅ المنتج الحالي للطلب
+  product,
 }: {
   currentProductId: string;
   category: string;
@@ -27,7 +27,7 @@ export default function SimilarProducts({
   const [address, setAddress] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const storePhone = "9647701234567"; // رقم واتساب المستلم
+  const storePhone = "9647701234567";
 
   const handleSubmitOrder = async () => {
     if (!phone.trim() || !address.trim()) {
@@ -51,7 +51,6 @@ export default function SimilarProducts({
     ];
 
     const total = product.price;
-
     setLoading(true);
 
     try {
@@ -78,23 +77,21 @@ export default function SimilarProducts({
           paymentMethod === "cash" ? "عند الاستلام" : "بطاقة إلكترونية"
         }\n📦 المنتج: ${product.name} بسعر ${product.price.toLocaleString()} د.ع`;
 
-        const url = `https://wa.me/${storePhone}?text=${encodeURIComponent(message)}`;
-        window.open(url, "_blank");
+        window.open(`https://wa.me/${storePhone}?text=${encodeURIComponent(message)}`, "_blank");
 
         setPhone("");
         setAddress("");
       } else {
         toast.error(data.error || "حدث خطأ أثناء إرسال الطلب.");
       }
-    } catch (err) {
+    } catch {
       toast.error("❌ فشل في إرسال الطلب، تحقق من اتصالك بالإنترنت.");
     } finally {
       setLoading(false);
     }
   };
 
-  if (error) return null;
-  if (!products || products.length === 0) return null;
+  if (error || !products || products.length === 0) return null;
 
   return (
     <motion.div className="mt-20" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6 }}>

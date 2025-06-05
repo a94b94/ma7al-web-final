@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from "react";
 import { useRouter } from "next/router";
 import toast from "react-hot-toast";
@@ -9,7 +11,7 @@ export default function RegisterPage() {
   const [storeName, setStoreName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [storeLogo, setStoreLogo] = useState(""); // ✅ تعديل هنا
+  const [storeLogo, setStoreLogo] = useState("");
   const [role, setRole] = useState("manager");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -32,7 +34,7 @@ export default function RegisterPage() {
           storeName,
           email,
           password,
-          storeLogo, // ✅ تعديل هنا
+          storeLogo,
           role,
         }),
       });
@@ -45,7 +47,7 @@ export default function RegisterPage() {
       } else {
         toast.error(data.error || "❌ فشل في إنشاء الحساب");
       }
-    } catch (err) {
+    } catch {
       toast.error("❌ حدث خطأ أثناء التسجيل");
     } finally {
       setIsLoading(false);
@@ -57,12 +59,13 @@ export default function RegisterPage() {
     const dialog = window.uploadcare.openDialog(null, {
       publicKey: "767dc761271f23d1f796",
       imagesOnly: true,
+      crop: "1:1",
     });
 
     dialog.done((file: any) => {
       file.done((info: any) => {
-        setStoreLogo(info.cdnUrl); // ✅ تعديل هنا
-        toast.success("✅ تم رفع الشعار");
+        setStoreLogo(info.cdnUrl);
+        toast.success("✅ تم رفع الشعار بنجاح");
       });
     });
   };
@@ -73,15 +76,14 @@ export default function RegisterPage() {
         onSubmit={handleRegister}
         className="bg-white shadow rounded-xl p-6 w-full max-w-md space-y-4"
       >
-        <h1 className="text-2xl font-bold text-center text-blue-700">
-          📝 إنشاء حساب جديد
-        </h1>
+        <h1 className="text-2xl font-bold text-center text-blue-700">📝 إنشاء حساب</h1>
 
         <input
           type="text"
           placeholder="👤 الاسم الكامل"
           value={name}
           onChange={(e) => setName(e.target.value)}
+          required
           className="w-full border p-3 rounded-xl"
         />
 
@@ -90,6 +92,7 @@ export default function RegisterPage() {
           placeholder="🏪 اسم المتجر"
           value={storeName}
           onChange={(e) => setStoreName(e.target.value)}
+          required
           className="w-full border p-3 rounded-xl"
         />
 
@@ -98,6 +101,7 @@ export default function RegisterPage() {
           placeholder="📧 البريد الإلكتروني"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          required
           className="w-full border p-3 rounded-xl"
         />
 
@@ -106,6 +110,7 @@ export default function RegisterPage() {
           placeholder="🔒 كلمة المرور"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          required
           className="w-full border p-3 rounded-xl"
         />
 
@@ -115,7 +120,7 @@ export default function RegisterPage() {
           className="w-full border p-3 rounded-xl text-gray-700"
         >
           <option value="owner">🏪 صاحب المحل</option>
-          <option value="manager">👨‍💼 موظف (مدير)</option>
+          <option value="manager">👨‍💼 مدير</option>
           <option value="support">🛠️ دعم فني</option>
         </select>
 
@@ -129,8 +134,8 @@ export default function RegisterPage() {
 
         <button
           type="submit"
-          className="w-full bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 transition"
           disabled={isLoading}
+          className="w-full bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 transition"
         >
           {isLoading ? "⏳ جاري التسجيل..." : "إنشاء الحساب"}
         </button>

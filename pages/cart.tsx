@@ -44,45 +44,52 @@ export default function CartPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 w-full">
                 <img
                   src={item.image || "/no-image.png"}
                   alt={item.name}
                   title={item.name}
                   className="w-20 h-20 object-cover rounded border"
                 />
-                <div>
-                  <h3 className="font-bold text-lg text-gray-800 dark:text-white">
+                <div className="flex-1">
+                  <h3 className="font-bold text-lg text-gray-800 dark:text-white line-clamp-2">
                     {item.name}
                   </h3>
                   <p className="text-blue-600 font-semibold">
                     {item.price.toLocaleString()} د.ع
                   </p>
                 </div>
-              </div>
 
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => decreaseQty(item.id)}
-                  className="bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded"
-                >
-                  <Minus size={16} />
-                </button>
-                <span className="text-lg font-bold text-gray-800 dark:text-white">
-                  {item.quantity || 1}
-                </span>
-                <button
-                  onClick={() => increaseQty(item.id)}
-                  className="bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded"
-                >
-                  <Plus size={16} />
-                </button>
-                <button
-                  onClick={() => removeFromCart(item.id)}
-                  className="text-red-500 hover:text-red-700 dark:hover:text-red-400"
-                >
-                  <Trash2 size={20} />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => decreaseQty(item.id)}
+                    className="bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded"
+                    disabled={item.quantity <= 1}
+                    title="إنقاص الكمية"
+                  >
+                    <Minus size={16} />
+                  </button>
+
+                  <span className="text-lg font-bold text-gray-800 dark:text-white min-w-[24px] text-center">
+                    {item.quantity || 1}
+                  </span>
+
+                  <button
+                    onClick={() => increaseQty(item.id)}
+                    className="bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded"
+                    title="زيادة الكمية"
+                  >
+                    <Plus size={16} />
+                  </button>
+
+                  <button
+                    onClick={() => removeFromCart(item.id)}
+                    className="text-red-500 hover:text-red-700 dark:hover:text-red-400"
+                    title="إزالة المنتج"
+                  >
+                    <Trash2 size={20} />
+                  </button>
+                </div>
               </div>
             </motion.div>
           ))}
