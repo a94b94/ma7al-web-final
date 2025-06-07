@@ -1,3 +1,4 @@
+// pages/register.tsx
 "use client";
 
 import { useState } from "react";
@@ -9,19 +10,26 @@ export default function RegisterPage() {
   const router = useRouter();
 
   const [name, setName] = useState("");
-  const [storeName, setStoreName] = useState("");
-  const [location, setLocation] = useState(""); // ✅ المحافظة
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [storeName, setStoreName] = useState("");
   const [storeLogo, setStoreLogo] = useState("");
-  const [role, setRole] = useState("manager");
+  const [whatsappNumber, setWhatsappNumber] = useState("");
+  const [location, setLocation] = useState("");
+  const [role, setRole] = useState("owner");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!name || !storeName || !email || !password || !storeLogo || !location) {
-      toast.error("❗ جميع الحقول مطلوبة بما فيها الشعار والموقع");
+    if (!name || !email || !password || !storeName || !storeLogo || !whatsappNumber || !location) {
+      toast.error("❗ جميع الحقول مطلوبة");
+      return;
+    }
+
+    const cleanedNumber = whatsappNumber.replace(/^\+?964|^0/, "");
+    if (!/^\d{9,11}$/.test(cleanedNumber)) {
+      toast.error("❌ رقم واتساب غير صالح");
       return;
     }
 
@@ -33,11 +41,12 @@ export default function RegisterPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name,
-          storeName,
-          location,
           email,
           password,
+          storeName,
           storeLogo,
+          whatsappNumber: `964${cleanedNumber}`,
+          location,
           role,
         }),
       });
@@ -48,18 +57,17 @@ export default function RegisterPage() {
         toast.success("✅ تم إنشاء الحساب بنجاح");
         router.push("/login");
       } else {
-        toast.error(data.error || "❌ فشل في إنشاء الحساب");
+        toast.error(data.error || "❌ حدث خطأ أثناء التسجيل");
       }
     } catch {
-      toast.error("❌ حدث خطأ أثناء التسجيل");
+      toast.error("⚠️ حدث خطأ غير متوقع");
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleUploadLogo = () => {
-    // @ts-ignore
-    const dialog = window.uploadcare.openDialog(null, {
+    const dialog = (window as any).uploadcare.openDialog(null, {
       publicKey: "767dc761271f23d1f796",
       imagesOnly: true,
       crop: "1:1",
@@ -68,25 +76,41 @@ export default function RegisterPage() {
     dialog.done((file: any) => {
       file.done((info: any) => {
         setStoreLogo(info.cdnUrl);
-        toast.success("✅ تم رفع الشعار بنجاح");
+        toast.success("✅ تم رفع الشعار");
       });
     });
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <form
         onSubmit={handleRegister}
-        className="bg-white shadow rounded-xl p-6 w-full max-w-md space-y-4"
+        className="w-full max-w-lg bg-white p-6 rounded-xl shadow-md space-y-4"
       >
-        <h1 className="text-2xl font-bold text-center text-blue-700">📝 إنشاء حساب</h1>
+        <h2 className="text-2xl font-bold text-center text-blue-700 mb-4">📝 إنشاء حساب مشرف</h2>
 
         <input
           type="text"
           placeholder="👤 الاسم الكامل"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="w-full border p-3 rounded-xl"
+          className="w-full border p-3 rounded"
+        />
+
+        <input
+          type="email"
+          placeholder="📧 البريد الإلكتروني"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="w-full border p-3 rounded"
+        />
+
+        <input
+          type="password"
+          placeholder="🔒 كلمة المرور"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="w-full border p-3 rounded"
         />
 
         <input
@@ -94,13 +118,29 @@ export default function RegisterPage() {
           placeholder="🏪 اسم المتجر"
           value={storeName}
           onChange={(e) => setStoreName(e.target.value)}
-          className="w-full border p-3 rounded-xl"
+          className="w-full border p-3 rounded"
+        />
+
+        <button
+          type="button"
+          onClick={handleUploadLogo}
+          className="w-full bg-gray-100 text-blue-600 py-2 rounded hover:bg-gray-200"
+        >
+          📤 {storeLogo ? "✅ تم رفع الشعار" : "رفع شعار المتجر"}
+        </button>
+
+        <input
+          type="tel"
+          placeholder="📱 رقم واتساب"
+          value={whatsappNumber}
+          onChange={(e) => setWhatsappNumber(e.target.value)}
+          className="w-full border p-3 rounded"
         />
 
         <select
           value={location}
           onChange={(e) => setLocation(e.target.value)}
-          className="w-full border p-3 rounded-xl text-gray-700"
+          className="w-full border p-3 rounded text-gray-700"
         >
           <option value="">📍 اختر المحافظة</option>
           <option value="بغداد">بغداد</option>
@@ -112,49 +152,25 @@ export default function RegisterPage() {
           <option value="صلاح الدين">صلاح الدين</option>
         </select>
 
-        <input
-          type="email"
-          placeholder="📧 البريد الإلكتروني"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="w-full border p-3 rounded-xl"
-        />
-
-        <input
-          type="password"
-          placeholder="🔒 كلمة المرور"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="w-full border p-3 rounded-xl"
-        />
-
         <select
           value={role}
           onChange={(e) => setRole(e.target.value)}
-          className="w-full border p-3 rounded-xl text-gray-700"
+          className="w-full border p-3 rounded text-gray-700"
         >
-          <option value="owner">🏪 صاحب المحل</option>
+          <option value="owner">🏪 صاحب محل</option>
           <option value="manager">👨‍💼 مدير</option>
           <option value="support">🛠️ دعم فني</option>
         </select>
 
         <button
-          type="button"
-          onClick={handleUploadLogo}
-          className="w-full bg-gray-100 text-blue-600 py-2 rounded-xl hover:bg-gray-200 transition font-semibold"
-        >
-          📤 {storeLogo ? "✅ تم رفع الشعار" : "رفع شعار المتجر"}
-        </button>
-
-        <button
           type="submit"
           disabled={isLoading}
-          className="w-full bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 transition"
+          className="w-full bg-blue-600 text-white py-3 rounded hover:bg-blue-700"
         >
           {isLoading ? "⏳ جاري التسجيل..." : "إنشاء الحساب"}
         </button>
 
-        <p className="text-center text-sm text-gray-600 mt-2">
+        <p className="text-center text-sm text-gray-600">
           لديك حساب؟{" "}
           <Link href="/login" className="text-blue-600 hover:underline">
             تسجيل الدخول

@@ -1,9 +1,13 @@
+// pages/admin/settings.tsx
+"use client";
+
 import { useEffect, useState } from "react";
 import { useUser } from "@/context/UserContext";
 import { useRouter } from "next/router";
 import axios from "axios";
 import { toast, Toaster } from "react-hot-toast";
 import Image from "next/image";
+import { motion } from "framer-motion";
 
 export default function AdminSettingsPage() {
   const { user } = useUser();
@@ -13,7 +17,11 @@ export default function AdminSettingsPage() {
   const [storeLogo, setStoreLogo] = useState("");
   const [whatsappNumber, setWhatsappNumber] = useState("");
   const [loading, setLoading] = useState(false);
-  const [heroImages, setHeroImages] = useState({ phone: "", appliance: "", background: "" });
+  const [heroImages, setHeroImages] = useState({
+    phone: "",
+    appliance: "",
+    background: "",
+  });
 
   useEffect(() => {
     if (user) {
@@ -24,9 +32,7 @@ export default function AdminSettingsPage() {
   }, [user]);
 
   useEffect(() => {
-    if (!user) {
-      router.push("/login");
-    }
+    if (!user) router.push("/login");
 
     fetch("/api/settings/hero-images")
       .then((res) => res.json())
@@ -36,16 +42,11 @@ export default function AdminSettingsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!user) {
-      toast.error("❗ يجب تسجيل الدخول أولاً");
-      return;
-    }
+    if (!user) return toast.error("❗ يجب تسجيل الدخول أولاً");
 
     const cleanedNumber = whatsappNumber.replace(/^\+?964|^0/, "");
     if (!/^\d{9,11}$/.test(cleanedNumber)) {
-      toast.error("❌ رقم الواتساب غير صالح، يجب أن يكون 9-11 رقم بدون رمز البلد");
-      return;
+      return toast.error("❌ رقم واتساب غير صالح (بدون رمز البلد)");
     }
 
     setLoading(true);
@@ -56,9 +57,10 @@ export default function AdminSettingsPage() {
         storeLogo,
         whatsappNumber: `964${cleanedNumber}`,
       });
-      toast.success("✅ تم حفظ التعديلات بنجاح");
-    } catch {
-      toast.error("❌ فشل في حفظ الإعدادات");
+
+      toast.success("✅ تم حفظ الإعدادات");
+    } catch (err) {
+      toast.error("❌ فشل حفظ الإعدادات");
     } finally {
       setLoading(false);
     }
@@ -68,38 +70,58 @@ export default function AdminSettingsPage() {
     const dialog = (window as any).uploadcare.openDialog(null, {
       publicKey: "767dc761271f23d1f796",
       imagesOnly: true,
+      crop: "1:1",
     });
+
     dialog.done((file: any) => {
       file.done((info: any) => {
         setStoreLogo(info.cdnUrl);
+        toast.success("✅ تم رفع الشعار");
       });
     });
   };
 
   const handleHeroUpload = (type: "phone" | "appliance" | "background") => {
-    const confirmChange = confirm("هل أنت متأكد من استبدال الصورة؟");
-    if (!confirmChange) return;
+    const dialog = (window as any).uploadcare.openDialog(null, {
+      publicKey: "767dc761271f23d1f796",
+      imagesOnly: true,
+    });
 
-    const widget = (window as any).uploadcare.Widget("[role=uploadcare-uploader]");
-    widget.openDialog(null, { publicKey: "767dc761271f23d1f796" }).done((fileInfo: any) => {
-      const updated = { ...heroImages, [type]: fileInfo.cdnUrl };
-      setHeroImages(updated);
+    dialog.done((file: any) => {
+      file.done((info: any) => {
+        const updated = { ...heroImages, [type]: info.cdnUrl };
+        setHeroImages(updated);
 
-      fetch("/api/settings/hero-images", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updated),
-      })
-        .then(() => toast.success("✅ تم تحديث الصورة"))
-        .catch(() => toast.error("❌ فشل رفع الصورة"));
+        fetch("/api/settings/hero-images", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updated),
+        })
+          .then(() => toast.success("✅ تم تحديث الصورة"))
+          .catch(() => toast.error("❌ فشل رفع الصورة"));
+      });
     });
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6 bg-white dark:bg-gray-800 rounded shadow">
+    <motion.div
+      className="max-w-2xl mx-auto p-6 bg-white dark:bg-gray-800 rounded shadow"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+    >
       <Toaster />
-      <h2 className="text-2xl font-bold mb-4 text-indigo-600 dark:text-indigo-400">⚙️ إعدادات المتجر</h2>
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <h2 className="text-2xl font-bold mb-4 text-indigo-600 dark:text-indigo-400">
+        ⚙️ إعدادات المتجر
+      </h2>
+
+      <motion.form
+        onSubmit={handleSubmit}
+        className="space-y-4"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.2 }}
+      >
         <div>
           <label className="block text-sm mb-1">اسم المتجر</label>
           <input
@@ -139,7 +161,14 @@ export default function AdminSettingsPage() {
             اختر صورة من Uploadcare
           </button>
           {storeLogo && (
-            <img src={storeLogo} alt="شعار المتجر" className="mt-3 h-20" />
+            <motion.img
+              src={storeLogo}
+              alt="شعار المتجر"
+              className="mt-3 h-20 rounded"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.3 }}
+            />
           )}
         </div>
 
@@ -150,71 +179,51 @@ export default function AdminSettingsPage() {
             loading ? "opacity-50 cursor-not-allowed" : ""
           }`}
         >
-          {loading ? "جارٍ الحفظ..." : "حفظ التعديلات"}
+          {loading ? "⏳ جاري الحفظ..." : "💾 حفظ التعديلات"}
         </button>
-      </form>
+      </motion.form>
 
       <hr className="my-8" />
 
-      <h3 className="text-lg font-semibold mb-4">🖼️ صور الواجهة الرئيسية (Hero)</h3>
-
-      <div className="space-y-4">
-        <div>
-          <button
-            onClick={() => handleHeroUpload("phone")}
-            className="bg-blue-600 text-white py-2 px-4 rounded"
-          >
-            📱 رفع صورة الهاتف
-          </button>
-          {heroImages.phone && (
-            <Image
-              src={heroImages.phone}
-              alt="هاتف"
-              width={150}
-              height={150}
-              className="rounded shadow mt-2"
-            />
-          )}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.3 }}
+      >
+        <h3 className="text-lg font-semibold mb-4">🖼️ صور الواجهة الرئيسية</h3>
+        <div className="space-y-4">
+          {(["phone", "appliance", "background"] as const).map((type) => (
+            <div key={type}>
+              <button
+                onClick={() => handleHeroUpload(type)}
+                className="bg-blue-600 text-white py-2 px-4 rounded"
+              >
+                {type === "phone"
+                  ? "📱 صورة الهاتف"
+                  : type === "appliance"
+                  ? "⚡ صورة الجهاز"
+                  : "🌌 خلفية الواجهة"}
+              </button>
+              {heroImages[type] && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                >
+                  <Image
+                    src={heroImages[type]}
+                    alt={`صورة ${type}`}
+                    width={150}
+                    height={type === "background" ? 80 : 150}
+                    className="rounded shadow mt-2"
+                  />
+                </motion.div>
+              )}
+            </div>
+          ))}
         </div>
-
-        <div>
-          <button
-            onClick={() => handleHeroUpload("appliance")}
-            className="bg-green-600 text-white py-2 px-4 rounded"
-          >
-            ⚡ رفع صورة الجهاز الكهربائي
-          </button>
-          {heroImages.appliance && (
-            <Image
-              src={heroImages.appliance}
-              alt="جهاز"
-              width={150}
-              height={150}
-              className="rounded shadow mt-2"
-            />
-          )}
-        </div>
-
-        <div>
-          <button
-            onClick={() => handleHeroUpload("background")}
-            className="bg-purple-600 text-white py-2 px-4 rounded"
-          >
-            🌌 تغيير خلفية الهيرو
-          </button>
-          {heroImages.background && (
-            <Image
-              src={heroImages.background}
-              alt="خلفية"
-              width={150}
-              height={80}
-              className="rounded shadow mt-2"
-            />
-          )}
-        </div>
-      </div>
+      </motion.div>
 
       <input type="hidden" role="uploadcare-uploader" />
-    </div>
+    </motion.div>
   );
 }

@@ -1,229 +1,117 @@
 "use client";
 
-import useSWR from "swr";
-import Image from "next/image";
-import { motion } from "framer-motion";
 import { useState } from "react";
+import { useCart } from "@/context/CartContext";
 import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
-
-export default function SimilarProducts({
-  currentProductId,
-  category,
-  product,
-}: {
-  currentProductId: string;
-  category: string;
-  product: {
-    _id: string;
-    name: string;
-    price: number;
-    storeId: string;
-    storeName: string;
-    storePhone: string;
-  };
-}) {
-  const { data: products, error } = useSWR(
-    category ? `/api/products/similar?category=${category}&exclude=${currentProductId}` : null,
-    fetcher
-  );
-
-  const [paymentMethod, setPaymentMethod] = useState("cash");
-  const [orderConfirmed, setOrderConfirmed] = useState(false);
+export default function CheckoutPage() {
+  const { cart, clearCart } = useCart();
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("cash");
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
-  const handleSubmitOrder = async () => {
+  const groupedByStore = cart.reduce((acc: any, item) => {
+    const storeId = item.storeId || "unknown";
+    if (!acc[storeId]) acc[storeId] = [];
+    acc[storeId].push(item);
+    return acc;
+  }, {});
+
+  const handleSubmit = async () => {
     if (!phone.trim() || !address.trim()) {
-      toast.error("يرجى إدخال رقم الهاتف والعنوان الكامل.");
+      toast.error("يرجى إدخال رقم الهاتف والعنوان.");
       return;
     }
 
-    if (!product.storeId || !product.storePhone) {
-      toast.error("⚠️ لا يمكن تحديد صاحب المتجر.");
-      return;
-    }
-
-    const cart = [
-      {
-        productId: product._id,
-        name: product.name,
-        quantity: 1,
-        price: product.price,
-        storeId: product.storeId,
-      },
-    ];
-
-    const total = product.price;
     setLoading(true);
-
     try {
-      const res = await fetch("/api/orders", {
+      const res = await fetch("/api/orders/split", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           phone,
           address,
-          cart,
-          total,
-          storeId: product.storeId,
           paymentMethod,
+          cart,
         }),
       });
 
       const data = await res.json();
-
       if (res.ok) {
-        toast.success("✅ تم تأكيد الطلب بنجاح!");
-        setOrderConfirmed(true);
-
-        const message = `🛒 طلب جديد من Ma7al Store\n\n🏪 المتجر: ${product.storeName}\n📱 الهاتف: ${phone}\n📍 العنوان: ${address}\n💳 الدفع: ${
-          paymentMethod === "cash" ? "عند الاستلام" : "بطاقة إلكترونية"
-        }\n📦 المنتج: ${product.name} بسعر ${Number(product.price).toLocaleString()} د.ع`;
-
-        window.open(`https://wa.me/${product.storePhone}?text=${encodeURIComponent(message)}`, "_blank");
-
-        setPhone("");
-        setAddress("");
+        toast.success("✅ تم إرسال الطلبات بنجاح!");
+        clearCart();
+        router.push("/");
       } else {
         toast.error(data.error || "حدث خطأ أثناء إرسال الطلب.");
       }
     } catch {
-      toast.error("❌ فشل في إرسال الطلب، تحقق من اتصالك بالإنترنت.");
+      toast.error("❌ فشل الاتصال بالخادم.");
     } finally {
       setLoading(false);
     }
   };
 
-  if (error || !products || products.length === 0) return null;
+  const totalAmount = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   return (
-    <motion.div
-      className="mt-20"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.6 }}
-    >
-      <motion.h2
-        className="text-2xl font-extrabold text-center mb-8 text-indigo-600"
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.5 }}
+    <div className="max-w-2xl mx-auto px-4 py-8">
+      <h1 className="text-2xl font-bold mb-6">🛒 إتمام الطلب</h1>
+
+      <input
+        type="tel"
+        placeholder="📱 رقم الهاتف"
+        value={phone}
+        onChange={(e) => setPhone(e.target.value)}
+        className="w-full p-3 mb-4 border rounded-lg"
+      />
+
+      <textarea
+        placeholder="📍 العنوان الكامل"
+        value={address}
+        onChange={(e) => setAddress(e.target.value)}
+        className="w-full p-3 mb-4 border rounded-lg"
+      />
+
+      <div className="space-y-2 mb-6">
+        <label className="flex items-center gap-3">
+          <input
+            type="radio"
+            name="payment"
+            value="cash"
+            checked={paymentMethod === "cash"}
+            onChange={() => setPaymentMethod("cash")}
+            className="w-4 h-4"
+          />
+          <span>الدفع عند الاستلام</span>
+        </label>
+        <label className="flex items-center gap-3">
+          <input
+            type="radio"
+            name="payment"
+            value="card"
+            checked={paymentMethod === "card"}
+            onChange={() => setPaymentMethod("card")}
+            className="w-4 h-4"
+            disabled
+          />
+          <span className="text-gray-400">بطاقة إلكترونية (قريبًا)</span>
+        </label>
+      </div>
+
+      <div className="mb-4 text-right font-bold text-lg text-blue-600">
+        الإجمالي: {totalAmount.toLocaleString()} د.ع
+      </div>
+
+      <button
+        onClick={handleSubmit}
+        disabled={loading}
+        className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-full transition"
       >
-        🌀 منتجات مشابهة قد تهمك
-      </motion.h2>
-
-      <motion.div
-        className="max-w-md mx-auto bg-white p-6 rounded-xl shadow mb-10"
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <h3 className="text-lg font-semibold mb-4">📦 تفاصيل الطلب</h3>
-
-        <input
-          type="tel"
-          placeholder="📱 رقم الهاتف"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          className="w-full p-3 mb-3 border rounded-lg"
-        />
-
-        <textarea
-          placeholder="📍 العنوان الكامل"
-          value={address}
-          onChange={(e) => setAddress(e.target.value)}
-          className="w-full p-3 mb-4 border rounded-lg"
-        />
-
-        <div className="space-y-2 mb-6">
-          <label className="flex items-center gap-3">
-            <input
-              type="radio"
-              name="payment"
-              value="cash"
-              checked={paymentMethod === "cash"}
-              onChange={() => setPaymentMethod("cash")}
-              className="w-4 h-4"
-            />
-            <span>الدفع عند الاستلام</span>
-          </label>
-          <label className="flex items-center gap-3">
-            <input
-              type="radio"
-              name="payment"
-              value="card"
-              checked={paymentMethod === "card"}
-              onChange={() => setPaymentMethod("card")}
-              className="w-4 h-4"
-              disabled
-            />
-            <span className="text-gray-400">بطاقة إلكترونية (قريبًا)</span>
-          </label>
-        </div>
-
-        {orderConfirmed && (
-          <motion.div
-            className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700 text-center"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-          >
-            🎉 تم تأكيد الطلب وسيتم فتح واتساب تلقائيًا لإرسال التفاصيل!
-          </motion.div>
-        )}
-
-        <button
-          onClick={handleSubmitOrder}
-          disabled={loading}
-          className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-full transition"
-        >
-          {loading ? "⏳ جاري إرسال الطلب..." : "✅ تأكيد الطلب وإرسال واتساب"}
-        </button>
-      </motion.div>
-
-      <motion.div
-        className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6"
-        initial="hidden"
-        animate="visible"
-        variants={{
-          hidden: {},
-          visible: {
-            transition: {
-              staggerChildren: 0.1,
-            },
-          },
-        }}
-      >
-        {products.map((product: any) => (
-          <motion.a
-            key={product._id}
-            href={`/product/${product._id}`}
-            className="bg-white rounded-xl overflow-hidden shadow hover:shadow-lg border"
-            whileHover={{ scale: 1.03 }}
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-          >
-            <div className="relative h-40">
-              <Image
-                src={product.image || "/images/default.jpg"}
-                alt={product.name}
-                fill
-                className="object-cover rounded-t-xl"
-              />
-            </div>
-            <div className="p-4">
-              <h3 className="text-base font-semibold mb-1 line-clamp-2">{product.name}</h3>
-              <p className="text-blue-600 font-bold">
-                {Number(product.price).toLocaleString()} د.ع
-              </p>
-            </div>
-          </motion.a>
-        ))}
-      </motion.div>
-    </motion.div>
+        {loading ? "⏳ جاري تأكيد الطلب..." : "✅ تأكيد الطلب"}
+      </button>
+    </div>
   );
 }

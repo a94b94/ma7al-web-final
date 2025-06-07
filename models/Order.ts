@@ -11,7 +11,9 @@ export interface IOrder extends Document {
     name: string;
     quantity: number;
     price: number;
-    productId?: string; // ✅ لإحصائيات المبيعات حسب المنتج
+    productId?: string;
+    storeId?: string;
+    storeName?: string;
   }[];
 
   total: number;
@@ -38,8 +40,8 @@ export interface IOrder extends Document {
   storeId: string;
   storeName: string;
 
-  createdAt?: Date; // ✅ لحساب المبيعات الشهرية
-  updatedAt?: Date; // ✅ مفيد في إدارة التقارير/الطلبات
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 const InstallmentSchema = new Schema(
@@ -54,7 +56,6 @@ const InstallmentSchema = new Schema(
   { _id: false }
 );
 
-// ✅ إعداد حالة القسط تلقائيًا إذا تأخر
 InstallmentSchema.pre("save", function (next) {
   const today = new Date();
   const installment = this as any;
@@ -83,14 +84,15 @@ const OrderSchema = new Schema<IOrder>(
         name: { type: String, required: true },
         quantity: { type: Number, required: true },
         price: { type: Number, required: true },
-        productId: { type: String }, // ✅ يفضل وجوده للتحليل الدقيق
+        productId: { type: String },
+        storeId: { type: String },
+        storeName: { type: String },
       },
     ],
 
     total: { type: Number, required: true },
     paid: { type: Number, default: 0 },
     dueDate: { type: Date },
-
     seen: { type: Boolean, default: false },
 
     status: {
