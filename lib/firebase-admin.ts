@@ -1,10 +1,11 @@
 // lib/firebase-admin.ts
 import admin from "firebase-admin";
-import serviceAccount from "@/config/firebase-key.json"; // تأكد أن هذا الملف موجود فعليًا
 
 if (!admin.apps.length) {
+  const serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN_KEY || "{}");
+
   admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
+    credential: admin.credential.cert(serviceAccount),
   });
 }
 
