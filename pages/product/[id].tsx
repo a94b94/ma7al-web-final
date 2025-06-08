@@ -1,12 +1,11 @@
-
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/router";
 import { useCart } from "@/context/CartContext";
 import Image from "next/image";
 import ProductSlider from "@/components/ProductSlider";
-import { Heart, HeartOff, ShoppingCart } from "lucide-react";
+import { Heart, HeartOff, ShoppingCart, ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
 
 type ProductType = {
@@ -27,7 +26,6 @@ export default function ProductPage() {
   const id = isReady ? query.id : null;
 
   const { addToCart } = useCart();
-
   const [product, setProduct] = useState<ProductType | null>(null);
   const [similarProducts, setSimilarProducts] = useState<ProductType[]>([]);
   const [storeProducts, setStoreProducts] = useState<ProductType[]>([]);
@@ -36,6 +34,8 @@ export default function ProductPage() {
   const [loading, setLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
   const [adding, setAdding] = useState(false);
+
+  const countdownRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -53,28 +53,21 @@ export default function ProductPage() {
         const adData = await adRes.json();
         if (adData?.product?._id === id) {
           setActiveAd(adData);
-          updateCountdown(adData.expiresAt);
+          startCountdown(adData.expiresAt);
         }
 
         if (data?.category) {
           const simRes = await fetch(`/api/products?category=${data.category}&exclude=${data._id}`);
-          const simData = await simRes.json();
-          setSimilarProducts(simData);
+          setSimilarProducts(await simRes.json());
         }
 
         if (data?.storeId) {
           const storeRes = await fetch(`/api/products?store=${data.storeId}&exclude=${data._id}`);
-          const storeData = await storeRes.json();
-          setStoreProducts(storeData);
+          setStoreProducts(await storeRes.json());
         }
 
-        if (typeof window !== "undefined") {
-          const favs = localStorage.getItem("favorites");
-          if (favs) {
-            const favList = JSON.parse(favs);
-            setIsFavorite(favList.some((p: any) => p.id === data._id));
-          }
-        }
+        const favs = JSON.parse(localStorage.getItem("favorites") || "[]");
+        setIsFavorite(favs.some((p: any) => p.id === data._id));
       } catch {
         setProduct(null);
       } finally {
@@ -83,48 +76,45 @@ export default function ProductPage() {
     };
 
     fetchData();
+
+    return () => {
+      if (countdownRef.current) clearInterval(countdownRef.current);
+    };
   }, [id]);
 
-  useEffect(() => {
-    return () => {
-      clearInterval(countdownInterval);
-    };
-  }, []);
-
-  let countdownInterval: any;
-  const updateCountdown = (endTime: string) => {
-    countdownInterval = setInterval(() => {
-      const now = new Date().getTime();
+  const startCountdown = (endTime: string) => {
+    countdownRef.current = setInterval(() => {
+      const now = Date.now();
       const end = new Date(endTime).getTime();
-      const distance = end - now;
+      const diff = end - now;
 
-      if (distance <= 0) {
-        clearInterval(countdownInterval);
+      if (diff <= 0) {
+        clearInterval(countdownRef.current!);
         setCountdown("انتهى العرض");
         return;
       }
 
-      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+      const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+      const minutes = Math.floor((diff / (1000 * 60)) % 60);
+      const seconds = Math.floor((diff / 1000) % 60);
 
       setCountdown(`${hours} س ${minutes} د ${seconds} ث`);
     }, 1000);
   };
 
   const toggleFavorite = () => {
-    if (typeof window === "undefined" || !product) return;
+    if (!product) return;
 
-    const favs = localStorage.getItem("favorites");
-    let favList = favs ? JSON.parse(favs) : [];
+    const favs = JSON.parse(localStorage.getItem("favorites") || "[]");
+    let updated = [...favs];
 
     if (isFavorite) {
-      favList = favList.filter((p: any) => p.id !== product._id);
+      updated = favs.filter((p: any) => p.id !== product._id);
     } else {
-      favList.push({ id: product._id, name: product.name, price: product.price, image: product.image });
+      updated.push({ id: product._id, name: product.name, price: product.price, image: product.image });
     }
 
-    localStorage.setItem("favorites", JSON.stringify(favList));
+    localStorage.setItem("favorites", JSON.stringify(updated));
     setIsFavorite(!isFavorite);
   };
 
@@ -149,20 +139,38 @@ export default function ProductPage() {
     setTimeout(() => setAdding(false), 1200);
   };
 
+  const goBack = () => router.back();
+
   if (!isReady || loading) return <p className="text-center py-10">⏳ جارٍ تحميل المنتج...</p>;
   if (!product) return <p className="text-center py-10 text-red-500">❌ المنتج غير موجود</p>;
 
   return (
     <motion.div className="max-w-6xl mx-auto px-4 py-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6 }}>
+      {/* زر الرجوع */}
+      <button onClick={goBack} className="mb-4 flex items-center gap-2 text-blue-600 hover:underline">
+        <ArrowLeft size={18} /> <span>رجوع</span>
+      </button>
+
+      {/* إعلان مميز */}
       {activeAd && (
-        <motion.div className="bg-yellow-100 text-yellow-800 p-4 rounded-lg mb-6 shadow text-center" initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
+        <motion.div
+          className="bg-yellow-100 text-yellow-800 p-4 rounded-lg mb-6 shadow text-center"
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+        >
           <h2 className="font-bold text-lg">🎉 {activeAd.title}</h2>
           <p className="text-sm">{activeAd.description}</p>
           <p className="text-sm mt-1">⏰ {countdown}</p>
         </motion.div>
       )}
 
-      <motion.div className="grid md:grid-cols-2 gap-10 bg-white dark:bg-gray-800 rounded-xl shadow p-6" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }}>
+      {/* تفاصيل المنتج */}
+      <motion.div
+        className="grid md:grid-cols-2 gap-10 bg-white dark:bg-gray-800 rounded-xl shadow p-6"
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.2 }}
+      >
         <div className="flex items-center justify-center">
           <Image
             src={product.image}
@@ -215,41 +223,37 @@ export default function ProductPage() {
         </div>
       </motion.div>
 
+      {/* منتجات من نفس المتجر */}
       {storeProducts.length > 0 && (
         <motion.div className="mt-12" initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}>
           <h2 className="text-xl font-bold text-center mb-4 text-gray-800 dark:text-white">🛍 منتجات أخرى من نفس المتجر</h2>
-          <ProductSlider
-            products={storeProducts}
-            onAddToCart={(p: ProductType) =>
-              addToCart({
-                id: p._id,
-                name: p.name,
-                price: p.discount ? p.price - (p.price * p.discount) / 100 : p.price,
-                image: p.image,
-                storeId: p.storeId,
-                storeName: p.storeName,
-              })
-            }
-          />
+          <ProductSlider products={storeProducts} onAddToCart={(p: ProductType) =>
+            addToCart({
+              id: p._id,
+              name: p.name,
+              price: p.discount ? p.price - (p.price * p.discount) / 100 : p.price,
+              image: p.image,
+              storeId: p.storeId,
+              storeName: p.storeName,
+            })
+          } />
         </motion.div>
       )}
 
+      {/* منتجات مشابهة */}
       {similarProducts.length > 0 && (
         <motion.div className="mt-16" initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4 }}>
           <h2 className="text-xl font-bold text-center mb-4 text-gray-800 dark:text-white">🧠 منتجات مشابهة</h2>
-          <ProductSlider
-            products={similarProducts}
-            onAddToCart={(p: ProductType) =>
-              addToCart({
-                id: p._id,
-                name: p.name,
-                price: p.discount ? p.price - (p.price * p.discount) / 100 : p.price,
-                image: p.image,
-                storeId: p.storeId,
-                storeName: p.storeName,
-              })
-            }
-          />
+          <ProductSlider products={similarProducts} onAddToCart={(p: ProductType) =>
+            addToCart({
+              id: p._id,
+              name: p.name,
+              price: p.discount ? p.price - (p.price * p.discount) / 100 : p.price,
+              image: p.image,
+              storeId: p.storeId,
+              storeName: p.storeName,
+            })
+          } />
         </motion.div>
       )}
     </motion.div>

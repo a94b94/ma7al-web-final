@@ -1,4 +1,5 @@
-// pages/admin/settings/profile.tsx
+// ✅ نسخة مطورة تدعم رفع صورة المستخدم إلى Cloudinary مع حذف القديمة
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -26,6 +27,29 @@ export default function ProfileSettingsPage() {
     }
   }, [user]);
 
+  const handleUploadPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      try {
+        // حذف الصورة القديمة إذا كانت من Cloudinary
+        if (photo && photo.includes("res.cloudinary.com")) {
+          const publicId = photo.split("/").slice(-1)[0].split(".")[0];
+          await axios.post("/api/delete-image", { public_id: `ma7al-store/${publicId}` });
+        }
+
+        const res = await axios.post("/api/upload", { imageBase64: reader.result });
+        setPhoto(res.data.url);
+        toast.success("✅ تم رفع الصورة الشخصية");
+      } catch {
+        toast.error("❌ فشل في رفع الصورة");
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password && password !== confirmPassword) {
@@ -43,7 +67,7 @@ export default function ProfileSettingsPage() {
 
       if (res.data.success) {
         toast.success("✅ تم تحديث البيانات");
-        setUser(res.data.updatedUser); // تحديث السياق
+        setUser(res.data.updatedUser);
       } else {
         toast.error(res.data.message || "حدث خطأ");
       }
@@ -68,9 +92,15 @@ export default function ProfileSettingsPage() {
           </div>
 
           <div>
-            <label className="block mb-1 font-medium">🖼️ رابط الصورة الشخصية</label>
-            <Input value={photo} onChange={(e) => setPhoto(e.target.value)} />
-            {/* يمكنك هنا استبداله برفع Uploadcare لاحقًا */}
+            <label className="block mb-1 font-medium">🖼️ الصورة الشخصية</label>
+            <input type="file" accept="image/*" onChange={handleUploadPhoto} />
+            {photo && (
+              <img
+                src={photo}
+                alt="الصورة الشخصية"
+                className="mt-2 w-24 h-24 rounded border object-cover"
+              />
+            )}
           </div>
 
           <div>

@@ -1,8 +1,13 @@
+// pages/login.tsx
 "use client";
 
 import { useState } from "react";
 import { useRouter } from "next/router";
 import { useUser } from "@/context/UserContext";
+import { motion } from "framer-motion";
+import { Eye, EyeOff, LogIn } from "lucide-react";
+import { auth, provider } from "@/lib/firebase";
+import { signInWithPopup } from "firebase/auth";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -10,6 +15,7 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
@@ -26,6 +32,7 @@ export default function LoginPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
+
       const data = await res.json();
 
       if (!res.ok) {
@@ -34,37 +41,77 @@ export default function LoginPage() {
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
         setUser(data.user);
-
         setSuccess("✅ تم تسجيل الدخول بنجاح");
         setTimeout(() => router.push("/"), 1200);
       }
     } catch {
-      setError("❌ حدث خطأ أثناء تسجيل الدخول");
+      setError("⚠️ حدث خطأ أثناء تسجيل الدخول");
     } finally {
       setLoading(false);
     }
   };
 
+  const handleGoogleLogin = async () => {
+    setError("");
+    setSuccess("");
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const idToken = await result.user.getIdToken();
+
+      const res = await fetch("/api/admin/google-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "❌ فشل تسجيل الدخول بواسطة Google");
+      } else {
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("user", JSON.stringify(data.user));
+        setUser(data.user);
+        setSuccess("✅ تم تسجيل الدخول بواسطة Google");
+        setTimeout(() => router.push("/"), 1200);
+      }
+    } catch {
+      setError("⚠️ فشل تسجيل الدخول باستخدام Google");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center p-6">
-      <form
+      <motion.form
         onSubmit={handleLogin}
-        className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow w-full max-w-md space-y-4"
+        className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-xl w-full max-w-md space-y-4"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
       >
         <h1 className="text-2xl font-bold text-center text-gray-800 dark:text-white">
           🔐 تسجيل دخول المشرف
         </h1>
 
         {error && (
-          <p className="text-red-600 bg-red-100 dark:bg-red-900 dark:text-red-300 text-center p-2 rounded">
+          <motion.p
+            className="text-red-600 bg-red-100 dark:bg-red-900 dark:text-red-300 text-center p-2 rounded"
+            initial={{ x: 0 }}
+            animate={{ x: [0, -10, 10, -10, 10, 0] }}
+            transition={{ duration: 0.4 }}
+          >
             {error}
-          </p>
+          </motion.p>
         )}
 
         {success && (
-          <p className="text-green-600 bg-green-100 dark:bg-green-900 dark:text-green-300 text-center p-2 rounded">
+          <motion.p
+            className="text-green-600 bg-green-100 dark:bg-green-900 dark:text-green-300 text-center p-2 rounded"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+          >
             {success}
-          </p>
+          </motion.p>
         )}
 
         <input
@@ -72,27 +119,56 @@ export default function LoginPage() {
           placeholder="📧 البريد الإلكتروني"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full p-3 border dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full p-3 border dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white rounded-xl"
           required
         />
 
-        <input
-          type="password"
-          placeholder="🔑 كلمة المرور"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="w-full p-3 border dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-          required
-        />
+        <div className="relative">
+          <input
+            type={showPassword ? "text" : "password"}
+            placeholder="🔑 كلمة المرور"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full p-3 pr-12 border dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white rounded-xl"
+            required
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-300"
+          >
+            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+          </button>
+        </div>
+
+        <div className="text-right text-sm text-blue-600 hover:underline">
+          <a href="/forgot-password">🔁 نسيت كلمة المرور؟</a>
+        </div>
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl transition disabled:opacity-50"
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl transition disabled:opacity-50 flex items-center justify-center gap-2"
         >
+          <LogIn size={18} />
           {loading ? "🔄 جارٍ التحقق..." : "تسجيل الدخول"}
         </button>
-      </form>
+
+        <div className="flex items-center justify-center my-4">
+          <span className="h-px w-1/3 bg-gray-300 dark:bg-gray-600" />
+          <span className="px-3 text-sm text-gray-500 dark:text-gray-400">أو</span>
+          <span className="h-px w-1/3 bg-gray-300 dark:bg-gray-600" />
+        </div>
+
+        <button
+          type="button"
+          onClick={handleGoogleLogin}
+          className="w-full bg-white border hover:bg-gray-100 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-white py-2 rounded-xl flex items-center justify-center gap-2"
+        >
+          <img src="/google-icon.svg" alt="Google" className="w-5 h-5" />
+          تسجيل الدخول بواسطة Google
+        </button>
+      </motion.form>
     </div>
   );
 }

@@ -11,7 +11,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     await connectDB();
 
-    const products = await InventoryProduct.find({ isPublished: false });
+    const products = await InventoryProduct.find({ isPublished: false }).sort({ createdAt: -1 });
 
     res.status(200).json(products);
   } catch (err) {

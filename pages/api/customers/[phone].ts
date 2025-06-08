@@ -1,14 +1,15 @@
-// /pages/api/customers/[phone].ts
+// ✅ ملف: /pages/api/customers/[phone].ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { connectDB } from "@/lib/mongoose";
 import Order from "@/models/Order";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method Not Allowed" });
+    return res.status(405).json({ error: "❌ Method Not Allowed" });
   }
 
   await connectDB();
+
   const { phone } = req.query;
 
   if (!phone || typeof phone !== "string") {
@@ -16,10 +17,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const orders = await Order.find({ phone });
+    const orders = await Order.find({ phone }).sort({ createdAt: -1 }).lean();
 
     if (!orders || orders.length === 0) {
-      return res.status(404).json({ error: "لم يتم العثور على بيانات لهذا الزبون" });
+      return res.status(404).json({ error: "🚫 لم يتم العثور على بيانات لهذا الزبون" });
     }
 
     const name = orders[0].customerName || "زبون";
@@ -34,7 +35,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       orderCount,
       totalSpent,
       orders: orders.map((o) => ({
-        _id: o._id,
+        _id: o._id.toString(),
         total: o.total,
         paid: o.paid || 0,
         status: o.status,
@@ -44,8 +45,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     };
 
     return res.status(200).json(result);
-  } catch (err) {
-    console.error("❌ خطأ أثناء جلب بيانات الزبون:", err);
-    return res.status(500).json({ error: "حدث خطأ أثناء جلب البيانات" });
+  } catch (err: any) {
+    console.error("❌ خطأ أثناء جلب بيانات الزبون:", err.message);
+    return res.status(500).json({ error: "⚠️ حدث خطأ أثناء جلب البيانات" });
   }
 }

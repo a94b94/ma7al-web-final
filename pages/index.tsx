@@ -1,5 +1,10 @@
 "use client";
 
+import { useEffect, useState, useCallback } from "react";
+import { useUser } from "@/context/UserContext";
+import { useCart } from "@/context/CartContext";
+import useSWR from "swr";
+import { motion } from "framer-motion";
 import HeroSection from "@/components/HeroSection";
 import Footer from "@/components/Footer";
 import CategoriesSection from "@/components/CategoriesSection";
@@ -10,11 +15,6 @@ import SeasonalHero from "@/components/SeasonalHero";
 import ProductSlider from "@/components/ProductSlider";
 import InteractiveNavbar from "@/components/shared/InteractiveNavbar";
 import MobileBottomNav from "@/components/shared/MobileBottomNav";
-import { useEffect, useState, useCallback } from "react";
-import { useUser } from "@/context/UserContext";
-import { useCart } from "@/context/CartContext";
-import useSWR from "swr";
-import { motion } from "framer-motion";
 
 export default function HomePage() {
   const { user } = useUser();
@@ -28,7 +28,9 @@ export default function HomePage() {
   const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
   const { data: recData, isLoading: loadingRec } = useSWR(
-    user?.phone || guestId ? `/api/recommendations?userId=${user?.phone || guestId}` : null,
+    typeof window !== "undefined" && (user?.phone || guestId)
+      ? `/api/recommendations?userId=${user?.phone || guestId}`
+      : null,
     fetcher
   );
 
@@ -82,26 +84,39 @@ export default function HomePage() {
         <CountdownBanner />
         <DailyDealBanner />
 
+        {/* 🔥 عروض مميزة */}
         <motion.h2
           className="text-2xl font-bold text-center mt-10 text-indigo-700 dark:text-indigo-400"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.4 }}
         >
           🔥 المنتجات المميزة
         </motion.h2>
-        <ProductSlider products={discountProducts} loading={loading} onAddToCart={handleAddToCart} />
+        <ProductSlider
+          key="discount"
+          products={discountProducts}
+          loading={loading}
+          onAddToCart={handleAddToCart}
+        />
 
+        {/* 🆕 جديد */}
         <motion.h2
           className="text-2xl font-bold text-center mt-10 text-green-700 dark:text-green-400"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
         >
           🆕 وصل حديثًا
         </motion.h2>
-        <ProductSlider products={newProducts} loading={loading} onAddToCart={handleAddToCart} />
+        <ProductSlider
+          key="new"
+          products={newProducts}
+          loading={loading}
+          onAddToCart={handleAddToCart}
+        />
 
+        {/* 🤖 مقترحات */}
         {recData?.recommended?.length > 0 && (
           <motion.div
             className="mt-12"
@@ -113,6 +128,7 @@ export default function HomePage() {
               🧠 مقترحات مخصصة لك
             </h3>
             <ProductSlider
+              key="recommendations"
               products={recData.recommended}
               loading={loadingRec}
               onAddToCart={handleAddToCart}

@@ -1,11 +1,11 @@
-// pages/account.tsx
 "use client";
 
 import { useRouter } from "next/router";
 import { useUser } from "@/context/UserContext";
 import { useEffect } from "react";
-import { LogOut, Settings, LayoutDashboard } from "lucide-react";
+import { LogOut, Settings, LayoutDashboard, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
 
 export default function AccountPage() {
   const { user, logout } = useUser();
@@ -20,8 +20,22 @@ export default function AccountPage() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-md mx-auto bg-white p-6 rounded-lg shadow-md">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 p-6">
+      {/* 🔙 زر الرجوع */}
+      <button
+        onClick={() => router.back()}
+        className="mb-4 flex items-center gap-2 text-blue-600 hover:underline"
+      >
+        <ArrowLeft size={18} />
+        <span>رجوع</span>
+      </button>
+
+      <motion.div
+        className="max-w-md mx-auto bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg"
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+      >
         {/* ✅ صورة واسم المشرف */}
         <div className="flex flex-col items-center mb-6">
           {user.image && (
@@ -32,8 +46,8 @@ export default function AccountPage() {
               loading="lazy"
             />
           )}
-          <h2 className="text-xl font-bold text-gray-800">{user.name}</h2>
-          <p className="text-sm text-gray-500">{user.storeName}</p>
+          <h2 className="text-xl font-bold text-gray-800 dark:text-white">{user.name}</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400">{user.storeName}</p>
         </div>
 
         {/* ✅ الأزرار */}
@@ -68,7 +82,7 @@ export default function AccountPage() {
             تسجيل الخروج
           </Button>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

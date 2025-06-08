@@ -1,10 +1,11 @@
-// pages/register.tsx
 "use client";
 
 import { useState } from "react";
 import { useRouter } from "next/router";
 import toast from "react-hot-toast";
 import Link from "next/link";
+import { GoogleAuthProvider, signInWithPopup, getAuth } from "firebase/auth";
+import { auth } from "@/lib/firebase"; // 🟦 تأكد من إعداد Firebase Client
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -18,6 +19,33 @@ export default function RegisterPage() {
   const [location, setLocation] = useState("");
   const [role, setRole] = useState("owner");
   const [isLoading, setIsLoading] = useState(false);
+
+  const handleGoogleLogin = async () => {
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const token = await result.user.getIdToken();
+
+      const res = await fetch("/api/auth/google-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken: token }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        toast.success("✅ تم تسجيل الدخول بـ Google");
+        localStorage.setItem("token", data.token);
+        router.push("/");
+      } else {
+        toast.error(data.error || "❌ فشل تسجيل الدخول بـ Google");
+      }
+    } catch (error: any) {
+      console.error(error);
+      toast.error("⚠️ فشل تسجيل الدخول بـ Google");
+    }
+  };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,10 +68,10 @@ export default function RegisterPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name,
-          email,
+          name: name.trim(),
+          email: email.trim().toLowerCase(),
           password,
-          storeName,
+          storeName: storeName.trim(),
           storeLogo,
           whatsappNumber: `964${cleanedNumber}`,
           location,
@@ -57,7 +85,7 @@ export default function RegisterPage() {
         toast.success("✅ تم إنشاء الحساب بنجاح");
         router.push("/login");
       } else {
-        toast.error(data.error || "❌ حدث خطأ أثناء التسجيل");
+        toast.error(data.message || "❌ حدث خطأ أثناء التسجيل");
       }
     } catch {
       toast.error("⚠️ حدث خطأ غير متوقع");
@@ -87,86 +115,44 @@ export default function RegisterPage() {
         onSubmit={handleRegister}
         className="w-full max-w-lg bg-white p-6 rounded-xl shadow-md space-y-4"
       >
-        <h2 className="text-2xl font-bold text-center text-blue-700 mb-4">📝 إنشاء حساب مشرف</h2>
-
-        <input
-          type="text"
-          placeholder="👤 الاسم الكامل"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="w-full border p-3 rounded"
-        />
-
-        <input
-          type="email"
-          placeholder="📧 البريد الإلكتروني"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="w-full border p-3 rounded"
-        />
-
-        <input
-          type="password"
-          placeholder="🔒 كلمة المرور"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="w-full border p-3 rounded"
-        />
-
-        <input
-          type="text"
-          placeholder="🏪 اسم المتجر"
-          value={storeName}
-          onChange={(e) => setStoreName(e.target.value)}
-          className="w-full border p-3 rounded"
-        />
+        <h2 className="text-2xl font-bold text-center text-blue-700 mb-4">
+          📝 إنشاء حساب مشرف
+        </h2>
 
         <button
           type="button"
-          onClick={handleUploadLogo}
-          className="w-full bg-gray-100 text-blue-600 py-2 rounded hover:bg-gray-200"
+          onClick={handleGoogleLogin}
+          className="w-full bg-red-500 hover:bg-red-600 text-white py-2 rounded"
         >
-          📤 {storeLogo ? "✅ تم رفع الشعار" : "رفع شعار المتجر"}
+          🔐 التسجيل عبر Google
         </button>
 
-        <input
-          type="tel"
-          placeholder="📱 رقم واتساب"
-          value={whatsappNumber}
-          onChange={(e) => setWhatsappNumber(e.target.value)}
-          className="w-full border p-3 rounded"
-        />
+        <div className="border-b my-4"></div>
 
-        <select
-          value={location}
-          onChange={(e) => setLocation(e.target.value)}
-          className="w-full border p-3 rounded text-gray-700"
-        >
+        {/* الحقول اليدوية للتسجيل */}
+        <input type="text" placeholder="👤 الاسم الكامل" value={name} onChange={(e) => setName(e.target.value)} className="w-full border p-3 rounded" />
+        <input type="email" placeholder="📧 البريد الإلكتروني" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full border p-3 rounded" />
+        <input type="password" placeholder="🔒 كلمة المرور" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full border p-3 rounded" />
+        <input type="text" placeholder="🏪 اسم المتجر" value={storeName} onChange={(e) => setStoreName(e.target.value)} className="w-full border p-3 rounded" />
+        <button type="button" onClick={handleUploadLogo} className="w-full bg-gray-100 text-blue-600 py-2 rounded hover:bg-gray-200">
+          📤 {storeLogo ? "✅ تم رفع الشعار" : "رفع شعار المتجر"}
+        </button>
+        <input type="tel" placeholder="📱 رقم واتساب" value={whatsappNumber} onChange={(e) => setWhatsappNumber(e.target.value)} className="w-full border p-3 rounded" />
+
+        <select value={location} onChange={(e) => setLocation(e.target.value)} className="w-full border p-3 rounded text-gray-700">
           <option value="">📍 اختر المحافظة</option>
-          <option value="بغداد">بغداد</option>
-          <option value="أربيل">أربيل</option>
-          <option value="البصرة">البصرة</option>
-          <option value="نينوى">نينوى</option>
-          <option value="النجف">النجف</option>
-          <option value="ذي قار">ذي قار</option>
-          <option value="صلاح الدين">صلاح الدين</option>
+          {["بغداد", "أربيل", "البصرة", "نينوى", "النجف", "ذي قار", "صلاح الدين"].map((city) => (
+            <option key={city} value={city}>{city}</option>
+          ))}
         </select>
 
-        <select
-          value={role}
-          onChange={(e) => setRole(e.target.value)}
-          className="w-full border p-3 rounded text-gray-700"
-        >
+        <select value={role} onChange={(e) => setRole(e.target.value)} className="w-full border p-3 rounded text-gray-700">
           <option value="owner">🏪 صاحب محل</option>
           <option value="manager">👨‍💼 مدير</option>
           <option value="support">🛠️ دعم فني</option>
         </select>
 
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="w-full bg-blue-600 text-white py-3 rounded hover:bg-blue-700"
-        >
+        <button type="submit" disabled={isLoading} className="w-full bg-blue-600 text-white py-3 rounded hover:bg-blue-700">
           {isLoading ? "⏳ جاري التسجيل..." : "إنشاء الحساب"}
         </button>
 
@@ -177,11 +163,7 @@ export default function RegisterPage() {
           </Link>
         </p>
 
-        <script
-          src="https://ucarecdn.com/libs/widget/3.x/uploadcare.full.min.js"
-          data-public-key="767dc761271f23d1f796"
-          defer
-        ></script>
+        <script src="https://ucarecdn.com/libs/widget/3.x/uploadcare.full.min.js" data-public-key="767dc761271f23d1f796" defer></script>
       </form>
     </div>
   );

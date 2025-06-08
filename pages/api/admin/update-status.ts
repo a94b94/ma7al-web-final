@@ -1,3 +1,5 @@
+// pages/api/orders/update-status.ts
+
 import type { NextApiRequest, NextApiResponse } from "next";
 import connectToDatabase from "@/lib/mongodb";
 import Order from "@/models/Order";
@@ -12,7 +14,7 @@ const allowedStatuses = [
   "ملغي",
 ];
 
-// 🟢 دالة إرسال رسالة واتساب
+// 🟢 إرسال رسالة واتساب
 async function sendWhatsAppMessage(phone: string, message: string) {
   try {
     const res = await fetch("https://ma7al-whatsapp-production.up.railway.app/send-message", {
@@ -31,23 +33,30 @@ async function sendWhatsAppMessage(phone: string, message: string) {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "PUT") {
-    return res.status(405).json({ error: "🚫 Method Not Allowed" });
+    return res.status(405).json({ success: false, message: "🚫 الطريقة غير مدعومة" });
   }
 
   try {
-    const user = verifyToken(req);
+    // ✅ تحقق من التوكن
+    let user;
+    try {
+      user = verifyToken(req);
+    } catch (err) {
+      return res.status(401).json({ success: false, message: "🚫 توكن غير صالح أو مفقود" });
+    }
+
     if (!user || !user.email) {
-      return res.status(401).json({ error: "🚫 غير مصرح" });
+      return res.status(401).json({ success: false, message: "🚫 غير مصرح" });
     }
 
     const { id, status } = req.body;
 
-    if (!id || !status) {
-      return res.status(400).json({ error: "❌ البيانات غير مكتملة" });
+    if (!id || typeof id !== "string" || !status || typeof status !== "string") {
+      return res.status(400).json({ success: false, message: "❌ البيانات غير مكتملة أو غير صحيحة" });
     }
 
     if (!allowedStatuses.includes(status)) {
-      return res.status(400).json({ error: "❌ حالة غير صالحة" });
+      return res.status(400).json({ success: false, message: "❌ حالة غير معتمدة" });
     }
 
     await connectToDatabase();
@@ -55,10 +64,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const updatedOrder = await Order.findByIdAndUpdate(id, { status }, { new: true });
 
     if (!updatedOrder) {
-      return res.status(404).json({ error: "❌ الطلب غير موجود" });
+      return res.status(404).json({ success: false, message: "❌ الطلب غير موجود" });
     }
 
-    // 🟡 إرسال رسالة حسب الحالة
+    // 🟡 رسائل الحالة
     const statusMessages: Record<string, string> = {
       "بانتظار التأكيد": "طلبك قيد المراجعة ✅",
       "قيد المعالجة": "طلبك قيد المعالجة حاليًا 🛠️",
@@ -68,20 +77,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       "ملغي": "❌ تم إلغاء طلبك، يمكنك التواصل معنا للاستفسار.",
     };
 
-    const phone = updatedOrder.phone?.trim();
+    const phone = updatedOrder.phone?.toString().trim();
     const message = statusMessages[status];
 
     if (phone && message) {
-      await sendWhatsAppMessage(phone, message);
+      const sent = await sendWhatsAppMessage(phone, message);
+      if (!sent) {
+        console.warn("⚠️ لم يتم إرسال إشعار واتساب بنجاح");
+      }
     }
 
     return res.status(200).json({
       success: true,
-      message: "✅ تم تحديث الحالة وإرسال إشعار واتساب",
+      message: "✅ تم تحديث الحالة" + (phone ? " وإرسال إشعار واتساب" : ""),
       order: updatedOrder,
     });
   } catch (err: any) {
-    console.error("⛔ فشل في تحديث الطلب:", err.message);
-    return res.status(500).json({ error: "⚠️ حدث خطأ داخلي" });
+    console.error("⛔ خطأ داخلي:", err.message);
+    return res.status(500).json({ success: false, message: "⚠️ حدث خطأ داخلي", error: err.message });
   }
 }

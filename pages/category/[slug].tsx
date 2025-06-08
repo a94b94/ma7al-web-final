@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useCart } from "@/context/CartContext";
 import toast from "react-hot-toast";
-import { ShoppingCart, Eye } from "lucide-react";
+import { ShoppingCart, Eye, ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -25,8 +25,8 @@ export default function CategoryPage() {
       name: product.name,
       price: product.price,
       image: product.image,
-      storeId: product.storeId, // ✅ مضافة
-      storeName: product.storeName, // ✅ مضافة
+      storeId: product.storeId,
+      storeName: product.storeName,
     });
     toast.success("✅ تم إضافة المنتج إلى السلة!");
   };
@@ -37,8 +37,18 @@ export default function CategoryPage() {
     return <p className="text-center mt-10 text-gray-600">⏳ جاري تحميل المنتجات...</p>;
 
   return (
-    <div className="bg-[#f9f9f9] min-h-screen py-12 px-4 sm:px-8">
+    <div className="bg-[#f9f9f9] min-h-screen py-10 px-4 sm:px-8">
       <div className="max-w-7xl mx-auto">
+        {/* 🔙 زر الرجوع */}
+        <div className="mb-6">
+          <button
+            onClick={() => router.back()}
+            className="flex items-center gap-1 text-blue-600 hover:text-blue-800 transition"
+          >
+            <ArrowLeft size={18} /> رجوع
+          </button>
+        </div>
+
         <motion.h1
           className="text-3xl sm:text-4xl font-bold text-gray-800 mb-10 text-center"
           initial={{ opacity: 0, y: -30 }}

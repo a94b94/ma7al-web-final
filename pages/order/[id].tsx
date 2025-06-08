@@ -2,7 +2,9 @@
 
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
-import Invoice from "@/components/Invoice"; // ✅ مكون الفاتورة
+import Invoice from "@/components/Invoice";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowLeft } from "lucide-react";
 
 interface Order {
   _id: string;
@@ -65,34 +67,78 @@ export default function OrderPage() {
     }
   }, [id]);
 
-  if (loading) return <p className="p-4 text-center">⏳ جاري التحميل...</p>;
-
-  if (error) {
-    return (
-      <div className="p-4 text-center text-red-600">
-        <p>{error}</p>
-        <button
-          onClick={() => id && typeof id === "string" && fetchOrder(id)}
-          className="mt-3 px-4 py-2 bg-blue-600 text-white rounded"
-        >
-          🔁 إعادة المحاولة
-        </button>
-      </div>
-    );
-  }
-
-  if (!order) return <p className="p-4 text-center">📭 لم يتم العثور على الطلب</p>;
+  const handleBack = () => {
+    router.back();
+  };
 
   return (
-    <div className="max-w-3xl mx-auto p-6 bg-white dark:bg-gray-800 rounded shadow my-8">
-      <Invoice
-        invoiceNumber={order._id}
-        date={new Date(order.createdAt).toLocaleDateString("ar-EG")}
-        companyName={storeName}
-        phone={order.phone}
-        address={storeAddress}
-        items={order.cart}
-      />
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-4 flex items-center justify-center">
+      <div className="w-full max-w-3xl">
+        <button
+          onClick={handleBack}
+          className="mb-4 flex items-center gap-2 text-blue-600 hover:underline hover:text-blue-800"
+        >
+          <ArrowLeft size={20} />
+          <span>رجوع</span>
+        </button>
+
+        <AnimatePresence>
+          {loading ? (
+            <motion.p
+              key="loading"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="text-center text-gray-600 dark:text-gray-300"
+            >
+              ⏳ جاري تحميل الفاتورة...
+            </motion.p>
+          ) : error ? (
+            <motion.div
+              key="error"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="text-center text-red-600 dark:text-red-400"
+            >
+              <p>{error}</p>
+              <button
+                onClick={() => id && typeof id === "string" && fetchOrder(id)}
+                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                🔁 إعادة المحاولة
+              </button>
+            </motion.div>
+          ) : order ? (
+            <motion.div
+              key="invoice"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="bg-white dark:bg-gray-800 p-6 rounded shadow"
+            >
+              <Invoice
+                invoiceNumber={order._id}
+                date={new Date(order.createdAt).toLocaleDateString("ar-EG")}
+                companyName={storeName}
+                phone={order.phone}
+                address={storeAddress}
+                items={order.cart}
+              />
+            </motion.div>
+          ) : (
+            <motion.p
+              key="not-found"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="text-center text-gray-500 dark:text-gray-400"
+            >
+              📭 لم يتم العثور على الطلب
+            </motion.p>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }

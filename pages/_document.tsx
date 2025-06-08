@@ -9,31 +9,34 @@ export default class MyDocument extends Document {
           {/* 1. تعيين ترميز الصفحة */}
           <meta charSet="UTF-8" />
 
-          {/* 2. preconnect للربط مع Google Fonts */}
+          {/* 2. preconnect لتحسين تحميل الخطوط */}
           <link rel="preconnect" href="https://fonts.googleapis.com" />
-          <link
-            rel="preconnect"
-            href="https://fonts.gstatic.com"
-            crossOrigin="anonymous"
-          />
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
 
-          {/* 3. تحميل مسبق (preload) لخط Cairo لتحسين الأداء */}
+          {/* 3. تحميل خط Cairo */}
           <link
-            rel="preload"
-            as="style"
-            href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap"
-          />
-          <link
-            href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap"
             rel="stylesheet"
+            href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap"
           />
 
-          {/* 4. (اختياري) يمكنك إضافة favicon هنا */}
-          {/* <link rel="icon" href="/favicon.ico" /> */}
+          {/* 4. أيقونة المتصفح */}
+          <link rel="icon" href="/favicon.ico" />
         </Head>
-        <body className="font-cairo bg-background text-foreground">
-          <Main />
+
+        <body className="font-cairo bg-white text-gray-900 dark:bg-gray-900 dark:text-white transition-colors duration-300">
+          {/* ✅ زر رجوع (للصفحات المستقلة مثل الخطأ أو loading) */}
+          <div id="page-wrapper" className="min-h-screen">
+            <Main />
+          </div>
           <NextScript />
+
+          {/* ✅ fallback للخط إن لم يتم تحميله تلقائيًا */}
+          <noscript>
+            <link
+              href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap"
+              rel="stylesheet"
+            />
+          </noscript>
         </body>
       </Html>
     );

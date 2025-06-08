@@ -1,10 +1,10 @@
+// pages/api/orders/multi-store.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import connectToDatabase from "@/lib/mongodb";
-import Order from "@/models/Order";
+import Order, { IOrder } from "@/models/Order";
 import NotificationModel from "@/models/Notification";
 import { verifyToken } from "@/middleware/auth";
 import type { HydratedDocument } from "mongoose";
-import type { IOrder } from "@/models/Order"; // تأكد من وجود هذا النوع داخل موديل Order
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
@@ -22,28 +22,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       !address || typeof address !== "string" ||
       typeof total !== "number"
     ) {
-      return res.status(400).json({ error: "❗ تأكد من جميع الحقول" });
+      return res.status(400).json({ error: "❗ تأكد من جميع الحقول المطلوبة" });
     }
 
-    // ✅ استخراج بيانات المستخدم من التوكن
+    // ✅ استخراج المستخدم من التوكن
     let email = "";
     let userName = "زائر";
     try {
-      const user = verifyToken(req);
+      const user = verifyToken(req) as { email?: string; name?: string };
       email = user?.email || "";
       userName = user?.name || "مستخدم";
     } catch {
-      // لا تفعل شيء، المستخدم زائر
+      // المستخدم غير مسجل الدخول
     }
 
-    // ✅ تجميع المنتجات حسب المتجر
-    const groupedByStore: { [key: string]: typeof cart } = {};
-    cart.forEach((item) => {
-      if (!groupedByStore[item.storeId]) {
-        groupedByStore[item.storeId] = [];
+    const groupedByStore: { [storeId: string]: typeof cart } = {};
+    for (const item of cart) {
+      if (!item.storeId || typeof item.storeId !== "string") {
+        return res.status(400).json({ error: "❗ كل منتج يجب أن يحتوي على storeId صالح" });
       }
+      groupedByStore[item.storeId] ??= [];
       groupedByStore[item.storeId].push(item);
-    });
+    }
 
     const createdOrders: HydratedDocument<IOrder>[] = [];
 
@@ -51,7 +51,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const storeCart = groupedByStore[storeId];
       const storeTotal = storeCart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-      const order = await Order.create({
+      const newOrder = await Order.create({
         cart: storeCart,
         phone,
         address,
@@ -61,17 +61,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         storeId,
         seen: false,
         status: "بانتظار التأكيد",
+        createdAt: new Date(),
       });
 
       await NotificationModel.create({
         userId: phone,
-        orderId: order._id,
+        orderId: newOrder._id,
         message: `📦 تم تسجيل طلب جديد بقيمة ${storeTotal.toLocaleString()} د.ع`,
         type: "order",
         sentBy: userName,
+        createdAt: new Date(),
       });
 
-      createdOrders.push(order);
+      createdOrders.push(newOrder);
     }
 
     return res.status(201).json({ success: true, orders: createdOrders });

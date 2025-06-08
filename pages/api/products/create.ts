@@ -1,67 +1,78 @@
+// pages/api/products/create.ts
 import type { NextApiRequest, NextApiResponse } from "next";
-import dbConnect from "@/utils/dbConnect";
+import { HydratedDocument } from "mongoose";
+import dbConnect from "@/lib/mongodb";
 import Product from "@/models/Product";
+import Notification from "@/models/Notification";
+import redis from "@/lib/redis";
+import { verifyToken } from "@/lib/auth";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
-    return res.status(405).json({ success: false, message: "❌ الطريقة غير مسموحة" });
+    return res.status(405).json({ message: "❌ الطريقة غير مسموحة" });
   }
 
   try {
     await dbConnect();
+
+    const user = verifyToken(req);
+    if (!user || !user.id || !["manager", "owner"].includes(user.role || "")) {
+      return res.status(401).json({ message: "❌ غير مصرح لك بإضافة المنتجات" });
+    }
 
     const {
       name,
       price,
       category,
       images,
-      barcode,
-      discount = 0,
       isFeatured = false,
-      highlightHtml = ""
+      discount = 0,
+      stock = 0,
+      location = "",
+      barcode,
     } = req.body;
 
-    // ✅ تحقق من الحقول المطلوبة
     if (
-      !name || typeof name !== "string" ||
-      !category || typeof category !== "string" ||
-      !Array.isArray(images) || images.length === 0 ||
-      price === undefined || typeof price !== "number"
+      typeof name !== "string" ||
+      typeof price !== "number" ||
+      typeof category !== "string" ||
+      !Array.isArray(images) ||
+      images.length === 0
     ) {
-      return res.status(400).json({
-        success: false,
-        message: "❗ جميع الحقول المطلوبة يجب تعبئتها بشكل صحيح"
-      });
-    }
-
-    // ✅ التحقق من وجود المنتج بنفس الباركود
-    if (barcode && typeof barcode === "string") {
-      const exists = await Product.findOne({ barcode });
-      if (exists) {
-        return res.status(409).json({
-          success: false,
-          message: "⚠️ يوجد منتج بنفس الباركود بالفعل"
-        });
-      }
+      return res.status(400).json({ message: "❗ تأكد من إدخال الاسم، السعر، القسم، والصورة" });
     }
 
     const newProduct = await Product.create({
-      name,
+      name: name.trim(),
       price,
-      category,
-      images,
-      barcode: barcode || "",
-      discount,
+      category: category.trim(),
+      images: images.map((img: string) => img.trim()),
       isFeatured,
-      highlightHtml,
+      discount,
+      stock,
+      location: location?.trim() || "",
+      barcode: barcode?.trim() || "",
+      storeId: user.id,
+    }) as HydratedDocument<typeof Product.prototype>;
+
+    await Notification.create({
+      userId: user.id,
+      title: "🆕 منتج جديد",
+      message: `تمت إضافة المنتج (${newProduct.name}) بنجاح.`,
+      type: "product",
     });
 
+    const cacheKey = `product:${newProduct._id.toString()}`;
+    await redis.set(
+      cacheKey,
+      JSON.stringify({ ...newProduct.toObject(), _id: newProduct._id.toString() }),
+      "EX",
+      600
+    );
+
     return res.status(201).json({ success: true, product: newProduct });
-  } catch (error: any) {
-    console.error("❌ خطأ أثناء حفظ المنتج:", error.message);
-    return res.status(500).json({
-      success: false,
-      message: "⚠️ حدث خطأ غير متوقع أثناء حفظ المنتج"
-    });
+  } catch (err: any) {
+    console.error("❌ خطأ في إنشاء المنتج:", err.message);
+    return res.status(500).json({ message: "⚠️ خطأ في السيرفر، حاول لاحقًا" });
   }
 }

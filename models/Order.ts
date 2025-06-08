@@ -1,5 +1,7 @@
 import mongoose, { Document, Model, Schema } from "mongoose";
 
+const ObjectId = mongoose.Schema.Types.ObjectId;
+
 export interface IOrder extends Document {
   phone: string;
   customerName?: string;
@@ -11,8 +13,8 @@ export interface IOrder extends Document {
     name: string;
     quantity: number;
     price: number;
-    productId?: string;
-    storeId?: string;
+    productId?: mongoose.Types.ObjectId;
+    storeId?: mongoose.Types.ObjectId;
     storeName?: string;
   }[];
 
@@ -37,7 +39,7 @@ export interface IOrder extends Document {
   }[];
 
   email?: string;
-  storeId: string;
+  storeId: mongoose.Types.ObjectId;
   storeName: string;
 
   createdAt?: Date;
@@ -84,8 +86,8 @@ const OrderSchema = new Schema<IOrder>(
         name: { type: String, required: true },
         quantity: { type: Number, required: true },
         price: { type: Number, required: true },
-        productId: { type: String },
-        storeId: { type: String },
+        productId: { type: ObjectId, ref: "Product" },
+        storeId: { type: ObjectId, ref: "Store" },
         storeName: { type: String },
       },
     ],
@@ -120,7 +122,9 @@ const OrderSchema = new Schema<IOrder>(
     installments: [InstallmentSchema],
 
     email: { type: String },
-    storeId: { type: String, required: true },
+
+    // ✅ ربط الطلب بالمتجر فعليًا
+    storeId: { type: ObjectId, ref: "Store", required: true },
     storeName: { type: String, required: true },
   },
   { timestamps: true }

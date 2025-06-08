@@ -2,16 +2,17 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { connectDB } from "@/lib/mongoose";
 import InventoryProduct from "@/models/InventoryProduct";
+import mongoose from "mongoose";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const { id } = req.query;
+  const id = Array.isArray(req.query.id) ? req.query.id[0] : req.query.id;
 
   if (req.method !== "PUT") {
-    return res.status(405).json({ error: "Method Not Allowed" });
+    return res.status(405).json({ error: "طريقة الطلب غير مسموحة" });
   }
 
-  if (!id || typeof id !== "string") {
-    return res.status(400).json({ error: "معرّف غير صالح" });
+  if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ error: "معرّف المنتج غير صالح" });
   }
 
   try {
@@ -24,12 +25,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     );
 
     if (!updated) {
-      return res.status(404).json({ error: "المنتج غير موجود" });
+      return res.status(404).json({ error: "❌ المنتج غير موجود في قاعدة البيانات" });
     }
 
-    return res.status(200).json({ success: true, product: updated });
+    return res.status(200).json({ success: true, product: updated, message: "✅ تم إلغاء نشر المنتج" });
   } catch (error) {
-    console.error("❌ فشل في إلغاء النشر:", error);
-    return res.status(500).json({ error: "فشل في إلغاء النشر" });
+    console.error("❌ خطأ أثناء إلغاء النشر:", error);
+    return res.status(500).json({ error: "حدث خطأ داخلي أثناء إلغاء النشر" });
   }
 }

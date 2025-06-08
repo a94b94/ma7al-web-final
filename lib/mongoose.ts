@@ -1,25 +1,34 @@
-// lib/mongoose.js أو mongoose.ts
+// lib/mongoose.ts
 import mongoose from "mongoose";
 
-let isConnected = false;
+const MONGODB_URI = process.env.MONGODB_URI!;
+
+if (!MONGODB_URI) {
+  throw new Error("❌ MONGODB_URI غير معرف في ملف البيئة");
+}
+
+// ✅ كاش اتصال عام يدعم hot reload في التطوير
+let cached = (global as any).mongoose;
+
+if (!cached) {
+  cached = (global as any).mongoose = { conn: null, promise: null };
+}
 
 export async function connectDB() {
-  if (isConnected) return;
+  if (cached.conn) return cached.conn;
 
-  const uri = process.env.MONGODB_URI;
-  if (!uri) {
-    throw new Error("❌ MONGODB_URI غير محدد في المتغيرات البيئية");
-  }
-
-  try {
-    const db = await mongoose.connect(uri, {
-      // خيارات إضافية لتفادي التحذيرات
+  if (!cached.promise) {
+    cached.promise = mongoose.connect(MONGODB_URI, {
       bufferCommands: false,
+    }).then((mongoose) => {
+      console.log("✅ تم الاتصال بقاعدة البيانات MongoDB");
+      return mongoose;
+    }).catch((err) => {
+      console.error("❌ فشل الاتصال بقاعدة البيانات:", err);
+      throw err;
     });
-    isConnected = true;
-    console.log("✅ تم الاتصال بقاعدة البيانات MongoDB");
-  } catch (error) {
-    console.error("❌ فشل الاتصال بقاعدة البيانات:", error);
-    throw error;
   }
+
+  cached.conn = await cached.promise;
+  return cached.conn;
 }

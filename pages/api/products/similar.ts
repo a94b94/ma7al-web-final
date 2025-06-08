@@ -1,45 +1,51 @@
 // pages/api/products/similar.ts
 import type { NextApiRequest, NextApiResponse } from "next";
-import { connectDB } from "@/lib/mongoose";
+import dbConnect from "@/lib/mongodb";
 import Product from "@/models/Product";
-import mongoose from "mongoose";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
-    return res.status(405).json({ error: "❌ الطريقة غير مسموحة" });
+    return res.status(405).json({ error: "❌ الطريقة غير مدعومة" });
   }
 
-  await connectDB();
-
-  const { category, exclude } = req.query;
+  const { category, excludeId } = req.query;
 
   if (!category || typeof category !== "string") {
-    return res.status(400).json({ error: "❗ الفئة غير محددة أو غير صحيحة" });
-  }
-
-  const filter: any = {
-    category,
-    isPublished: true,
-  };
-
-  if (
-    exclude &&
-    typeof exclude === "string" &&
-    mongoose.Types.ObjectId.isValid(exclude)
-  ) {
-    filter._id = { $ne: new mongoose.Types.ObjectId(exclude) };
+    return res.status(400).json({ error: "❗يجب تحديد القسم" });
   }
 
   try {
-    const products = await Product.find(filter)
-      .populate("storeId", "name") // ✅ جلب اسم المتجر فقط
+    await dbConnect();
+
+    const products = await Product.find({
+      category,
+      isPublished: true,
+      _id: { $ne: excludeId },
+    })
+      .populate("storeId", "name")
       .sort({ createdAt: -1 })
-      .limit(8)
+      .limit(10)
       .lean();
 
-    return res.status(200).json(products);
+    const cleaned = products.map((p: any) => {
+      const store =
+        typeof p.storeId === "object" && "name" in p.storeId
+          ? {
+              _id: p.storeId._id?.toString?.() || undefined,
+              name: p.storeId.name || "",
+            }
+          : null;
+
+      return {
+        ...p,
+        _id: p._id.toString(),
+        storeId: store,
+      };
+    });
+
+    return res.status(200).json(cleaned);
   } catch (error: any) {
-    console.error("❌ فشل في جلب المنتجات المشابهة:", error.message || error);
-    return res.status(500).json({ error: "⚠️ حدث خطأ أثناء جلب المنتجات المشابهة" });
+    console.error("❌ خطأ أثناء جلب المنتجات المشابهة:", error.message || error);
+    return res.status(500).json({ error: "⚠️ فشل في جلب المنتجات المشابهة" });
   }
 }

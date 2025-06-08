@@ -12,7 +12,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const cacheKey = "all-products-latest";
 
   try {
-    // ✅ جرب الكاش أولًا
+    // ✅ تحقق من Redis أولًا
     const cached = await redis.get(cacheKey);
     if (cached) {
       return res.status(200).json(JSON.parse(cached));
@@ -20,15 +20,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     await connectToDatabase();
 
+    // ✅ جلب المنتجات مع اسم المتجر فقط
     const products = await Product.find({ isPublished: true })
+      .populate("storeId", "name") // فقط الاسم
       .sort({ createdAt: -1 })
       .limit(12)
       .lean();
 
-    // ✅ خزّن النتيجة في Redis لمدة 60 ثانية
-    await redis.set(cacheKey, JSON.stringify(products), "EX", 60);
+    // ✅ تنظيف وتنسيق البيانات
+    const cleaned = products.map((p) => ({
+      ...p,
+      _id: p._id.toString(),
+      storeId:
+        p.storeId && typeof p.storeId === "object" && "name" in p.storeId
+          ? {
+              _id: (p.storeId as any)._id?.toString?.() || undefined,
+              name: (p.storeId as any).name || "",
+            }
+          : null,
+    }));
 
-    return res.status(200).json(products);
+    // ✅ تخزين النتيجة في Redis لمدة 120 ثانية
+    await redis.set(cacheKey, JSON.stringify(cleaned), "EX", 120);
+
+    return res.status(200).json(cleaned);
   } catch (error: any) {
     console.error("❌ خطأ أثناء جلب المنتجات:", error.message || error);
     return res.status(500).json({ error: "⚠️ فشل في جلب المنتجات" });

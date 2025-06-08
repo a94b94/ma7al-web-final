@@ -1,8 +1,9 @@
 // pages/api/orders/split.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { connectDB } from "@/lib/mongoose";
-import Order, { IOrder } from "@/models/Order"; // ✅ تأكد من تصدير IOrder من الموديل
-import { HydratedDocument } from "mongoose";
+import Order, { IOrder } from "@/models/Order";
+import Notification from "@/models/Notification";
+import type { HydratedDocument } from "mongoose";
 
 interface CartItem {
   productId?: string;
@@ -15,7 +16,7 @@ interface CartItem {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method Not Allowed" });
+    return res.status(405).json({ error: "❌ Method Not Allowed" });
   }
 
   const { phone, address, cart, paymentMethod } = req.body;
@@ -53,6 +54,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       storeId,
       storeName,
       type: paymentMethod === "cash" ? "cash" : "installment",
+      createdAt: new Date(),
+    });
+
+    await Notification.create({
+      userId: storeId,
+      type: "order",
+      message: `📦 طلب جديد من ${phone} بقيمة ${total.toLocaleString()} د.ع`,
+      orderId: newOrder._id,
+      seen: false,
+      createdAt: new Date(),
     });
 
     createdOrders.push(newOrder);

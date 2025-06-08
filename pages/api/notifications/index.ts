@@ -5,21 +5,35 @@ import NotificationModel from "@/models/Notification";
 import { connectDB } from "@/lib/mongoose";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  await connectDB();
-
-  const { userId } = req.query;
+  if (req.method !== "GET") {
+    return res.status(405).json({ success: false, error: "❌ Method Not Allowed" });
+  }
 
   try {
-    // ⚠️ تأكد من تمرير userId من الواجهة
-    const filter = userId ? { userId } : {};
+    await connectDB();
+
+    const { userId } = req.query;
+
+    // ⚠️ التحقق من صلاحية userId (إن وجد)
+    let filter: any = {};
+    if (userId && typeof userId === "string") {
+      filter.userId = userId;
+    }
 
     const notifications = await NotificationModel.find(filter)
       .sort({ createdAt: -1 })
       .populate("orderId");
 
-    res.status(200).json(notifications);
+    return res.status(200).json({
+      success: true,
+      count: notifications.length,
+      notifications,
+    });
   } catch (error) {
     console.error("❌ خطأ في جلب الإشعارات:", error);
-    res.status(500).json({ message: "حدث خطأ في جلب الإشعارات" });
+    return res.status(500).json({
+      success: false,
+      error: "🚨 حدث خطأ أثناء جلب الإشعارات",
+    });
   }
 }

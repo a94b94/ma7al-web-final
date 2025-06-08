@@ -1,7 +1,12 @@
+// pages/api/products/add.ts
+
 import type { NextApiRequest, NextApiResponse } from "next";
-import dbConnect from "@/utils/dbConnect";
+import { connectDB } from "@/lib/mongoose";
 import Product from "@/models/Product";
-import { verifyToken } from "@/middleware/auth";
+import NotificationModel from "@/models/Notification";
+import redis from "@/lib/redis";
+import { verifyToken } from "@/lib/auth";
+import type { HydratedDocument } from "mongoose";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
@@ -9,12 +14,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    await dbConnect();
+    await connectDB();
 
-    // ✅ تحقق من التوكن
     const user = verifyToken(req);
-    if (!user || !user._id) {
-      return res.status(401).json({ message: "❌ غير مصرح لك" });
+    if (!user || !user.id || user.role !== "manager") {
+      return res.status(401).json({ message: "🚫 غير مصرح لك بإضافة منتج" });
     }
 
     const {
@@ -28,13 +32,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       location = "",
     } = req.body;
 
-    // ✅ تحقق من الحقول المطلوبة
     if (!name || !price || !category || !images || !Array.isArray(images) || images.length === 0) {
       return res.status(400).json({ message: "❌ تأكد من إدخال الاسم، السعر، القسم، والصورة" });
     }
 
-    // ✅ إنشاء المنتج الجديد
-    const newProduct = await Product.create({
+    const newProduct: HydratedDocument<typeof Product.prototype> = await Product.create({
       name: name.trim(),
       price: Number(price),
       category: category.trim(),
@@ -42,9 +44,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       isFeatured,
       discount: Number(discount),
       stock: Number(stock),
-      location: location?.trim() || "",
-      storeId: user._id, // ربط المنتج بصاحب الحساب
+      location: location.trim(),
+      storeId: user.id,
     });
+
+    await NotificationModel.create({
+      userId: user.id,
+      type: "product_add",
+      title: `🆕 منتج جديد`,
+      message: `تم إضافة المنتج (${newProduct.name}) بنجاح`,
+      seen: false,
+      orderId: null,
+    });
+
+    const cacheKey = `product:${newProduct._id.toString()}`;
+    await redis.set(
+      cacheKey,
+      JSON.stringify({
+        ...newProduct.toObject(),
+        _id: newProduct._id.toString(),
+      }),
+      "EX",
+      600
+    );
 
     return res.status(201).json({ success: true, product: newProduct });
   } catch (err: any) {

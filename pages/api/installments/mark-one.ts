@@ -9,10 +9,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     await connectDB();
+
     const { orderId, installmentIndex } = req.body;
 
-    if (!orderId || installmentIndex === undefined) {
-      return res.status(400).json({ success: false, message: "بيانات غير مكتملة" });
+    // التحقق من المدخلات
+    if (!orderId || typeof installmentIndex !== "number") {
+      return res.status(400).json({ success: false, message: "بيانات غير مكتملة أو غير صالحة" });
     }
 
     const order = await Order.findById(orderId);
@@ -21,19 +23,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const installment = order.installments[installmentIndex];
+
     if (installment.paid) {
       return res.status(400).json({ success: false, message: "هذا القسط مدفوع مسبقًا" });
     }
 
-    // تحديث القسط
+    // تحديث القسط كمدفوع
+    const paidAt = new Date();
     installment.paid = true;
-    installment.paidAt = new Date();
+    installment.paidAt = paidAt;
 
-    // تحديث المبالغ
+    // تحديث القيم المالية
     order.paid = (order.paid || 0) + installment.amount;
-    order.remaining = order.total - order.paid;
+    order.remaining = Math.max(order.total - order.paid, 0);
 
-    // تحديث الحالة إذا تم الدفع الكامل
+    // تحديث الحالة النهائية إذا تم الدفع الكامل
     if (order.paid >= order.total) {
       order.status = "مكتمل";
     }
@@ -44,9 +48,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       success: true,
       paid: order.paid,
       remaining: order.remaining,
-      paidAt: installment.paidAt,
+      paidAt: paidAt.toISOString(),
       amount: installment.amount,
     });
+
   } catch (err) {
     console.error("❌ خطأ في حفظ القسط:", err);
     return res.status(500).json({ success: false, message: "حدث خطأ أثناء الحفظ" });

@@ -7,20 +7,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     await dbConnect();
   } catch (err) {
-    return res.status(500).json({ success: false, message: "❌ فشل الاتصال بقاعدة البيانات" });
+    return res.status(500).json({
+      success: false,
+      message: "❌ فشل الاتصال بقاعدة البيانات",
+    });
   }
 
   const { id } = req.query;
 
   if (!id || typeof id !== "string" || !mongoose.Types.ObjectId.isValid(id)) {
-    return res.status(400).json({ success: false, message: "❗ معرف الفاتورة غير صالح" });
+    return res.status(400).json({
+      success: false,
+      message: "❗ معرف الفاتورة غير صالح",
+    });
   }
 
   try {
-    const invoice = await LocalInvoice.findById(id, null, { lean: true }) as any;
+    const invoice = await LocalInvoice.findById(id, null, { lean: true });
 
     if (!invoice) {
-      return res.status(404).json({ success: false, message: "⚠️ لم يتم العثور على الفاتورة" });
+      return res.status(404).json({
+        success: false,
+        message: "⚠️ لم يتم العثور على الفاتورة",
+      });
     }
 
     return res.status(200).json({
@@ -28,12 +37,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       invoice: {
         ...invoice,
         _id: invoice._id.toString(),
-        createdAt: invoice.createdAt ? new Date(invoice.createdAt).toISOString() : "",
-        updatedAt: invoice.updatedAt ? new Date(invoice.updatedAt).toISOString() : "",
+        createdAt: invoice.createdAt ? new Date(invoice.createdAt).toISOString() : null,
+        updatedAt: invoice.updatedAt ? new Date(invoice.updatedAt).toISOString() : null,
       },
     });
-  } catch (err) {
-    console.error("❌ خطأ في جلب الفاتورة:", err);
-    return res.status(500).json({ success: false, message: "❌ خطأ داخلي أثناء جلب الفاتورة" });
+  } catch (err: any) {
+    console.error("❌ خطأ في جلب الفاتورة:", err.message);
+    return res.status(500).json({
+      success: false,
+      message: "❌ حدث خطأ أثناء جلب بيانات الفاتورة",
+    });
   }
 }

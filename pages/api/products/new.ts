@@ -1,38 +1,50 @@
 // pages/api/products/new.ts
 import type { NextApiRequest, NextApiResponse } from "next";
-import connectToDatabase from "@/lib/mongodb";
+import dbConnect from "@/lib/mongodb";
 import Product from "@/models/Product";
 import redis from "@/lib/redis";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
-    return res.status(405).json({ error: "❌ الطريقة غير مسموحة" });
+    return res.status(405).json({ error: "❌ الطريقة غير مدعومة" });
   }
 
-  const cacheKey = "new-products";
+  const cacheKey = "products-new";
 
   try {
-    // ✅ 1. التحقق من الكاش أولًا
     const cached = await redis.get(cacheKey);
     if (cached) {
       return res.status(200).json(JSON.parse(cached));
     }
 
-    await connectToDatabase();
+    await dbConnect();
 
-    // ✅ 2. جلب المنتجات المنشورة فقط + بيانات المحل
-    const newProducts = await Product.find({ isPublished: true })
-      .populate("storeId", "name") // ✅ هذا السطر
+    const products = await Product.find({ isPublished: true })
+      .populate("storeId", "name")
       .sort({ createdAt: -1 })
       .limit(12)
       .lean();
 
-    // ✅ 3. تخزين النتيجة في Redis لمدة 60 ثانية
-    await redis.set(cacheKey, JSON.stringify(newProducts), "EX", 60);
+    const cleaned = products.map((p: any) => {
+      const store = typeof p.storeId === "object" && "name" in p.storeId
+        ? {
+            _id: p.storeId._id?.toString?.() || undefined,
+            name: p.storeId.name || "",
+          }
+        : null;
 
-    return res.status(200).json(newProducts);
+      return {
+        ...p,
+        _id: p._id.toString(),
+        storeId: store,
+      };
+    });
+
+    await redis.set(cacheKey, JSON.stringify(cleaned), "EX", 120);
+
+    return res.status(200).json(cleaned);
   } catch (error: any) {
-    console.error("❌ فشل في جلب المنتجات الجديدة:", error.message || error);
-    return res.status(500).json({ error: "⚠️ فشل في جلب المنتجات الجديدة" });
+    console.error("❌ خطأ أثناء جلب المنتجات:", error.message || error);
+    return res.status(500).json({ error: "⚠️ فشل في جلب المنتجات" });
   }
 }

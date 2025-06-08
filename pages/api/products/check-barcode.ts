@@ -4,19 +4,24 @@ import connectToDatabase from "@/lib/mongodb";
 import Product from "@/models/Product";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "❌ الطريقة غير مسموحة - استخدم POST فقط" });
+  await connectToDatabase();
+
+  let barcode: string | undefined;
+
+  if (req.method === "POST") {
+    barcode = req.body.barcode;
+  } else if (req.method === "GET") {
+    barcode = req.query.barcode as string;
+  } else {
+    return res.status(405).json({ error: "❌ الطريقة غير مسموحة - استخدم GET أو POST فقط" });
   }
 
-  const { barcode } = req.body;
-
+  // ✅ التحقق من صحة الباركود
   if (!barcode || typeof barcode !== "string" || barcode.trim().length === 0) {
-    return res.status(400).json({ error: "❗ يرجى إدخال باركود صالح (نص غير فارغ)" });
+    return res.status(400).json({ error: "❗ يرجى إدخال باركود صالح" });
   }
 
   try {
-    await connectToDatabase();
-
     const product = await Product.findOne({ barcode: barcode.trim() }).lean();
 
     if (product) {

@@ -2,7 +2,7 @@
 
 import { useCart } from "@/context/CartContext";
 import { motion } from "framer-motion";
-import { Trash2, Plus, Minus } from "lucide-react";
+import { Trash2, Plus, Minus, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/router";
 
 export default function CartPage() {
@@ -16,6 +16,15 @@ export default function CartPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-10">
+      {/* 🔙 زر الرجوع */}
+      <button
+        onClick={() => router.back()}
+        className="mb-6 flex items-center gap-2 text-blue-600 hover:underline"
+      >
+        <ArrowLeft size={18} />
+        <span>رجوع</span>
+      </button>
+
       <motion.h1
         className="text-3xl font-bold mb-8 text-center text-gray-800 dark:text-white"
         initial={{ opacity: 0, y: -20 }}
@@ -39,7 +48,6 @@ export default function CartPage() {
           initial="hidden"
           animate="visible"
           variants={{
-            hidden: {},
             visible: {
               transition: { staggerChildren: 0.1 },
             },

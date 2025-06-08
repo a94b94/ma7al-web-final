@@ -57,7 +57,6 @@ export default function AdminSettingsPage() {
         storeLogo,
         whatsappNumber: `964${cleanedNumber}`,
       });
-
       toast.success("✅ تم حفظ الإعدادات");
     } catch (err) {
       toast.error("❌ فشل حفظ الإعدادات");
@@ -106,12 +105,12 @@ export default function AdminSettingsPage() {
   return (
     <motion.div
       className="max-w-2xl mx-auto p-6 bg-white dark:bg-gray-800 rounded shadow"
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
     >
       <Toaster />
-      <h2 className="text-2xl font-bold mb-4 text-indigo-600 dark:text-indigo-400">
+      <h2 className="text-2xl font-bold mb-6 text-indigo-600 dark:text-indigo-400">
         ⚙️ إعدادات المتجر
       </h2>
 
@@ -123,7 +122,7 @@ export default function AdminSettingsPage() {
         transition={{ delay: 0.2 }}
       >
         <div>
-          <label className="block text-sm mb-1">اسم المتجر</label>
+          <label className="block text-sm mb-1">📛 اسم المتجر</label>
           <input
             type="text"
             value={storeName}
@@ -134,7 +133,7 @@ export default function AdminSettingsPage() {
         </div>
 
         <div>
-          <label className="block text-sm mb-1">رقم واتساب</label>
+          <label className="block text-sm mb-1">📞 رقم واتساب</label>
           <input
             type="tel"
             value={whatsappNumber}
@@ -145,7 +144,7 @@ export default function AdminSettingsPage() {
         </div>
 
         <div>
-          <label className="block text-sm mb-1">رابط شعار المتجر</label>
+          <label className="block text-sm mb-1">🖼️ شعار المتجر</label>
           <input
             type="text"
             value={storeLogo}
@@ -164,7 +163,7 @@ export default function AdminSettingsPage() {
             <motion.img
               src={storeLogo}
               alt="شعار المتجر"
-              className="mt-3 h-20 rounded"
+              className="mt-3 h-20 rounded shadow"
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: 0.3 }}
@@ -211,7 +210,7 @@ export default function AdminSettingsPage() {
                 >
                   <Image
                     src={heroImages[type]}
-                    alt={`صورة ${type}`}
+                    alt={`Hero - ${type}`}
                     width={150}
                     height={type === "background" ? 80 : 150}
                     className="rounded shadow mt-2"

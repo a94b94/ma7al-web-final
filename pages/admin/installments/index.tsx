@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { useUser } from "@/context/UserContext";
 import Link from "next/link";
+import { motion } from "framer-motion";
 
 interface Installment {
   date: string;
@@ -114,44 +115,53 @@ export default function InstallmentsPage() {
 
   return (
     <AdminLayout>
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold text-right">📋 قائمة الأقساط</h1>
-        <Link
-          href="/admin/dashboard"
-          className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
-        >
-          📊 لوحة التحليلات
-        </Link>
-      </div>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+      >
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
+          <h1 className="text-xl sm:text-2xl font-bold text-right">📋 قائمة الأقساط</h1>
+          <Link
+            href="/admin/dashboard"
+            className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 text-sm"
+          >
+            📊 لوحة التحليلات
+          </Link>
+        </div>
 
-      <div className="mb-2 text-sm text-gray-700 font-medium flex gap-4 justify-end">
-        <div>✅ مجموع المدفوع: {totalPaid.toLocaleString("ar-IQ")} د.ع</div>
-        <div>⏳ مجموع المتبقي: {totalRemaining.toLocaleString("ar-IQ")} د.ع</div>
-      </div>
+        <div className="mb-2 text-xs sm:text-sm text-gray-700 font-medium flex flex-col sm:flex-row gap-2 justify-end">
+          <div>✅ مجموع المدفوع: {totalPaid.toLocaleString("ar-IQ")} د.ع</div>
+          <div>⏳ مجموع المتبقي: {totalRemaining.toLocaleString("ar-IQ")} د.ع</div>
+        </div>
 
-      <div className="mb-4 flex gap-2 justify-end flex-wrap">
-        <button onClick={() => setFilter("all")} className="px-4 py-1 border rounded">الكل</button>
-        <button onClick={() => setFilter("paid")} className="px-4 py-1 border rounded">مدفوع</button>
-        <button onClick={() => setFilter("due")} className="px-4 py-1 border rounded">متبقي</button>
-        <button onClick={() => setFilter("late")} className="px-4 py-1 border rounded">متأخر</button>
-        <button onClick={handleAutoRemind} className="px-4 py-1 border rounded bg-blue-600 text-white">
-          🔁 إرسال التذكيرات التلقائية
-        </button>
-      </div>
+        <div className="mb-4 flex flex-wrap gap-2 justify-end">
+          <button onClick={() => setFilter("all")} className="px-3 py-1 border rounded text-sm">الكل</button>
+          <button onClick={() => setFilter("paid")} className="px-3 py-1 border rounded text-sm">مدفوع</button>
+          <button onClick={() => setFilter("due")} className="px-3 py-1 border rounded text-sm">متبقي</button>
+          <button onClick={() => setFilter("late")} className="px-3 py-1 border rounded text-sm">متأخر</button>
+          <button onClick={handleAutoRemind} className="px-3 py-1 border rounded bg-blue-600 text-white text-sm">
+            🔁 إرسال التذكيرات التلقائية
+          </button>
+        </div>
+      </motion.div>
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredOrders.map((order) => {
           const remaining = order.total - (order.paid || 0);
           const hasLate = order.installments?.some((i) => !i.paid && new Date(i.date) < new Date());
           const message = `📅 تذكير: لديك قسط مستحق بتاريخ ${order.dueDate || "غير محدد"} لدى متجر ${order.storeName}\n💰 المتبقي: ${remaining.toLocaleString("ar-IQ")} د.ع`;
 
           return (
-            <div
+            <motion.div
               key={order._id}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3 }}
               className={`rounded-xl shadow-md border p-4 ${hasLate ? "bg-red-50 border-red-300" : "bg-white"}`}
             >
               <div className="flex justify-between items-center mb-2">
-                <h2 className="font-bold text-lg">{order.customerName || "—"}</h2>
+                <h2 className="font-bold text-base">{order.customerName || "—"}</h2>
                 <div className={`text-xs px-2 py-1 rounded-full ${remaining === 0 ? "bg-green-100 text-green-700" : hasLate ? "bg-red-100 text-red-700" : "bg-yellow-100 text-yellow-800"}`}>
                   {remaining === 0 ? "مدفوع" : hasLate ? "متأخر" : "متبقي"}
                 </div>
@@ -164,25 +174,6 @@ export default function InstallmentsPage() {
               <p className="text-sm text-gray-600 mb-2">
                 📅 تاريخ الاستحقاق: {order.dueDate ? new Date(order.dueDate).toLocaleDateString("ar-IQ") : "—"}
               </p>
-
-              {order.installments && order.installments.length > 0 && (
-                <div className="bg-gray-50 border rounded p-2 text-xs mb-2">
-                  <div className="font-semibold mb-1">📑 تفاصيل الأقساط:</div>
-                  {order.installments.map((inst, idx) => (
-                    <div key={idx} className="flex justify-between border-b py-1">
-                      <span>#{idx + 1} - {new Date(inst.date).toLocaleDateString("ar-IQ")}</span>
-                      <span>{inst.amount.toLocaleString("ar-IQ")} د.ع</span>
-                      <span className={inst.paid ? "text-green-600" : "text-red-500"}>
-                        {inst.paid ? "✅ مدفوع" : "❌ متبقي"}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="text-xs text-gray-500 mb-2">
-                إشعار: {order.reminderSent ? <span className="text-green-600">✅</span> : <span className="text-red-600">❌</span>} | أرسل بواسطة: {order.sentBy || "—"}
-              </div>
 
               <div className="flex flex-col gap-1 text-sm">
                 <Link href={`/admin/installments/${order._id}`} className="text-indigo-600 hover:underline">
@@ -215,7 +206,7 @@ export default function InstallmentsPage() {
                   </>
                 )}
               </div>
-            </div>
+            </motion.div>
           );
         })}
       </div>

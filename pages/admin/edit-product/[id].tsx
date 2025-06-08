@@ -1,10 +1,13 @@
+// ✅ نسخة مطورة تدعم تعديل صور متعددة للمنتج باستخدام Cloudinary
+
 "use client";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import Script from "next/script";
 import toast from "react-hot-toast";
-import { MoreVertical } from "lucide-react";
+import { motion } from "framer-motion";
+import { Trash2 } from "lucide-react";
+import axios from "axios";
 
 export default function EditProductPage() {
   const router = useRouter();
@@ -13,7 +16,7 @@ export default function EditProductPage() {
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [category, setCategory] = useState("mobiles");
-  const [image, setImage] = useState("");
+  const [images, setImages] = useState<{ url: string; public_id: string }[]>([]);
   const [featured, setFeatured] = useState(false);
   const [discount, setDiscount] = useState(0);
   const [processor, setProcessor] = useState("");
@@ -21,7 +24,6 @@ export default function EditProductPage() {
   const [battery, setBattery] = useState("");
   const [memory, setMemory] = useState("");
   const [loading, setLoading] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -40,7 +42,7 @@ export default function EditProductPage() {
         setName(data.name || "");
         setPrice(data.price?.toString() || "");
         setCategory(data.category || "mobiles");
-        setImage(data.image || "");
+        setImages(data.images || []);
         setFeatured(data.featured || false);
         setDiscount(data.discount || 0);
         setProcessor(data.processor || "");
@@ -50,19 +52,29 @@ export default function EditProductPage() {
       });
   }, [id]);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if ((window as any).uploadcare?.Widget) {
-        clearInterval(interval);
-        const widget = (window as any).uploadcare.Widget("[role=uploadcare-uploader]");
-        widget.onUploadComplete((info: any) => {
-          setImage(info.cdnUrl);
-          toast.success("✅ تم رفع الصورة");
-        });
-      }
-    }, 500);
-    return () => clearInterval(interval);
-  }, []);
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    const newImages: { url: string; public_id: string }[] = [];
+
+    for (const file of Array.from(files)) {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        try {
+          const res = await axios.post("/api/upload", { imageBase64: reader.result });
+          newImages.push({ url: res.data.url, public_id: res.data.public_id });
+          setImages((prev) => [...prev, ...newImages]);
+        } catch {
+          toast.error("❌ فشل رفع الصورة");
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleDeleteImage = (public_id: string) => {
+    setImages(images.filter((img) => img.public_id !== public_id));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,7 +104,7 @@ export default function EditProductPage() {
           name,
           price: Number(price),
           category,
-          image,
+          images,
           featured,
           discount,
           processor,
@@ -141,60 +153,65 @@ export default function EditProductPage() {
   };
 
   return (
-    <>
-      <Script src="https://ucarecdn.com/libs/widget/3.x/uploadcare.full.min.js" strategy="afterInteractive" />
+    <motion.div
+      className="max-w-2xl mx-auto p-6 bg-white rounded-2xl shadow-xl border mt-10"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-blue-700">🛠️ تعديل المنتج</h1>
+        <button onClick={handleDelete} className="text-red-600 hover:underline text-sm">
+          🗑️ حذف المنتج
+        </button>
+      </div>
 
-      <div className="max-w-2xl mx-auto p-6 bg-white rounded-2xl shadow-xl border mt-10">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-blue-700">🛠️ تعديل المنتج</h1>
-          <button onClick={handleDelete} className="text-red-600 hover:underline text-sm">
-            🗑️ حذف المنتج
-          </button>
+      <form onSubmit={handleSubmit} className="grid gap-4">
+        <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="اسم المنتج" className="border p-2 rounded" />
+        <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="السعر" className="border p-2 rounded" />
+        <input type="number" value={discount} onChange={(e) => setDiscount(Number(e.target.value))} placeholder="نسبة الخصم" className="border p-2 rounded" />
+        <input type="text" value={processor} onChange={(e) => setProcessor(e.target.value)} placeholder="نوع المعالج" className="border p-2 rounded" />
+        <input type="text" value={screen} onChange={(e) => setScreen(e.target.value)} placeholder="نوع الشاشة" className="border p-2 rounded" />
+        <input type="text" value={battery} onChange={(e) => setBattery(e.target.value)} placeholder="حجم البطارية" className="border p-2 rounded" />
+        <input type="text" value={memory} onChange={(e) => setMemory(e.target.value)} placeholder="الذاكرة" className="border p-2 rounded" />
+
+        <select value={category} onChange={(e) => setCategory(e.target.value)} className="border p-2 rounded">
+          <option value="mobiles">📱 موبايلات</option>
+          <option value="laptops">💻 لابتوبات</option>
+          <option value="headphones">🎧 سماعات</option>
+          <option value="watches">⌚ ساعات</option>
+          <option value="electronics">🔌 أجهزة كهربائية</option>
+          <option value="extras">🧩 أخرى</option>
+        </select>
+
+        <label className="flex items-center gap-2">
+          <input type="checkbox" checked={featured} onChange={(e) => setFeatured(e.target.checked)} />
+          منتج مميز
+        </label>
+
+        <div>
+          <label className="font-medium">صور المنتج</label>
+          <input type="file" accept="image/*" multiple onChange={handleUpload} />
+          <div className="flex flex-wrap gap-2 mt-2">
+            {images.map((img) => (
+              <div key={img.public_id} className="relative w-24 h-24">
+                <img src={img.url} alt="صورة المنتج" className="w-full h-full object-cover rounded border" />
+                <button
+                  type="button"
+                  onClick={() => handleDeleteImage(img.public_id)}
+                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="grid gap-4">
-          <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="اسم المنتج" className="border p-2 rounded" />
-          <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="السعر" className="border p-2 rounded" />
-          <input type="number" value={discount} onChange={(e) => setDiscount(Number(e.target.value))} placeholder="نسبة الخصم" className="border p-2 rounded" />
-          <input type="text" value={processor} onChange={(e) => setProcessor(e.target.value)} placeholder="نوع المعالج" className="border p-2 rounded" />
-          <input type="text" value={screen} onChange={(e) => setScreen(e.target.value)} placeholder="نوع الشاشة" className="border p-2 rounded" />
-          <input type="text" value={battery} onChange={(e) => setBattery(e.target.value)} placeholder="حجم البطارية" className="border p-2 rounded" />
-          <input type="text" value={memory} onChange={(e) => setMemory(e.target.value)} placeholder="الذاكرة" className="border p-2 rounded" />
-
-          <select value={category} onChange={(e) => setCategory(e.target.value)} className="border p-2 rounded">
-            <option value="mobiles">📱 موبايلات</option>
-            <option value="laptops">💻 لابتوبات</option>
-            <option value="headphones">🎧 سماعات</option>
-            <option value="watches">⌚ ساعات</option>
-            <option value="electronics">🔌 أجهزة كهربائية</option>
-            <option value="extras">🧩 أخرى</option>
-          </select>
-
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={featured} onChange={(e) => setFeatured(e.target.checked)} />
-            منتج مميز
-          </label>
-
-          <input
-            type="hidden"
-            role="uploadcare-uploader"
-            data-public-key="767dc761271f23d1f796"
-            data-tabs="file url"
-            data-images-only
-            data-crop="free"
-          />
-
-          {image ? (
-            <img src={image} alt="صورة المنتج" className="w-full h-48 object-cover rounded border" />
-          ) : (
-            <p className="text-sm text-gray-500">لم يتم رفع صورة حتى الآن</p>
-          )}
-
-          <button type="submit" disabled={loading} className="bg-green-600 text-white py-2 rounded">
-            {loading ? "⏳ جاري الحفظ..." : "💾 حفظ التعديلات"}
-          </button>
-        </form>
-      </div>
-    </>
+        <button type="submit" disabled={loading} className="bg-green-600 text-white py-2 rounded">
+          {loading ? "⏳ جاري الحفظ..." : "💾 حفظ التعديلات"}
+        </button>
+      </form>
+    </motion.div>
   );
 }

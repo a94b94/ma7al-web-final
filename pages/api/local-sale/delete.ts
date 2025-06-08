@@ -17,18 +17,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const { id } = req.query;
 
   if (!id || typeof id !== "string" || !mongoose.Types.ObjectId.isValid(id)) {
-    return res.status(400).json({ success: false, error: "❗ معرف غير صالح أو مفقود" });
+    return res.status(400).json({ success: false, error: "❗ معرف الفاتورة غير صالح" });
   }
 
   try {
-    const deleted = await LocalInvoice.findByIdAndDelete(id);
-    if (!deleted) {
-      return res.status(404).json({ success: false, error: "⚠️ الفاتورة غير موجودة" });
+    const deletedInvoice = await LocalInvoice.findByIdAndDelete(id);
+
+    if (!deletedInvoice) {
+      return res.status(404).json({ success: false, error: "⚠️ الفاتورة غير موجودة أو تم حذفها مسبقًا" });
     }
 
-    return res.status(200).json({ success: true, message: "✅ تم حذف الفاتورة بنجاح", deleted });
+    // ملاحظة: يمكن هنا لاحقًا تسجيل سجل الحذف في سجل النشاط
+
+    return res.status(200).json({
+      success: true,
+      message: "✅ تم حذف الفاتورة بنجاح",
+      invoiceId: deletedInvoice._id,
+      customer: deletedInvoice.customerName,
+      total: deletedInvoice.total,
+    });
   } catch (error) {
-    console.error("❌ خطأ أثناء الحذف:", error);
-    return res.status(500).json({ success: false, error: "❌ فشل في حذف الفاتورة" });
+    console.error("❌ خطأ أثناء حذف الفاتورة:", error);
+    return res.status(500).json({ success: false, error: "❌ فشل في حذف الفاتورة من الخادم" });
   }
 }

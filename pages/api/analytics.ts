@@ -19,7 +19,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const dateFilter: any = {};
     if (fromDate) dateFilter.$gte = fromDate;
     if (toDate) {
-      toDate.setDate(toDate.getDate() + 1);
+      toDate.setDate(toDate.getDate() + 1); // لاحتساب اليوم الأخير ضمن الفلترة
       dateFilter.$lte = toDate;
     }
 
@@ -32,40 +32,43 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const totalRevenue = orders.reduce((sum, o) => sum + o.total, 0);
     const uniqueCustomers = new Set(orders.map((o) => o.phone)).size;
 
-    const productSales: { [key: string]: number } = {};
+    // 🔝 أكثر المنتجات مبيعًا
+    const productSalesMap = new Map<string, number>();
     for (const order of orders) {
       for (const item of order.cart) {
-        if (!productSales[item.name]) productSales[item.name] = 0;
-        productSales[item.name] += item.quantity;
+        productSalesMap.set(item.name, (productSalesMap.get(item.name) || 0) + item.quantity);
       }
     }
 
-    const topProducts = Object.entries(productSales)
+    const topProducts = [...productSalesMap.entries()]
       .map(([name, totalSold]) => ({ name, totalSold }))
       .sort((a, b) => b.totalSold - a.totalSold)
       .slice(0, 5);
 
-    const monthlyMap: { [key: string]: number } = {};
+    // 📊 المبيعات الشهرية
+    const monthlySalesMap = new Map<string, number>();
     for (const order of orders) {
       const month = new Date(order.createdAt!).toLocaleString("default", {
         month: "short",
         year: "numeric",
       });
-      if (!monthlyMap[month]) monthlyMap[month] = 0;
-      monthlyMap[month] += order.total;
+      monthlySalesMap.set(month, (monthlySalesMap.get(month) || 0) + order.total);
     }
-    const monthlySales = Object.entries(monthlyMap).map(([month, total]) => ({ month, total }));
 
-    const categoryMap: { [key: string]: number } = {};
+    const monthlySales = [...monthlySalesMap.entries()].map(([month, total]) => ({ month, total }));
+
+    // 🧩 توزيع المبيعات حسب الفئة
+    const categorySalesMap = new Map<string, number>();
     for (const order of orders) {
       for (const item of order.cart) {
-        const prod = products.find((p) => (p._id as any).toString() === item.productId);
-        const category = prod?.category || "غير مصنّف";
-        if (!categoryMap[category]) categoryMap[category] = 0;
-        categoryMap[category] += item.quantity * item.price;
+        const product = products.find((p) => (p._id as any).toString() === item.productId);
+        const category = product?.category || "غير مصنّف";
+        const saleAmount = item.quantity * item.price;
+        categorySalesMap.set(category, (categorySalesMap.get(category) || 0) + saleAmount);
       }
     }
-    const salesByCategory = Object.entries(categoryMap).map(([category, total]) => ({ category, total }));
+
+    const salesByCategory = [...categorySalesMap.entries()].map(([category, total]) => ({ category, total }));
 
     return res.status(200).json({
       totalOrders,
@@ -76,7 +79,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       salesByCategory,
     });
   } catch (err) {
-    console.error("Analytics Error:", err);
-    return res.status(500).json({ error: "خطأ أثناء تحميل البيانات" });
+    console.error("❌ Analytics Error:", err);
+    return res.status(500).json({ error: "❌ خطأ أثناء تحميل البيانات" });
   }
 }

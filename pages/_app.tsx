@@ -1,7 +1,8 @@
-// pages/_app.tsx
-import "../styles/globals.css";          // 1. قاعدة Tailwind والأنماط العامة
-import "@/styles/print.css";             // 2. تنسيقات الطباعة
-import "slick-carousel/slick/slick.css"; // 3. Slick Slider
+"use client";
+
+import "../styles/globals.css";
+import "@/styles/print.css";
+import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 
 import Head from "next/head";
@@ -17,9 +18,18 @@ function MyAppWrapper({ Component, pageProps }: AppProps) {
   const pathname = usePathname();
   const [showNav, setShowNav] = useState(true);
 
+  // ✅ تفعيل الوضع الليلي تلقائيًا حسب تفضيلات النظام
   useEffect(() => {
-    // 🔒 لا نعرض شريط التنقل السفلي داخل لوحة التحكم
-    setShowNav(!pathname?.startsWith("/admin"));
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    if (prefersDark) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, []);
+
+  useEffect(() => {
+    setShowNav(!(pathname?.startsWith("/admin") || pathname?.includes("/print")));
   }, [pathname]);
 
   return (
@@ -28,9 +38,10 @@ function MyAppWrapper({ Component, pageProps }: AppProps) {
       <Head>
         <meta charSet="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#2563eb" />
+        <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+        <link rel="icon" href="/favicon.ico" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <title>Ma7al Store</title>
@@ -39,16 +50,15 @@ function MyAppWrapper({ Component, pageProps }: AppProps) {
       {/* -------- 2. تغليف بالسياقات -------- */}
       <UserProvider>
         <CartProvider>
-          {/* تنبيهات فورية */}
           <Toaster position="top-right" />
-
-          {/* -------- 3. محتوى الصفحة -------- */}
-          <div className="pb-24 print:pb-0">
+          <div className="pb-24 print:pb-0 bg-white dark:bg-gray-950 transition-colors duration-300">
             <Component {...pageProps} />
           </div>
-
-          {/* -------- 4. شريط التنقل السفلي للهاتف -------- */}
-          {showNav && <div className="print:hidden"><MobileBottomNav /></div>}
+          {showNav && (
+            <div className="print:hidden">
+              <MobileBottomNav />
+            </div>
+          )}
         </CartProvider>
       </UserProvider>
     </>

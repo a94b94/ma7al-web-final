@@ -9,6 +9,13 @@ interface Installment {
   paid: boolean;
 }
 
+function generateInvoiceNumber(): string {
+  const now = new Date();
+  const datePart = now.toISOString().split("T")[0].replace(/-/g, "");
+  const randomPart = Math.floor(100 + Math.random() * 900); // 3 أرقام عشوائية
+  return `INV-${datePart}-${randomPart}`;
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
     return res.status(405).json({ success: false, error: "Method not allowed" });
@@ -32,16 +39,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       storeId = "default",
       storeName = "Store",
       sentBy = "مشرف",
+      notes = "",
     } = req.body;
 
-    const address = customerName;
     const invoiceDate = createdAt ? new Date(createdAt) : new Date();
+    const address = customerName;
 
-    if (!phone || !customerName || !Array.isArray(cart) || cart.length === 0 || !total || !type) {
+    if (
+      !phone ||
+      typeof phone !== "string" ||
+      !customerName ||
+      !Array.isArray(cart) ||
+      cart.length === 0 ||
+      typeof total !== "number" ||
+      !type
+    ) {
       return res.status(400).json({ success: false, error: "❗ البيانات ناقصة أو غير صحيحة" });
     }
 
-    // ✅ إنشاء الفاتورة
+    const invoiceNumber = generateInvoiceNumber();
+
+    // ✅ إنشاء الفاتورة المحلية
     const invoice = await LocalInvoice.create({
       phone,
       address,
@@ -51,7 +69,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       type,
       downPayment,
       installmentsCount,
-      dueDate: invoiceDate.toISOString(), // التاريخ الأول (مبدئي)
+      dueDate: invoiceDate.toISOString(),
       remaining,
       paid,
       discount,
@@ -59,13 +77,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       storeName,
       customerName,
       sentBy,
+      invoiceNumber,
+      notes,
     });
 
-    // ✅ إنشاء أقساط إذا كان نوع الفاتورة "تقسيط"
+    // ✅ إنشاء أقساط إذا كانت تقسيط
     if (type === "installment" && installmentsCount > 0) {
       const installments: Installment[] = [];
-
-      const installmentAmount = Math.ceil((total - downPayment) / installmentsCount);
+      const amountToDivide = total - downPayment - discount;
+      const installmentAmount = Math.ceil(amountToDivide / installmentsCount);
       const baseDate = new Date(invoiceDate);
 
       for (let i = 1; i <= installmentsCount; i++) {
@@ -86,7 +106,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         type,
         downPayment,
         installmentsCount,
-        dueDate: installments[0].date.toISOString(), // أول تاريخ استحقاق
+        dueDate: installments[0]?.date.toISOString(),
         remaining,
         paid,
         discount,
@@ -96,6 +116,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         customerPhone: phone,
         sentBy,
         installments,
+        invoiceNumber,
+        notes,
       });
     }
 

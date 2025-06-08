@@ -1,12 +1,15 @@
+// ✅ ملف: pages/api/installments/auto-remind.ts
 import type { NextApiRequest, NextApiResponse } from "next";
-import dbConnect from "@/lib/dbConnect";
+import { connectDB } from "@/lib/mongoose";
 import Order from "@/models/Order";
 import NotificationModel from "@/models/Notification";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "❌ Method not allowed" });
+  }
 
-  await dbConnect();
+  await connectDB();
   const now = new Date();
 
   try {
@@ -15,7 +18,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       installments: {
         $elemMatch: {
           paid: false,
-          date: { $lte: new Date(now.getTime() + 24 * 60 * 60 * 1000) },
+          date: { $lte: new Date(now.getTime() + 24 * 60 * 60 * 1000) }, // اليوم أو غدًا
         },
       },
     });
@@ -25,7 +28,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     for (const order of orders) {
       if (!order.phone || !Array.isArray(order.installments)) continue;
 
-      const customerPhone = order.phone.replace("+", "");
+      const customerPhone = order.phone.replace("+", "").trim();
       const customerName = order.customerName || "الزبون";
       const storeName = order.storeName || "المتجر";
       const nextDue = order.installments.find(i => !i.paid)?.date;
@@ -53,8 +56,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         let json = {};
         try {
           json = await result.json();
-        } catch (err) {
-          console.warn("⚠️ فشل تحويل الرد إلى JSON", err.message);
+        } catch (err: any) {
+          console.warn("⚠️ فشل تحويل الرد إلى JSON:", err.message);
         }
 
         if ((json as any).success || result.ok) {
@@ -67,14 +70,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             sentAt: new Date(),
           });
         } else {
-          console.error("❌ فشل الإرسال", json);
+          console.error("❌ فشل الإرسال عبر واتساب:", json);
         }
       }
     }
 
-    res.status(200).json({ success: true, count: remindersSent });
-  } catch (err) {
-    console.error("❌ Auto Reminder Error:", err);
-    res.status(500).json({ success: false, error: err instanceof Error ? err.message : "حدث خطأ غير متوقع" });
+    return res.status(200).json({
+      success: true,
+      count: remindersSent,
+      message: `✅ تم إرسال ${remindersSent} تذكير/تذكيرات`,
+    });
+
+  } catch (err: any) {
+    console.error("❌ Auto Reminder Error:", err.message);
+    return res.status(500).json({
+      success: false,
+      error: err.message || "حدث خطأ غير متوقع أثناء تنفيذ التذكيرات",
+    });
   }
 }

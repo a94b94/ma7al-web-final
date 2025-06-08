@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { HeartOff, ShoppingCart } from "lucide-react";
+import { HeartOff, ShoppingCart, ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
 import { useCart } from "@/context/CartContext";
+import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
 
 interface FavoriteItem {
   id: string;
@@ -33,6 +35,7 @@ const itemVariants = {
 export default function FavoritesPage() {
   const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
   const { addToCart } = useCart();
+  const router = useRouter();
 
   useEffect(() => {
     const saved = localStorage.getItem("favorites");
@@ -41,8 +44,30 @@ export default function FavoritesPage() {
     }
   }, []);
 
+  const handleAddToCart = (item: FavoriteItem) => {
+    addToCart({
+      id: item.id,
+      name: item.name,
+      price: item.price,
+      image: item.image,
+      storeId: item.storeId,
+      storeName: item.storeName,
+    });
+    toast.success("✅ تم إضافة المنتج إلى السلة!");
+  };
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-10">
+      {/* زر رجوع */}
+      <button
+        onClick={() => router.back()}
+        className="mb-6 flex items-center gap-2 text-blue-600 hover:text-blue-800 transition"
+      >
+        <ArrowLeft size={18} />
+        الرجوع
+      </button>
+
+      {/* العنوان */}
       <motion.h1
         className="text-3xl font-bold mb-8 text-center text-gray-800 dark:text-white"
         initial={{ opacity: 0, y: -20 }}
@@ -52,6 +77,7 @@ export default function FavoritesPage() {
         ❤️ المنتجات المفضلة
       </motion.h1>
 
+      {/* لا توجد مفضلات */}
       {favorites.length === 0 ? (
         <motion.div
           className="flex flex-col items-center text-gray-500 dark:text-gray-300"
@@ -68,6 +94,7 @@ export default function FavoritesPage() {
           </Link>
         </motion.div>
       ) : (
+        // ✅ شبكة المنتجات
         <motion.div
           className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
           variants={containerVariants}
@@ -101,16 +128,7 @@ export default function FavoritesPage() {
               </Link>
 
               <button
-                onClick={() =>
-                  addToCart({
-                    id: item.id,
-                    name: item.name,
-                    price: item.price,
-                    image: item.image,
-                    storeId: item.storeId,
-                    storeName: item.storeName,
-                  })
-                }
+                onClick={() => handleAddToCart(item)}
                 className="mt-auto m-3 bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-full flex items-center justify-center gap-1 transition"
               >
                 <ShoppingCart size={16} />

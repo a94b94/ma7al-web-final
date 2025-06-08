@@ -1,16 +1,17 @@
+// pages/api/notifications/clear.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import connectToDatabase from "@/lib/mongodb";
 import NotificationModel from "@/models/Notification";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "❌ Method Not Allowed" });
+    return res.status(405).json({ success: false, error: "❌ Method Not Allowed" });
   }
 
   const { phone } = req.body;
 
   if (!phone || typeof phone !== "string") {
-    return res.status(400).json({ error: "📱 رقم الهاتف مطلوب" });
+    return res.status(400).json({ success: false, error: "📱 رقم الهاتف غير صالح أو غير موجود" });
   }
 
   try {
@@ -20,10 +21,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     return res.status(200).json({
       success: true,
-      message: `🧹 تم حذف ${result.deletedCount} إشعارًا بنجاح`,
+      deletedCount: result.deletedCount,
+      message: `🧹 تم حذف ${result.deletedCount} من الإشعارات المرتبطة بالرقم ${phone}`,
     });
   } catch (err) {
     console.error("❌ خطأ أثناء حذف الإشعارات:", err);
-    return res.status(500).json({ error: "🚨 حدث خطأ أثناء مسح الإشعارات" });
+    return res.status(500).json({
+      success: false,
+      error: "🚨 حدث خطأ داخلي أثناء مسح الإشعارات",
+    });
   }
 }

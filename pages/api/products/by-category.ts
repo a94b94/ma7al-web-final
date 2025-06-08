@@ -5,22 +5,26 @@ import Product from "@/models/Product";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
-    return res.status(405).json({ error: "الطريقة غير مسموحة" });
+    return res.status(405).json({ error: "❌ الطريقة غير مسموحة" });
   }
 
   try {
     await connectToDatabase();
 
-    const { category } = req.query;
+    const { category, limit = "20" } = req.query;
 
     if (!category || typeof category !== "string") {
       return res.status(400).json({ error: "❗ يرجى تحديد القسم بشكل صحيح" });
     }
 
+    const parsedLimit = parseInt(limit as string, 10);
     const products = await Product.find({
       category,
-      isPublished: true, // ✅ يعرض فقط المنتجات المنشورة
-    }).lean();
+      isPublished: true,
+    })
+      .sort({ createdAt: -1 })
+      .limit(Number.isNaN(parsedLimit) ? 20 : parsedLimit)
+      .lean();
 
     return res.status(200).json(products);
   } catch (error: any) {

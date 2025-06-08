@@ -1,10 +1,9 @@
-// pages/api/notifications/user.ts
+// /pages/api/notifications/user.ts
 import type { NextApiRequest, NextApiResponse } from "next";
-import rateLimit from "@/lib/rateLimit";
-import connectToDatabase from "@/lib/mongodb";
+import { connectDB } from "@/lib/mongoose";
 import NotificationModel from "@/models/Notification";
+import rateLimit from "@/lib/rateLimit";
 
-// ⏱️ تحديد طلبات المستخدم
 const limiter = rateLimit({
   interval: 60 * 1000,
   uniqueTokenPerInterval: 500,
@@ -23,26 +22,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: "❌ Method Not Allowed" });
   }
 
-  const { phone, onlyUnread } = req.query;
+  const { phone, onlyUnread, type, limit } = req.query;
 
   if (!phone || typeof phone !== "string") {
     return res.status(400).json({ error: "📱 رقم الهاتف مطلوب" });
   }
 
   try {
-    await connectToDatabase();
+    await connectDB();
 
-    const filter: any = { userId: phone };
+    const filter: Record<string, any> = { userId: phone };
     if (onlyUnread === "true") filter.seen = false;
+    if (type && typeof type === "string") filter.type = type;
+
+    const fetchLimit = parseInt(limit as string) || 20;
 
     const notifications = await NotificationModel.find(filter)
       .sort({ createdAt: -1 })
-      .limit(20)
+      .limit(fetchLimit)
       .lean();
 
     return res.status(200).json({ success: true, notifications });
   } catch (err) {
     console.error("❌ خطأ أثناء جلب الإشعارات:", err);
-    return res.status(500).json({ success: false, message: "حدث خطأ داخلي أثناء جلب الإشعارات" });
+    return res.status(500).json({ success: false, message: "⚠️ حدث خطأ داخلي أثناء جلب الإشعارات" });
   }
 }
