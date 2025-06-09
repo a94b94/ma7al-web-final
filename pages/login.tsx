@@ -6,7 +6,7 @@ import { useUser } from "@/context/UserContext";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, LogIn } from "lucide-react";
 import { auth, provider } from "@/lib/firebase";
-import { signInWithPopup } from "firebase/auth";
+import { signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -18,6 +18,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,7 +43,6 @@ export default function LoginPage() {
         setUser(data.user);
         setSuccess("✅ تم تسجيل الدخول بنجاح");
 
-        // ✅ توجيه حسب الصلاحية
         setTimeout(() => {
           if (["owner", "manager"].includes(data.user.role)) {
             router.push("/admin");
@@ -51,7 +51,7 @@ export default function LoginPage() {
           }
         }, 1200);
       }
-    } catch (err) {
+    } catch {
       setError("⚠️ حدث خطأ أثناء تسجيل الدخول");
     } finally {
       setLoading(false);
@@ -61,9 +61,10 @@ export default function LoginPage() {
   const handleGoogleLogin = async () => {
     setError("");
     setSuccess("");
-    setLoading(true);
+    setGoogleLoading(true);
+
     try {
-      const result = await signInWithPopup(auth, provider);
+      const result = await signInWithPopup(auth, new GoogleAuthProvider());
       const idToken = await result.user.getIdToken();
 
       const res = await fetch("/api/admin/google-login", {
@@ -82,7 +83,6 @@ export default function LoginPage() {
         setUser(data.user);
         setSuccess("✅ تم تسجيل الدخول بواسطة Google");
 
-        // ✅ توجيه حسب الصلاحية
         setTimeout(() => {
           if (["owner", "manager"].includes(data.user.role)) {
             router.push("/admin");
@@ -91,10 +91,10 @@ export default function LoginPage() {
           }
         }, 1200);
       }
-    } catch (err) {
+    } catch {
       setError("⚠️ فشل تسجيل الدخول باستخدام Google");
     } finally {
-      setLoading(false);
+      setGoogleLoading(false);
     }
   };
 
@@ -181,11 +181,29 @@ export default function LoginPage() {
         <button
           type="button"
           onClick={handleGoogleLogin}
-          disabled={loading}
+          disabled={googleLoading}
           className="w-full bg-white border hover:bg-gray-100 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-white py-2 rounded-xl flex items-center justify-center gap-2 transition disabled:opacity-50"
         >
-          <img src="/google-icon.svg" alt="Google" className="w-5 h-5" />
-          تسجيل الدخول بواسطة Google
+          {googleLoading ? (
+            <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24">
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+              />
+            </svg>
+          ) : (
+            <img src="/google-icon.svg" alt="Google" className="w-5 h-5" />
+          )}
+          {googleLoading ? "جاري الدخول..." : "تسجيل الدخول بواسطة Google"}
         </button>
       </motion.form>
     </div>

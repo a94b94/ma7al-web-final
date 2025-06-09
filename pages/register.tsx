@@ -21,13 +21,14 @@ export default function RegisterPage() {
   const [location, setLocation] = useState("");
   const [role, setRole] = useState("owner");
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   const handleGoogleLogin = async () => {
     try {
+      setIsGoogleLoading(true);
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
       const idToken = await result.user.getIdToken();
-      const firebaseUser = result.user;
 
       const res = await fetch("/api/auth/google-login", {
         method: "POST",
@@ -39,24 +40,18 @@ export default function RegisterPage() {
 
       if (res.ok) {
         toast.success("✅ تم تسجيل الدخول بـ Google");
-
-        // ✅ حفظ المستخدم
         localStorage.setItem("token", data.token);
         localStorage.setItem("ma7al-user", JSON.stringify(data.user));
         setUser(data.user);
-
-        // ✅ توجيه حسب الدور
-        if (["owner", "manager"].includes(data.user.role)) {
-          router.push("/admin");
-        } else {
-          router.push("/");
-        }
+        router.push(["owner", "manager"].includes(data.user.role) ? "/admin" : "/");
       } else {
         toast.error(data.error || "❌ فشل تسجيل الدخول بـ Google");
       }
     } catch (error) {
       console.error(error);
       toast.error("⚠️ فشل تسجيل الدخول بـ Google");
+    } finally {
+      setIsGoogleLoading(false);
     }
   };
 
@@ -75,7 +70,6 @@ export default function RegisterPage() {
     }
 
     setIsLoading(true);
-
     try {
       const res = await fetch("/api/auth/register", {
         method: "POST",
@@ -135,9 +129,33 @@ export default function RegisterPage() {
         <button
           type="button"
           onClick={handleGoogleLogin}
-          className="w-full bg-red-500 hover:bg-red-600 text-white py-2 rounded"
+          disabled={isGoogleLoading}
+          className="w-full border border-gray-300 bg-white hover:bg-gray-100 text-gray-700 py-3 rounded-lg flex items-center justify-center gap-3 transition disabled:opacity-50"
         >
-          🔐 التسجيل عبر Google
+          {isGoogleLoading ? (
+            <svg className="w-5 h-5 animate-spin text-gray-500" fill="none" viewBox="0 0 24 24">
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+              />
+            </svg>
+          ) : (
+            <img
+              src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+              alt="Google"
+              className="w-5 h-5"
+            />
+          )}
+          <span>{isGoogleLoading ? "جاري الدخول..." : "تسجيل الدخول بواسطة Google"}</span>
         </button>
 
         <div className="border-b my-4"></div>
