@@ -63,7 +63,7 @@ export default function LoginPage() {
       const result = await signInWithPopup(auth, new GoogleAuthProvider());
       const idToken = await result.user.getIdToken();
 
-      const res = await fetch("/api/admin/google-login", {
+      const res = await fetch("/api/auth/google-login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ idToken }),
