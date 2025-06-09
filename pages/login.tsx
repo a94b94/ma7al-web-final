@@ -27,7 +27,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/admin/login", {
+      const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -36,7 +36,7 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || "❌ فشل تسجيل الدخول");
+        setError(data.message || "❌ فشل تسجيل الدخول");
       } else {
         localStorage.setItem("token", data.token);
         localStorage.setItem("ma7al-user", JSON.stringify(data.user));
@@ -45,9 +45,10 @@ export default function LoginPage() {
 
         setTimeout(() => {
           router.replace(["owner", "manager"].includes(data.user.role) ? "/admin" : "/");
-        }, 1200);
+        }, 1000);
       }
-    } catch {
+    } catch (err) {
+      console.error("Login Error:", err);
       setError("⚠️ حدث خطأ أثناء تسجيل الدخول");
     } finally {
       setLoading(false);
@@ -72,7 +73,7 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || "❌ فشل تسجيل الدخول بواسطة Google");
+        setError(data.message || "❌ فشل تسجيل الدخول بواسطة Google");
       } else {
         localStorage.setItem("token", data.token);
         localStorage.setItem("ma7al-user", JSON.stringify(data.user));
@@ -81,10 +82,10 @@ export default function LoginPage() {
 
         setTimeout(() => {
           router.replace(["owner", "manager"].includes(data.user.role) ? "/admin" : "/");
-        }, 1200);
+        }, 1000);
       }
     } catch (err) {
-      console.error("❌ Google Sign-in Error:", err);
+      console.error("Google Sign-in Error:", err);
       setError("⚠️ فشل تسجيل الدخول باستخدام Google");
     } finally {
       setGoogleLoading(false);
@@ -175,23 +176,12 @@ export default function LoginPage() {
           type="button"
           onClick={handleGoogleLogin}
           disabled={googleLoading}
-          className="w-full bg-white border hover:bg-gray-100 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-white py-2 rounded-xl flex items-center justify-center gap-2 transition disabled:opacity-50"
+          className="w-full border border-gray-300 hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-white py-2 rounded-xl flex items-center justify-center gap-2 transition disabled:opacity-50"
         >
           {googleLoading ? (
             <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24">
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              />
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-              />
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
             </svg>
           ) : (
             <img
