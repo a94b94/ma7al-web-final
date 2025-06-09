@@ -5,7 +5,7 @@ import { useRouter } from "next/router";
 import { useUser } from "@/context/UserContext";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, LogIn } from "lucide-react";
-import { auth, provider } from "@/lib/firebase";
+import { auth } from "@/lib/firebase";
 import { signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 
 export default function LoginPage() {
@@ -44,11 +44,7 @@ export default function LoginPage() {
         setSuccess("✅ تم تسجيل الدخول بنجاح");
 
         setTimeout(() => {
-          if (["owner", "manager"].includes(data.user.role)) {
-            router.push("/admin");
-          } else {
-            router.push("/");
-          }
+          router.replace(["owner", "manager"].includes(data.user.role) ? "/admin" : "/");
         }, 1200);
       }
     } catch {
@@ -84,14 +80,11 @@ export default function LoginPage() {
         setSuccess("✅ تم تسجيل الدخول بواسطة Google");
 
         setTimeout(() => {
-          if (["owner", "manager"].includes(data.user.role)) {
-            router.push("/admin");
-          } else {
-            router.push("/");
-          }
+          router.replace(["owner", "manager"].includes(data.user.role) ? "/admin" : "/");
         }, 1200);
       }
-    } catch {
+    } catch (err) {
+      console.error("❌ Google Sign-in Error:", err);
       setError("⚠️ فشل تسجيل الدخول باستخدام Google");
     } finally {
       setGoogleLoading(false);
@@ -201,7 +194,11 @@ export default function LoginPage() {
               />
             </svg>
           ) : (
-            <img src="/google-icon.svg" alt="Google" className="w-5 h-5" />
+            <img
+              src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg"
+              alt="Google"
+              className="w-5 h-5"
+            />
           )}
           {googleLoading ? "جاري الدخول..." : "تسجيل الدخول بواسطة Google"}
         </button>
