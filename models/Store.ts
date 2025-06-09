@@ -7,6 +7,7 @@ export interface IStore extends Document {
   ownerId?: mongoose.Types.ObjectId;
   storeId?: string;
   type?: "store" | "company" | "dealer" | "exhibition";
+  location?: string; // ✅ مضافة لتجنب الخطأ
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -42,6 +43,11 @@ const StoreSchema = new Schema<IStore>(
       type: String,
       enum: ["store", "company", "dealer", "exhibition"],
       default: "store",
+    },
+    location: {
+      type: String,
+      default: "", // ✅ مضافة هنا
+      trim: true,
     },
   },
   { timestamps: true }

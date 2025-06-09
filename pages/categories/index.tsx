@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/router";
-import { useUser } from "@/context/UserContext"; // تأكد من وجود هذا السياق
+import { useUser } from "@/context/UserContext";
 
 type Category = {
   _id: string;
@@ -18,7 +18,7 @@ export default function CategoriesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const router = useRouter();
-  const { user } = useUser(); // 👈 سياق المستخدم
+  const { user } = useUser();
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -36,6 +36,8 @@ export default function CategoriesPage() {
     fetchCategories();
   }, []);
 
+  const isAdmin = user?.role === "owner" || user?.role === "manager"; // ✅ صلاحيات إضافة قسم
+
   return (
     <div className="container mx-auto px-4 py-10">
       {/* 🔙 زر الرجوع */}
@@ -47,8 +49,8 @@ export default function CategoriesPage() {
           ← رجوع
         </button>
 
-        {/* ➕ زر إضافة قسم للمشرف فقط */}
-        {user?.role === "admin" && (
+        {/* ➕ زر إضافة قسم */}
+        {isAdmin && (
           <Link
             href="/admin/add-category"
             className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg shadow transition"
@@ -65,10 +67,7 @@ export default function CategoriesPage() {
       {loading && (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mt-4">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div
-              key={i}
-              className="rounded-xl p-6 bg-gray-200 animate-pulse h-52"
-            ></div>
+            <div key={i} className="rounded-xl p-6 bg-gray-200 animate-pulse h-52"></div>
           ))}
         </div>
       )}

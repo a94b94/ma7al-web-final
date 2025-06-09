@@ -17,18 +17,20 @@ export interface IUser extends Document {
   address?: string;
   phone?: string;
   image?: string;
-  role?: "owner" | "manager" | "support";
+  role?: "owner" | "manager" | "support"; // ✅ لا يوجد "admin"
   uid?: string;
-  cart?: CartItem[]; // ✅ تمت الإضافة هنا
+  cart?: CartItem[];
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 const UserSchema = new Schema<IUser>(
   {
-    name: { type: String },
-    email: { type: String, required: true, unique: true },
-    password: { type: String },
+    name: { type: String, trim: true },
+    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+    password: { type: String, select: false },
 
-    storeName: { type: String },
+    storeName: { type: String, trim: true },
     storeLogo: { type: String, default: "" },
     storeStamp: { type: String, default: "" },
     location: { type: String, trim: true },
@@ -36,13 +38,14 @@ const UserSchema = new Schema<IUser>(
     phone: { type: String, trim: true },
 
     image: { type: String, default: "" },
+
     role: {
       type: String,
       enum: ["owner", "manager", "support"],
       default: "manager",
     },
 
-    uid: { type: String },
+    uid: { type: String, trim: true },
 
     cart: [
       {
@@ -51,9 +54,14 @@ const UserSchema = new Schema<IUser>(
       },
     ],
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+  }
 );
 
+// ✅ عدم تكرار النموذج عند التطوير
 const User: mongoose.Model<IUser> = models.User || model<IUser>("User", UserSchema);
 
 export default User;

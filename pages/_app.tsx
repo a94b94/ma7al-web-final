@@ -18,23 +18,21 @@ function MyAppWrapper({ Component, pageProps }: AppProps) {
   const pathname = usePathname();
   const [showNav, setShowNav] = useState(true);
 
-  // ✅ تفعيل الوضع الليلي تلقائيًا حسب تفضيلات النظام
+  // ✅ تفعيل الوضع الليلي تلقائيًا حسب إعدادات النظام
   useEffect(() => {
     const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    if (prefersDark) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
+    document.documentElement.classList.toggle("dark", prefersDark);
   }, []);
 
+  // ✅ إخفاء شريط التنقل السفلي في صفحات الإدارة أو الطباعة
   useEffect(() => {
-    setShowNav(!(pathname?.startsWith("/admin") || pathname?.includes("/print")));
+    const hidden = pathname?.startsWith("/admin") || pathname?.includes("/print");
+    setShowNav(!hidden);
   }, [pathname]);
 
   return (
     <>
-      {/* -------- 1. إعدادات <head> العامة -------- */}
+      {/* -------- إعدادات <head> العامة -------- */}
       <Head>
         <meta charSet="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -47,13 +45,13 @@ function MyAppWrapper({ Component, pageProps }: AppProps) {
         <title>Ma7al Store</title>
       </Head>
 
-      {/* -------- 2. تغليف بالسياقات -------- */}
+      {/* -------- تغليف بالسياقات -------- */}
       <UserProvider>
         <CartProvider>
           <Toaster position="top-right" />
-          <div className="pb-24 print:pb-0 bg-white dark:bg-gray-950 transition-colors duration-300">
+          <main className="min-h-screen pb-24 print:pb-0 bg-white dark:bg-gray-950 transition-colors duration-300">
             <Component {...pageProps} />
-          </div>
+          </main>
           {showNav && (
             <div className="print:hidden">
               <MobileBottomNav />

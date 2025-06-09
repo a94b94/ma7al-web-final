@@ -21,7 +21,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     phone = "",
   } = req.body;
 
-  // ✅ تحقق من الحقول المطلوبة
   if (
     !name?.trim() ||
     !storeName?.trim() ||
@@ -33,7 +32,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ success: false, message: "❗ جميع الحقول مطلوبة" });
   }
 
-  // ✅ تحقق من البريد وكلمة المرور
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
     return res.status(400).json({ success: false, message: "❌ البريد الإلكتروني غير صالح" });
@@ -52,13 +50,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const normalizedEmail = email.toLowerCase().trim();
     const cleanedStoreName = storeName.trim();
 
-    // تحقق من البريد
+    // 🔎 تحقق من البريد الإلكتروني
     const existingUser = await User.findOne({ email: normalizedEmail });
     if (existingUser) {
       return res.status(400).json({ success: false, message: "📧 البريد مسجّل مسبقًا" });
     }
 
-    // تحقق من اسم المتجر
+    // 🔎 تحقق من اسم المتجر (بشكل غير حساس لحالة الأحرف)
     const existingStore = await Store.findOne({ name: new RegExp(`^${cleanedStoreName}$`, "i") });
     if (existingStore) {
       return res.status(400).json({ success: false, message: "🏪 اسم المتجر مستخدم مسبقًا" });
@@ -66,7 +64,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // إنشاء المستخدم
+    // ✅ إنشاء المستخدم
     const user = await User.create({
       name: name.trim(),
       email: normalizedEmail,
@@ -74,7 +72,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       role,
     });
 
-    // إنشاء المتجر
+    // ✅ إنشاء المتجر وربطه بالمستخدم
     const store = await Store.create({
       name: cleanedStoreName,
       phone: phone.trim(),
@@ -83,15 +81,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       location: location.trim(),
     });
 
+    // ✅ تحديث المستخدم لربط المتجر
+    user.storeName = store.name;
+    user.storeLogo = store.logo;
+    user.address = store.location;
+    user.phone = store.phone;
+    await user.save();
+
     return res.status(201).json({
       success: true,
       message: "✅ تم إنشاء الحساب والمتجر بنجاح",
-      data: {
-        userId: user._id,
-        storeId: store._id,
+      user: {
+        _id: user._id,
         name: user.name,
         email: user.email,
         role: user.role,
+        storeName: user.storeName,
+        storeLogo: user.storeLogo,
+        phone: user.phone,
+        address: user.address,
       },
     });
   } catch (error: any) {

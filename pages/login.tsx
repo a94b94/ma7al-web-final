@@ -1,4 +1,3 @@
-// pages/login.tsx
 "use client";
 
 import { useState } from "react";
@@ -39,12 +38,20 @@ export default function LoginPage() {
         setError(data.error || "❌ فشل تسجيل الدخول");
       } else {
         localStorage.setItem("token", data.token);
-        localStorage.setItem("user", JSON.stringify(data.user));
+        localStorage.setItem("ma7al-user", JSON.stringify(data.user));
         setUser(data.user);
         setSuccess("✅ تم تسجيل الدخول بنجاح");
-        setTimeout(() => router.push("/"), 1200);
+
+        // ✅ توجيه حسب الصلاحية
+        setTimeout(() => {
+          if (["owner", "manager"].includes(data.user.role)) {
+            router.push("/admin");
+          } else {
+            router.push("/");
+          }
+        }, 1200);
       }
-    } catch {
+    } catch (err) {
       setError("⚠️ حدث خطأ أثناء تسجيل الدخول");
     } finally {
       setLoading(false);
@@ -54,6 +61,7 @@ export default function LoginPage() {
   const handleGoogleLogin = async () => {
     setError("");
     setSuccess("");
+    setLoading(true);
     try {
       const result = await signInWithPopup(auth, provider);
       const idToken = await result.user.getIdToken();
@@ -70,13 +78,23 @@ export default function LoginPage() {
         setError(data.error || "❌ فشل تسجيل الدخول بواسطة Google");
       } else {
         localStorage.setItem("token", data.token);
-        localStorage.setItem("user", JSON.stringify(data.user));
+        localStorage.setItem("ma7al-user", JSON.stringify(data.user));
         setUser(data.user);
         setSuccess("✅ تم تسجيل الدخول بواسطة Google");
-        setTimeout(() => router.push("/"), 1200);
+
+        // ✅ توجيه حسب الصلاحية
+        setTimeout(() => {
+          if (["owner", "manager"].includes(data.user.role)) {
+            router.push("/admin");
+          } else {
+            router.push("/");
+          }
+        }, 1200);
       }
-    } catch {
+    } catch (err) {
       setError("⚠️ فشل تسجيل الدخول باستخدام Google");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -163,7 +181,8 @@ export default function LoginPage() {
         <button
           type="button"
           onClick={handleGoogleLogin}
-          className="w-full bg-white border hover:bg-gray-100 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-white py-2 rounded-xl flex items-center justify-center gap-2"
+          disabled={loading}
+          className="w-full bg-white border hover:bg-gray-100 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-white py-2 rounded-xl flex items-center justify-center gap-2 transition disabled:opacity-50"
         >
           <img src="/google-icon.svg" alt="Google" className="w-5 h-5" />
           تسجيل الدخول بواسطة Google

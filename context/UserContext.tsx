@@ -1,9 +1,19 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+} from "react";
+import { useRouter } from "next/router";
 
 type User = {
   name: string;
-  role: string;
+  email: string;
+  role: "owner" | "manager" | "support";
   storeName?: string;
+  image?: string;
+  uid?: string;
   [key: string]: any;
 };
 
@@ -19,31 +29,40 @@ const UserContext = createContext<UserContextType>({
   logout: () => {},
 });
 
-export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [user, setUser] = useState<User | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     try {
-      const stored = localStorage.getItem("user");
+      const stored = localStorage.getItem("ma7al-user");
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (parsed && typeof parsed.name === "string" && typeof parsed.role === "string") {
+        if (
+          parsed &&
+          typeof parsed.name === "string" &&
+          typeof parsed.role === "string" &&
+          typeof parsed.email === "string"
+        ) {
           setUser(parsed);
         }
       }
     } catch {
-      console.warn("فشل تحميل بيانات المستخدم من التخزين المحلي");
+      console.warn("⚠️ فشل تحميل بيانات المستخدم من التخزين المحلي");
     }
   }, []);
 
   const logout = useCallback(() => {
     setUser(null);
-    localStorage.removeItem("user");
-  }, []);
+    localStorage.removeItem("ma7al-user");
+    router.push("/login"); // ✅ توجيه المستخدم لصفحة تسجيل الدخول
+  }, [router]);
 
   useEffect(() => {
     if (user) {
-      localStorage.setItem("user", JSON.stringify(user));
+      localStorage.setItem("ma7al-user", JSON.stringify(user));
     }
   }, [user]);
 
