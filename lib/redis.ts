@@ -7,19 +7,23 @@ if (!REDIS_URL) {
   throw new Error("❌ متغير البيئة REDIS_URL غير معرف. تأكد من إضافته إلى .env أو Vercel.");
 }
 
-// ✅ إعداد خيارات أفضل للإنتاج
 const redis = new Redis(REDIS_URL, {
-  maxRetriesPerRequest: 5, // تقليل المحاولات لتجنب انهيار السيرفر
-  connectTimeout: 5000,     // مهلة الاتصال 5 ثواني
-  lazyConnect: true,        // تأجيل الاتصال حتى يتم استخدامه فعليًا
-  enableOfflineQueue: false // إيقاف التخزين المؤقت للأوامر أثناء انقطاع الاتصال
+  tls: {}, // 🔒 مطلوب لـ Upstash ويدعم الاتصال الآمن
+  maxRetriesPerRequest: 5,
+  connectTimeout: 5000,
+  lazyConnect: true,
+  enableOfflineQueue: false,
 });
 
-// ✅ اختبار الاتصال (مرة واحدة فقط أثناء التطوير)
+// ✅ اختبار الاتصال في بيئة التطوير فقط
 if (process.env.NODE_ENV !== "production") {
   redis.connect()
     .then(() => console.log("✅ Redis متصل بنجاح"))
     .catch((err) => console.error("❌ فشل الاتصال بـ Redis:", err.message));
 }
+
+redis.on("error", (err) => {
+  console.error("❌ خطأ في Redis:", err.message);
+});
 
 export default redis;
