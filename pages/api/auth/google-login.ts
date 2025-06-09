@@ -1,18 +1,12 @@
-import { NextApiRequest, NextApiResponse } from "next";
-import admin from "firebase-admin";
+import type { NextApiRequest, NextApiResponse } from "next";
 import jwt from "jsonwebtoken";
+import admin from "@/lib/firebase-admin";
 import connectToDatabase from "@/lib/mongodb";
 import User from "@/models/User";
 import Store from "@/models/Store";
 
 const JWT_SECRET = process.env.JWT_SECRET!;
-const serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN_KEY || "{}");
-
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-  });
-}
+if (!JWT_SECRET) throw new Error("❌ يرجى تحديد JWT_SECRET في ملف .env.local");
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
@@ -20,8 +14,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const { idToken } = req.body;
+
   if (!idToken) {
-    return res.status(400).json({ error: "ID Token is required" });
+    return res.status(400).json({ error: "يرجى توفير ID Token" });
   }
 
   try {
@@ -31,25 +26,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const { email, name, uid, picture } = decodedToken;
 
     if (!email) {
-      return res.status(400).json({ error: "Missing email in Firebase token" });
+      return res.status(400).json({ error: "حساب Google لا يحتوي على بريد إلكتروني" });
     }
 
     const normalizedEmail = email.toLowerCase().trim();
 
-    // 🔍 البحث عن المستخدم
     let user = await User.findOne({ email: normalizedEmail });
 
     if (!user) {
-      // ✅ إنشاء مستخدم جديد
       user = await User.create({
         email: normalizedEmail,
-        name: name?.trim(),
+        name: name?.trim() || "مستخدم جديد",
         uid,
-        image: picture,
+        image: picture || "",
         role: "manager",
       });
 
-      // ✅ إنشاء متجر افتراضي مرتبط بالمستخدم
       const store = await Store.create({
         name: `${name?.split(" ")[0] || "متجر"}-${Date.now()}`,
         logo: "",
@@ -64,7 +56,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       await user.save();
     }
 
-    // ✅ توليد التوكن
     const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: "7d" });
 
     return res.status(200).json({
@@ -82,8 +73,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         uid: user.uid,
       },
     });
-  } catch (error: any) {
-    console.error("❌ Firebase verify error:", error);
-    return res.status(401).json({ error: "Invalid ID token" });
+  } catch (err: any) {
+    console.error("❌ خطأ في تحقق Firebase:", err);
+    return res.status(401).json({ error: "رمز التحقق غير صالح أو منتهي" });
   }
 }

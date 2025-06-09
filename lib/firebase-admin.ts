@@ -1,12 +1,23 @@
-// lib/firebase-admin.ts
 import admin from "firebase-admin";
 
-if (!admin.apps.length) {
-  const raw = process.env.FIREBASE_ADMIN_KEY || "{}";
-  const serviceAccount = JSON.parse(raw);
+// ✅ تأكد أن المفتاح موجود وإلا أطلق خطأ واضح
+const raw = process.env.FIREBASE_ADMIN_KEY;
 
-  // ✅ إصلاح private_key لإزالة \\n وتحويلها إلى سطر جديد فعلي
-  serviceAccount.private_key = serviceAccount.private_key?.replace(/\\n/g, '\n');
+if (!raw) {
+  throw new Error("❌ متغير البيئة FIREBASE_ADMIN_KEY غير موجود في .env.local");
+}
+
+if (!admin.apps.length) {
+  let serviceAccount;
+
+  try {
+    serviceAccount = JSON.parse(raw);
+    if (serviceAccount.private_key) {
+      serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n");
+    }
+  } catch (err) {
+    throw new Error("❌ فشل في تحليل FIREBASE_ADMIN_KEY: تأكد من أنه JSON صالح");
+  }
 
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),

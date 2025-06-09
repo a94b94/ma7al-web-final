@@ -1,12 +1,29 @@
+# Node modules
 node_modules/
+
+# Build outputs
 .next/
-.env
+out/
+dist/
+
+# OS and IDE files
 .DS_Store
 *.log
 *.dll
 *.exe
 *.node
-.vercel
-.
-# تجاهل Firebase Admin key
+
+# Vercel deployment settings
+.vercel/
+
+# Local environment variables
+.env
+.env.local
+.env.*.local
+
+# Firebase Admin key
+serviceAccountKey.json
 config/firebase-key.json
+
+# Optional: VSCode settings
+.vscode/
