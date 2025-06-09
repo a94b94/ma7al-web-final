@@ -12,35 +12,39 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const cacheKey = "products-new";
 
   try {
+    // ✅ محاولة جلب البيانات من الكاش
     const cached = await redis.get(cacheKey);
     if (cached) {
+      console.log("📦 تم جلب المنتجات الجديدة من Redis Cache");
       return res.status(200).json(JSON.parse(cached));
     }
 
+    // ✅ الاتصال بقاعدة البيانات
     await dbConnect();
 
+    // ✅ جلب أحدث المنتجات المنشورة
     const products = await Product.find({ isPublished: true })
       .populate("storeId", "name")
       .sort({ createdAt: -1 })
       .limit(12)
       .lean();
 
-    const cleaned = products.map((p: any) => {
-      const store = typeof p.storeId === "object" && "name" in p.storeId
-        ? {
-            _id: p.storeId._id?.toString?.() || undefined,
-            name: p.storeId.name || "",
-          }
-        : null;
+    // ✅ تنظيف وتنسيق البيانات
+    const cleaned = products.map((p: any) => ({
+      ...p,
+      _id: p._id.toString(),
+      storeId:
+        p.storeId && typeof p.storeId === "object"
+          ? {
+              _id: p.storeId._id?.toString?.() || undefined,
+              name: p.storeId.name || "",
+            }
+          : null,
+    }));
 
-      return {
-        ...p,
-        _id: p._id.toString(),
-        storeId: store,
-      };
-    });
-
+    // ✅ تخزين البيانات في Redis لمدة 2 دقيقة
     await redis.set(cacheKey, JSON.stringify(cleaned), "EX", 120);
+    console.log("✅ تم تخزين المنتجات الجديدة في Redis Cache");
 
     return res.status(200).json(cleaned);
   } catch (error: any) {

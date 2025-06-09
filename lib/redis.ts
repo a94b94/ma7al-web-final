@@ -8,22 +8,22 @@ if (!REDIS_URL) {
 }
 
 const redis = new Redis(REDIS_URL, {
-  tls: {}, // 🔒 مطلوب لـ Upstash ويدعم الاتصال الآمن
+  tls: {}, // ضروري لـ Upstash
   maxRetriesPerRequest: 5,
   connectTimeout: 5000,
-  lazyConnect: true,
+  // lazyConnect: true, // ❌ احذفه أو تعامل معه يدويًا
   enableOfflineQueue: false,
 });
-
-// ✅ اختبار الاتصال في بيئة التطوير فقط
-if (process.env.NODE_ENV !== "production") {
-  redis.connect()
-    .then(() => console.log("✅ Redis متصل بنجاح"))
-    .catch((err) => console.error("❌ فشل الاتصال بـ Redis:", err.message));
-}
 
 redis.on("error", (err) => {
   console.error("❌ خطأ في Redis:", err.message);
 });
+
+// ✅ اختياري في بيئة التطوير
+if (process.env.NODE_ENV !== "production") {
+  redis.ping()
+    .then(() => console.log("✅ Redis متصل بنجاح"))
+    .catch((err) => console.error("❌ فشل الاتصال بـ Redis:", err.message));
+}
 
 export default redis;
