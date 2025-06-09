@@ -1,8 +1,8 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import admin from "firebase-admin";
-import User from "@/models/User";
 import jwt from "jsonwebtoken";
 import connectToDatabase from "@/lib/mongodb";
+import User from "@/models/User";
 import Store from "@/models/Store";
 
 const JWT_SECRET = process.env.JWT_SECRET!;
@@ -20,7 +20,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const { idToken } = req.body;
-  if (!idToken) return res.status(400).json({ error: "ID Token is required" });
+  if (!idToken) {
+    return res.status(400).json({ error: "ID Token is required" });
+  }
 
   try {
     await connectToDatabase();
@@ -38,16 +40,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     let user = await User.findOne({ email: normalizedEmail });
 
     if (!user) {
-      // ✅ إنشاء المستخدم الجديد
+      // ✅ إنشاء مستخدم جديد
       user = await User.create({
         email: normalizedEmail,
-        name,
+        name: name?.trim(),
         uid,
         image: picture,
-        role: "manager", // أو "owner" حسب النظام
+        role: "manager",
       });
 
-      // ✅ إنشاء متجر افتراضي بناءً على الاسم
+      // ✅ إنشاء متجر افتراضي مرتبط بالمستخدم
       const store = await Store.create({
         name: `${name?.split(" ")[0] || "متجر"}-${Date.now()}`,
         logo: "",
@@ -56,14 +58,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         location: "",
       });
 
-      // ✅ ربط المتجر بالمستخدم
       user.storeName = store.name;
       user.storeLogo = store.logo;
       user.address = store.location;
       await user.save();
     }
 
-    // ✅ إصدار توكن JWT
+    // ✅ توليد التوكن
     const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: "7d" });
 
     return res.status(200).json({
