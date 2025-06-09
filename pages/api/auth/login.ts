@@ -1,5 +1,4 @@
 // pages/api/auth/login.ts
-
 import type { NextApiRequest, NextApiResponse } from 'next';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
@@ -18,20 +17,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ success: false, message: '⚠️ البريد وكلمة المرور مطلوبة' });
     }
 
+    const normalizedEmail = email.toLowerCase().trim();
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+
+    if (!emailRegex.test(normalizedEmail)) {
       return res.status(400).json({ success: false, message: '⚠️ البريد الإلكتروني غير صالح' });
     }
 
     await connectToDatabase();
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: normalizedEmail });
 
     if (!user) {
       return res.status(401).json({ success: false, message: '❌ بيانات الدخول غير صحيحة' });
     }
 
     if (!user.password) {
-      return res.status(401).json({ success: false, message: '⚠️ هذا الحساب تم إنشاؤه عبر Google ولا يمكن تسجيل الدخول بكلمة مرور' });
+      return res.status(401).json({
+        success: false,
+        message: '⚠️ هذا الحساب تم إنشاؤه عبر Google ولا يمكن تسجيل الدخول بكلمة مرور',
+      });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
@@ -52,14 +56,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       token,
       user: {
         id: user._id,
-        name: user.name || "",
+        name: user.name ?? "",
         email: user.email,
-        image: user.image || "/images/user.png",
-        storeName: user.storeName || "",
-        storeLogo: user.storeLogo || "",
-        storeStamp: user.storeStamp || "",
-        role: user.role || "manager",
-        location: user.location || "",
+        image: user.image ?? "/images/user.png",
+        storeName: user.storeName ?? "",
+        storeLogo: user.storeLogo ?? "",
+        storeStamp: user.storeStamp ?? "",
+        role: user.role ?? "manager",
+        location: user.location ?? "",
+        phone: user.phone ?? "",
       },
     });
   } catch (error: any) {
