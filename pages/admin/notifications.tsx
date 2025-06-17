@@ -14,12 +14,22 @@ interface Notification {
 export default function AdminNotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const fetchNotifications = async () => {
     try {
-      const res = await axios.get("/api/notifications?userId=admin"); // استخدم ID المشرف
+      const res = await axios.get("/api/notifications?userId=admin");
+
+      if (!Array.isArray(res.data)) {
+        setError("❌ البيانات غير صالحة من السيرفر");
+        setNotifications([]);
+        return;
+      }
+
       setNotifications(res.data);
-    } catch {
+    } catch (err) {
+      console.error("❌ Error fetching notifications:", err);
+      setError("⚠️ فشل في جلب الإشعارات");
       setNotifications([]);
     } finally {
       setLoading(false);
@@ -31,13 +41,21 @@ export default function AdminNotificationsPage() {
   }, []);
 
   const markAllAsRead = async () => {
-    await axios.post("/api/notifications/mark-read", { userId: "admin" });
-    setNotifications((prev) => prev.map((n) => ({ ...n, seen: true })));
+    try {
+      await axios.post("/api/notifications/mark-read", { userId: "admin" });
+      setNotifications((prev) => prev.map((n) => ({ ...n, seen: true })));
+    } catch {
+      alert("⚠️ فشل في تمييز الإشعارات كمقروءة");
+    }
   };
 
   const deleteNotification = async (id: string) => {
-    await axios.delete(`/api/notifications/delete?id=${id}`);
-    setNotifications((prev) => prev.filter((n) => n._id !== id));
+    try {
+      await axios.delete(`/api/notifications/delete?id=${id}`);
+      setNotifications((prev) => prev.filter((n) => n._id !== id));
+    } catch {
+      alert("⚠️ فشل في حذف الإشعار");
+    }
   };
 
   return (
@@ -49,6 +67,8 @@ export default function AdminNotificationsPage() {
 
         {loading ? (
           <p className="text-gray-500">جارٍ التحميل...</p>
+        ) : error ? (
+          <p className="text-red-500">{error}</p>
         ) : notifications.length === 0 ? (
           <p className="text-gray-500">لا توجد إشعارات حالياً.</p>
         ) : (
