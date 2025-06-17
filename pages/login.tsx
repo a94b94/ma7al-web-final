@@ -190,7 +190,9 @@ export default function LoginPage() {
               className="w-5 h-5"
             />
           )}
-          {googleLoading ? "جاري الدخول..." : "تسجيل الدخول بواسطة Google"}
+          <span className="font-medium">
+            {googleLoading ? "جاري الدخول..." : "تسجيل الدخول بواسطة Google"}
+          </span>
         </button>
       </motion.form>
     </div>
