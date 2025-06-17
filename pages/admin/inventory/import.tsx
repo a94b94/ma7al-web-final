@@ -1,3 +1,5 @@
+// ✅ ImportInventoryPage.tsx (نسخة مطورة بالكامل)
+
 "use client";
 
 import { useState } from "react";
@@ -35,7 +37,7 @@ export default function ImportInventoryPage() {
   };
 
   const extractTextFromImage = async (file: File) => {
-    const result = await Tesseract.recognize(file, "ara", {
+    const result = await Tesseract.recognize(file, "ara+eng", {
       logger: (m) => console.log(m),
     });
     return result.data.text;
@@ -48,22 +50,22 @@ export default function ImportInventoryPage() {
       .filter((line) => line.length > 0);
 
     const result = lines.map((line, index) => {
-      const numbers = [...line.matchAll(/\d{3,}/g)].map((m) => m[0]);
-      const nameMatch = line.match(/[A-Z][A-Z0-9\s\-+]{4,}/i);
+      const numbers = [...line.matchAll(/\d+(\.\d+)?/g)].map((m) => m[0]);
 
-      if (!nameMatch || numbers.length < 2) return null;
+      // حصر الأرقام فقط
+      if (numbers.length < 2) return null;
 
-      const name = nameMatch[0].trim();
-      const quantity = parseInt(numbers[numbers.length - 2]);
-      const price = parseFloat(numbers[numbers.length - 1]);
-
+      const price = parseFloat(numbers.pop()!);
+      const quantity = parseInt(numbers.pop()!);
       if (isNaN(quantity) || isNaN(price)) return null;
 
-      const barcode = Math.floor(Math.random() * 1000000).toString();
+      // استخرج الاسم من بقية النص
+      const name = line.replace(/\d+(\.\d+)?/g, "").trim();
+      if (!name || name.length < 3) return null;
 
       return {
         id: `${index}-${Date.now()}`,
-        barcode,
+        barcode: Math.floor(Math.random() * 1000000).toString(),
         name,
         quantity,
         purchasePrice: price,
@@ -103,9 +105,7 @@ export default function ImportInventoryPage() {
 
   const handleImport = async () => {
     try {
-      await Promise.all(
-        products.map((product) => axios.post("/api/inventory/add", product))
-      );
+      await Promise.all(products.map((product) => axios.post("/api/inventory/add", product)));
       toast.success("✅ تم استيراد جميع المنتجات بنجاح!");
       setProducts([]);
       setFile(null);
@@ -143,11 +143,7 @@ export default function ImportInventoryPage() {
       {extractedText && (
         <div>
           <h2 className="text-sm text-gray-600 mt-4">📜 النص الكامل المستخرج:</h2>
-          <textarea
-            className="w-full h-40 p-2 border rounded"
-            readOnly
-            value={extractedText}
-          />
+          <textarea className="w-full h-40 p-2 border rounded" readOnly value={extractedText} />
         </div>
       )}
 
@@ -156,10 +152,7 @@ export default function ImportInventoryPage() {
           <h2 className="text-lg font-semibold">📦 المنتجات المستخرجة:</h2>
           <div className="flex justify-between mb-2">
             <Button onClick={handleImport}>✅ إضافة إلى المخزن</Button>
-            <Button
-              variant="destructive"
-              onClick={() => setProducts([])}
-            >
+            <Button variant="destructive" onClick={() => setProducts([])}>
               🗑 تفريغ الكل
             </Button>
           </div>
@@ -222,11 +215,7 @@ export default function ImportInventoryPage() {
                         <td className="border p-2">{p.quantity}</td>
                         <td className="border p-2">{p.purchasePrice}</td>
                         <td className="border p-2 text-center space-x-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setEditingId(p.id)}
-                          >
+                          <Button variant="outline" size="sm" onClick={() => setEditingId(p.id)}>
                             ✏️ تعديل
                           </Button>
                           <Button
