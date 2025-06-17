@@ -1,5 +1,3 @@
-// ✅ ImportInventoryPage.tsx (نسخة مطورة بالكامل)
-
 "use client";
 
 import { useState } from "react";
@@ -11,12 +9,19 @@ import * as pdfjsLib from "pdfjs-dist";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
 
+const supportedLanguages = [
+  { code: "eng", label: "English" },
+  { code: "ara", label: "Arabic" },
+  { code: "ara+eng", label: "Arabic + English" },
+];
+
 export default function ImportInventoryPage() {
   const [file, setFile] = useState<File | null>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [extractedText, setExtractedText] = useState("");
   const [loading, setLoading] = useState(false);
+  const [ocrLang, setOcrLang] = useState("ara+eng");
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
@@ -36,9 +41,12 @@ export default function ImportInventoryPage() {
     return text;
   };
 
-  const extractTextFromImage = async (file: File) => {
-    const result = await Tesseract.recognize(file, "ara+eng", {
+  const extractTextFromImage = async (file: File, enhanced: boolean = false) => {
+    const result = await Tesseract.recognize(file, ocrLang, {
       logger: (m) => console.log(m),
+      ...(enhanced && {
+        tessedit_char_whitelist: "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-+ ",
+      }),
     });
     return result.data.text;
   };
@@ -51,15 +59,12 @@ export default function ImportInventoryPage() {
 
     const result = lines.map((line, index) => {
       const numbers = [...line.matchAll(/\d+(\.\d+)?/g)].map((m) => m[0]);
-
-      // حصر الأرقام فقط
       if (numbers.length < 2) return null;
 
       const price = parseFloat(numbers.pop()!);
       const quantity = parseInt(numbers.pop()!);
       if (isNaN(quantity) || isNaN(price)) return null;
 
-      // استخرج الاسم من بقية النص
       const name = line.replace(/\d+(\.\d+)?/g, "").trim();
       if (!name || name.length < 3) return null;
 
@@ -76,7 +81,7 @@ export default function ImportInventoryPage() {
     return result.filter(Boolean);
   };
 
-  const handleExtract = async () => {
+  const handleExtract = async (enhanced = false) => {
     if (!file) return;
     setLoading(true);
     try {
@@ -84,7 +89,7 @@ export default function ImportInventoryPage() {
       if (file.type === "application/pdf") {
         extracted = await extractTextFromPDF(file);
       } else {
-        extracted = await extractTextFromImage(file);
+        extracted = await extractTextFromImage(file, enhanced);
       }
 
       setExtractedText(extracted);
@@ -136,9 +141,25 @@ export default function ImportInventoryPage() {
         className="border p-2 rounded w-full sm:w-96"
       />
 
-      <Button disabled={!file || loading} onClick={handleExtract}>
-        🔍 استخراج المنتجات
-      </Button>
+      <div className="flex gap-4 items-center">
+        <Button disabled={!file || loading} onClick={() => handleExtract(false)}>
+          🔍 استخراج المنتجات
+        </Button>
+        <Button variant="outline" disabled={!file || loading} onClick={() => handleExtract(true)}>
+          ⚙️ تحليل دقيق محسّن
+        </Button>
+        <select
+          value={ocrLang}
+          onChange={(e) => setOcrLang(e.target.value)}
+          className="border rounded px-2 py-1"
+        >
+          {supportedLanguages.map((lang) => (
+            <option key={lang.code} value={lang.code}>
+              {lang.label}
+            </option>
+          ))}
+        </select>
+      </div>
 
       {extractedText && (
         <div>
@@ -218,11 +239,7 @@ export default function ImportInventoryPage() {
                           <Button variant="outline" size="sm" onClick={() => setEditingId(p.id)}>
                             ✏️ تعديل
                           </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => removeProduct(p.id)}
-                          >
+                          <Button variant="destructive" size="sm" onClick={() => removeProduct(p.id)}>
                             ❌ حذف
                           </Button>
                         </td>
