@@ -42,20 +42,53 @@ export default function ImportInventoryPage() {
 
   const parseLinesToProducts = (rawText: string) => {
     const lines = rawText.split("\n").filter((line) => line.trim().length > 0);
+
     const result = lines.map((line) => {
-      const [barcode, name, quantity, price] = line.split("|").map((s) => s.trim());
-      if (!barcode || !name || !quantity || !price) return null;
-      const q = parseInt(quantity);
-      const p = parseFloat(price);
-      if (isNaN(q) || isNaN(p)) return null;
-      return {
-        barcode,
-        name,
-        quantity: q,
-        purchasePrice: p,
-        isPublished: false,
-      };
+      let cleanedLine = line.replace(/\s+/g, " ").trim();
+
+      // 1️⃣ محاولة: مفصولة بعلامة |
+      if (cleanedLine.includes("|")) {
+        const parts = cleanedLine.split("|").map((s) => s.trim());
+        if (parts.length >= 4) {
+          const [barcode, name, quantity, price] = parts;
+          const q = parseInt(quantity);
+          const p = parseFloat(price);
+          if (!barcode || !name || isNaN(q) || isNaN(p)) return null;
+          return {
+            barcode,
+            name,
+            quantity: q,
+            purchasePrice: p,
+            isPublished: false,
+          };
+        }
+      }
+
+      // 2️⃣ محاولة: مفصولة بمسافات مع أرقام تلقائية
+      const words = cleanedLine.split(" ");
+      const numbers = words.filter((w) => /^\d+(\.\d+)?$/.test(w));
+      const nonNumbers = words.filter((w) => !/^\d+(\.\d+)?$/.test(w));
+
+      if (numbers.length >= 3) {
+        const price = parseFloat(numbers.pop()!);
+        const quantity = parseInt(numbers.pop()!);
+        const barcode = numbers.shift() || Math.floor(Math.random() * 1000000).toString();
+        const name = nonNumbers.join(" ") || "منتج غير مسمّى";
+
+        if (isNaN(quantity) || isNaN(price)) return null;
+
+        return {
+          barcode,
+          name,
+          quantity,
+          purchasePrice: price,
+          isPublished: false,
+        };
+      }
+
+      return null;
     });
+
     return result.filter(Boolean);
   };
 
@@ -69,6 +102,9 @@ export default function ImportInventoryPage() {
       } else {
         extracted = await extractTextFromImage(file);
       }
+
+      console.log("📄 النص المستخرج:\n", extracted); // للمراجعة والتصحيح
+
       const parsed = parseLinesToProducts(extracted);
       if (parsed.length === 0) {
         toast.error("❌ لم يتم استخراج أي منتجات. تأكد من تنسيق الفاتورة.");
