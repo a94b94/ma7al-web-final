@@ -60,12 +60,21 @@ export default function InventoryPage() {
       <h1 className="text-2xl font-bold mb-4 text-center">📦 إدارة المنتجات في المخزن</h1>
 
       <div className="flex flex-col sm:flex-row sm:justify-between items-center gap-4 mb-6">
-        <Link
-          href="/admin/purchase"
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm"
-        >
-          ➕ إنشاء فاتورة شراء
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            href="/admin/purchase"
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm"
+          >
+            ➕ إنشاء فاتورة شراء يدويًا
+          </Link>
+
+          <Link
+            href="/admin/inventory/import"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm"
+          >
+            📤 رفع فاتورة شراء
+          </Link>
+        </div>
 
         <select
           className="text-sm border p-2 rounded"
