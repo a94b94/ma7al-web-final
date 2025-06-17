@@ -12,6 +12,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLi
 export default function ImportInventoryPage() {
   const [file, setFile] = useState<File | null>(null);
   const [products, setProducts] = useState<any[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [extractedText, setExtractedText] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -41,54 +42,33 @@ export default function ImportInventoryPage() {
   };
 
   const parseLinesToProducts = (rawText: string) => {
-    const lines = rawText.split("\n").filter((line) => line.trim().length > 0);
+    const lines = rawText
+      .split("\n")
+      .map((line) => line.replace(/\s+/g, " ").trim())
+      .filter((line) => line.length > 0);
 
     const result = lines.map((line, index) => {
-      let cleanedLine = line.replace(/\s+/g, " ").trim();
+      const numbers = [...line.matchAll(/\d{3,}/g)].map((m) => m[0]);
+      const nameMatch = line.match(/[A-Z][A-Z0-9\s\-+]{4,}/i);
 
-      // 1️⃣ تنسيق مفصول بـ |
-      if (cleanedLine.includes("|")) {
-        const parts = cleanedLine.split("|").map((s) => s.trim());
-        if (parts.length >= 4) {
-          const [barcode, name, quantity, price] = parts;
-          const q = parseInt(quantity);
-          const p = parseFloat(price);
-          if (!barcode || !name || isNaN(q) || isNaN(p)) return null;
-          return {
-            id: index + "-" + Date.now(),
-            barcode,
-            name,
-            quantity: q,
-            purchasePrice: p,
-            isPublished: false,
-          };
-        }
-      }
+      if (!nameMatch || numbers.length < 2) return null;
 
-      // 2️⃣ تنسيق بدون فواصل
-      const words = cleanedLine.split(" ");
-      const numbers = words.filter((w) => /^\d+(\.\d+)?$/.test(w));
-      const nonNumbers = words.filter((w) => !/^\d+(\.\d+)?$/.test(w));
+      const name = nameMatch[0].trim();
+      const quantity = parseInt(numbers[numbers.length - 2]);
+      const price = parseFloat(numbers[numbers.length - 1]);
 
-      if (numbers.length >= 2) {
-        const price = parseFloat(numbers.pop()!);
-        const quantity = parseInt(numbers.pop()!);
-        const barcode = numbers.shift() || Math.floor(Math.random() * 1000000).toString();
-        const name = nonNumbers.join(" ") || "منتج غير مسمى";
+      if (isNaN(quantity) || isNaN(price)) return null;
 
-        if (isNaN(quantity) || isNaN(price)) return null;
+      const barcode = Math.floor(Math.random() * 1000000).toString();
 
-        return {
-          id: index + "-" + Date.now(),
-          barcode,
-          name,
-          quantity,
-          purchasePrice: price,
-          isPublished: false,
-        };
-      }
-
-      return null;
+      return {
+        id: `${index}-${Date.now()}`,
+        barcode,
+        name,
+        quantity,
+        purchasePrice: price,
+        isPublished: false,
+      };
     });
 
     return result.filter(Boolean);
@@ -106,7 +86,6 @@ export default function ImportInventoryPage() {
       }
 
       setExtractedText(extracted);
-
       const parsed = parseLinesToProducts(extracted);
       if (parsed.length === 0) {
         toast.error("❌ لم يتم استخراج أي منتجات. تأكد من تنسيق الفاتورة.");
@@ -140,6 +119,12 @@ export default function ImportInventoryPage() {
     setProducts((prev) => prev.filter((p) => p.id !== id));
   };
 
+  const updateProduct = (id: string, field: string, value: string | number) => {
+    setProducts((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, [field]: value } : p))
+    );
+  };
+
   return (
     <div className="p-4 space-y-4 max-w-5xl mx-auto">
       <h1 className="text-2xl font-bold">📥 استيراد فاتورة شراء</h1>
@@ -158,13 +143,26 @@ export default function ImportInventoryPage() {
       {extractedText && (
         <div>
           <h2 className="text-sm text-gray-600 mt-4">📜 النص الكامل المستخرج:</h2>
-          <textarea className="w-full h-40 p-2 border rounded" readOnly value={extractedText} />
+          <textarea
+            className="w-full h-40 p-2 border rounded"
+            readOnly
+            value={extractedText}
+          />
         </div>
       )}
 
       {products.length > 0 && (
         <div className="space-y-4 mt-6">
           <h2 className="text-lg font-semibold">📦 المنتجات المستخرجة:</h2>
+          <div className="flex justify-between mb-2">
+            <Button onClick={handleImport}>✅ إضافة إلى المخزن</Button>
+            <Button
+              variant="destructive"
+              onClick={() => setProducts([])}
+            >
+              🗑 تفريغ الكل
+            </Button>
+          </div>
           <div className="overflow-x-auto">
             <table className="min-w-full border text-sm">
               <thead className="bg-gray-100">
@@ -173,30 +171,79 @@ export default function ImportInventoryPage() {
                   <th className="border p-2">الاسم</th>
                   <th className="border p-2">الكمية</th>
                   <th className="border p-2">سعر الشراء</th>
-                  <th className="border p-2">حذف</th>
+                  <th className="border p-2">إجراءات</th>
                 </tr>
               </thead>
               <tbody>
                 {products.map((p) => (
                   <tr key={p.id}>
-                    <td className="border p-2">{p.barcode}</td>
-                    <td className="border p-2">{p.name}</td>
-                    <td className="border p-2">{p.quantity}</td>
-                    <td className="border p-2">{p.purchasePrice}</td>
-                    <td className="border p-2 text-center">
-                      <button
-                        onClick={() => removeProduct(p.id)}
-                        className="text-red-600 font-bold"
-                      >
-                        ❌
-                      </button>
-                    </td>
+                    {editingId === p.id ? (
+                      <>
+                        <td className="border p-2">
+                          <input
+                            value={p.barcode}
+                            onChange={(e) => updateProduct(p.id, "barcode", e.target.value)}
+                            className="border rounded px-2 py-1 w-24"
+                          />
+                        </td>
+                        <td className="border p-2">
+                          <input
+                            value={p.name}
+                            onChange={(e) => updateProduct(p.id, "name", e.target.value)}
+                            className="border rounded px-2 py-1"
+                          />
+                        </td>
+                        <td className="border p-2">
+                          <input
+                            type="number"
+                            value={p.quantity}
+                            onChange={(e) => updateProduct(p.id, "quantity", +e.target.value)}
+                            className="border rounded px-2 py-1 w-20"
+                          />
+                        </td>
+                        <td className="border p-2">
+                          <input
+                            type="number"
+                            value={p.purchasePrice}
+                            onChange={(e) => updateProduct(p.id, "purchasePrice", +e.target.value)}
+                            className="border rounded px-2 py-1 w-24"
+                          />
+                        </td>
+                        <td className="border p-2 text-center">
+                          <Button size="sm" onClick={() => setEditingId(null)}>
+                            💾 حفظ
+                          </Button>
+                        </td>
+                      </>
+                    ) : (
+                      <>
+                        <td className="border p-2">{p.barcode}</td>
+                        <td className="border p-2">{p.name}</td>
+                        <td className="border p-2">{p.quantity}</td>
+                        <td className="border p-2">{p.purchasePrice}</td>
+                        <td className="border p-2 text-center space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setEditingId(p.id)}
+                          >
+                            ✏️ تعديل
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => removeProduct(p.id)}
+                          >
+                            ❌ حذف
+                          </Button>
+                        </td>
+                      </>
+                    )}
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <Button onClick={handleImport}>✅ إضافة إلى المخزن</Button>
         </div>
       )}
     </div>
