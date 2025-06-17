@@ -1,4 +1,3 @@
-// File: pages/admin/inventory/import.tsx
 "use client";
 
 import { useState } from "react";
@@ -9,8 +8,8 @@ import toast from "react-hot-toast";
 
 // 🛠️ PDF.js worker fix for production
 import * as pdfjsLib from "pdfjs-dist";
-import pdfjsWorker from "pdfjs-dist/build/pdf.worker.entry";
 // @ts-ignore
+import pdfjsWorker from "pdfjs-dist/build/pdf.worker.entry?worker";
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
 export default function ImportInventoryPage() {
@@ -48,11 +47,14 @@ export default function ImportInventoryPage() {
     const result = lines.map((line) => {
       const [barcode, name, quantity, price] = line.split("|").map((s) => s.trim());
       if (!barcode || !name || !quantity || !price) return null;
+      const q = parseInt(quantity);
+      const p = parseFloat(price);
+      if (isNaN(q) || isNaN(p)) return null;
       return {
         barcode,
         name,
-        quantity: parseInt(quantity),
-        purchasePrice: parseFloat(price),
+        quantity: q,
+        purchasePrice: p,
         isPublished: false,
       };
     });
@@ -86,27 +88,27 @@ export default function ImportInventoryPage() {
 
   const handleImport = async () => {
     try {
-      for (const product of products) {
-        await axios.post("/api/inventory/add", product);
-      }
-      toast.success("✅ تم استيراد المنتجات بنجاح!");
+      await Promise.all(
+        products.map((product) => axios.post("/api/inventory/add", product))
+      );
+      toast.success("✅ تم استيراد جميع المنتجات بنجاح!");
       setProducts([]);
       setFile(null);
     } catch (err) {
       console.error("❌ Import error:", err);
-      toast.error("فشل في حفظ المنتجات إلى المخزن.");
+      toast.error("فشل في حفظ بعض المنتجات إلى المخزن.");
     }
   };
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="p-4 space-y-4 max-w-5xl mx-auto">
       <h1 className="text-2xl font-bold">📥 استيراد فاتورة شراء</h1>
 
       <input
         type="file"
         accept=".pdf,image/*"
         onChange={handleFileChange}
-        className="border p-2 rounded"
+        className="border p-2 rounded w-full sm:w-96"
       />
 
       <Button disabled={!file || loading} onClick={handleExtract}>
@@ -114,29 +116,30 @@ export default function ImportInventoryPage() {
       </Button>
 
       {products.length > 0 && (
-        <div className="space-y-4">
+        <div className="space-y-4 mt-6">
           <h2 className="text-lg font-semibold">📦 المنتجات المستخرجة:</h2>
-          <table className="min-w-full border">
-            <thead>
-              <tr>
-                <th className="border p-1">الباركود</th>
-                <th className="border p-1">الاسم</th>
-                <th className="border p-1">الكمية</th>
-                <th className="border p-1">سعر الشراء</th>
-              </tr>
-            </thead>
-            <tbody>
-              {products.map((p, i) => (
-                <tr key={i}>
-                  <td className="border p-1">{p.barcode}</td>
-                  <td className="border p-1">{p.name}</td>
-                  <td className="border p-1">{p.quantity}</td>
-                  <td className="border p-1">{p.purchasePrice}</td>
+          <div className="overflow-x-auto">
+            <table className="min-w-full border text-sm">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="border p-2">الباركود</th>
+                  <th className="border p-2">الاسم</th>
+                  <th className="border p-2">الكمية</th>
+                  <th className="border p-2">سعر الشراء</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-
+              </thead>
+              <tbody>
+                {products.map((p, i) => (
+                  <tr key={i}>
+                    <td className="border p-2">{p.barcode}</td>
+                    <td className="border p-2">{p.name}</td>
+                    <td className="border p-2">{p.quantity}</td>
+                    <td className="border p-2">{p.purchasePrice}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           <Button onClick={handleImport}>✅ إضافة إلى المخزن</Button>
         </div>
       )}
