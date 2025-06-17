@@ -5,10 +5,16 @@ import { useState } from "react";
 import Tesseract from "tesseract.js";
 import axios from "axios";
 import { Button } from "@/components/ui/button";
+import toast from "react-hot-toast";
+
+// 🛠️ PDF.js worker fix for production
+import * as pdfjsLib from "pdfjs-dist";
+import pdfjsWorker from "pdfjs-dist/build/pdf.worker.entry";
+// @ts-ignore
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
 export default function ImportInventoryPage() {
   const [file, setFile] = useState<File | null>(null);
-  const [text, setText] = useState<string>("");
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -18,7 +24,6 @@ export default function ImportInventoryPage() {
   };
 
   const extractTextFromPDF = async (file: File) => {
-    const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf");
     const data = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(data) }).promise;
     let text = "";
@@ -64,11 +69,16 @@ export default function ImportInventoryPage() {
       } else {
         extracted = await extractTextFromImage(file);
       }
-      setText(extracted);
       const parsed = parseLinesToProducts(extracted);
-      setProducts(parsed);
+      if (parsed.length === 0) {
+        toast.error("❌ لم يتم استخراج أي منتجات. تأكد من تنسيق الفاتورة.");
+      } else {
+        setProducts(parsed);
+        toast.success(`✅ تم استخراج ${parsed.length} منتج.`);
+      }
     } catch (err) {
-      console.error("Extraction error:", err);
+      console.error("❌ Extraction error:", err);
+      toast.error("حدث خطأ أثناء استخراج النص من الملف.");
     } finally {
       setLoading(false);
     }
@@ -79,16 +89,26 @@ export default function ImportInventoryPage() {
       for (const product of products) {
         await axios.post("/api/inventory/add", product);
       }
-      alert("✅ تم استيراد المنتجات بنجاح!");
+      toast.success("✅ تم استيراد المنتجات بنجاح!");
+      setProducts([]);
+      setFile(null);
     } catch (err) {
-      console.error("Import error:", err);
+      console.error("❌ Import error:", err);
+      toast.error("فشل في حفظ المنتجات إلى المخزن.");
     }
   };
 
   return (
     <div className="p-4 space-y-4">
       <h1 className="text-2xl font-bold">📥 استيراد فاتورة شراء</h1>
-      <input type="file" accept=".pdf,image/*" onChange={handleFileChange} />
+
+      <input
+        type="file"
+        accept=".pdf,image/*"
+        onChange={handleFileChange}
+        className="border p-2 rounded"
+      />
+
       <Button disabled={!file || loading} onClick={handleExtract}>
         🔍 استخراج المنتجات
       </Button>
@@ -116,6 +136,7 @@ export default function ImportInventoryPage() {
               ))}
             </tbody>
           </table>
+
           <Button onClick={handleImport}>✅ إضافة إلى المخزن</Button>
         </div>
       )}
