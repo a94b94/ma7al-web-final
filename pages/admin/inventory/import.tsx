@@ -6,11 +6,9 @@ import axios from "axios";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
 
-// 🛠️ PDF.js worker fix for production
+// ✅ إصلاح الـ worker باستخدام CDN مباشر
 import * as pdfjsLib from "pdfjs-dist";
-// @ts-ignore
-import pdfjsWorker from "pdfjs-dist/build/pdf.worker.entry?worker";
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
 
 export default function ImportInventoryPage() {
   const [file, setFile] = useState<File | null>(null);
