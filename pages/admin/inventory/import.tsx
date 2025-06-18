@@ -1,3 +1,5 @@
+// ✅ ImportInventoryPage.tsx – نسخة متقدمة مع حفظ الفاتورة
+
 "use client";
 
 import { useState } from "react";
@@ -21,7 +23,11 @@ export default function ImportInventoryPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [extractedText, setExtractedText] = useState("");
   const [loading, setLoading] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [ocrLang, setOcrLang] = useState("ara+eng");
+
+  const [invoiceNumber, setInvoiceNumber] = useState("");
+  const [supplierName, setSupplierName] = useState("");
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
@@ -41,7 +47,7 @@ export default function ImportInventoryPage() {
     return text;
   };
 
-  const extractTextFromImage = async (file: File, enhanced: boolean = false) => {
+  const extractTextFromImage = async (file: File, enhanced = false) => {
     const result = await Tesseract.recognize(file, ocrLang, {
       logger: (m) => console.log(m),
       ...(enhanced && {
@@ -61,8 +67,24 @@ export default function ImportInventoryPage() {
       const numbers = [...line.matchAll(/\d+(\.\d+)?/g)].map((m) => m[0]);
       if (numbers.length < 2) return null;
 
-      const price = parseFloat(numbers.pop()!);
-      const quantity = parseInt(numbers.pop()!);
+      let price = 0;
+      let quantity = 0;
+
+      for (let i = 0; i < numbers.length - 1; i++) {
+        const q = parseInt(numbers[i]);
+        const p = parseFloat(numbers[i + 1]);
+        if (!isNaN(q) && !isNaN(p) && p > 1000 && q <= 100) {
+          quantity = q;
+          price = p;
+          break;
+        }
+      }
+
+      if (!quantity || !price) {
+        price = parseFloat(numbers.pop()!);
+        quantity = parseInt(numbers.pop()!);
+      }
+
       if (isNaN(quantity) || isNaN(price)) return null;
 
       const name = line.replace(/\d+(\.\d+)?/g, "").trim();
@@ -109,14 +131,29 @@ export default function ImportInventoryPage() {
   };
 
   const handleImport = async () => {
+    if (!invoiceNumber || !supplierName) {
+      toast.error("📝 يرجى إدخال رقم الفاتورة واسم المورد");
+      return;
+    }
+
+    setImporting(true);
     try {
-      await Promise.all(products.map((product) => axios.post("/api/inventory/add", product)));
-      toast.success("✅ تم استيراد جميع المنتجات بنجاح!");
+      const res = await axios.post("/api/inventory/import-invoice", {
+        invoiceNumber,
+        supplierName,
+        products,
+      });
+
+      toast.success("✅ تم حفظ الفاتورة والمنتجات بنجاح!");
       setProducts([]);
       setFile(null);
+      setInvoiceNumber("");
+      setSupplierName("");
     } catch (err) {
       console.error("❌ Import error:", err);
-      toast.error("فشل في حفظ بعض المنتجات إلى المخزن.");
+      toast.error("فشل في حفظ بعض البيانات.");
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -140,6 +177,23 @@ export default function ImportInventoryPage() {
         onChange={handleFileChange}
         className="border p-2 rounded w-full sm:w-96"
       />
+
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+        <input
+          type="text"
+          placeholder="رقم الفاتورة"
+          value={invoiceNumber}
+          onChange={(e) => setInvoiceNumber(e.target.value)}
+          className="border p-2 rounded w-full sm:w-64"
+        />
+        <input
+          type="text"
+          placeholder="اسم المورد"
+          value={supplierName}
+          onChange={(e) => setSupplierName(e.target.value)}
+          className="border p-2 rounded w-full sm:w-64"
+        />
+      </div>
 
       <div className="flex gap-4 items-center">
         <Button disabled={!file || loading} onClick={() => handleExtract(false)}>
@@ -172,7 +226,9 @@ export default function ImportInventoryPage() {
         <div className="space-y-4 mt-6">
           <h2 className="text-lg font-semibold">📦 المنتجات المستخرجة:</h2>
           <div className="flex justify-between mb-2">
-            <Button onClick={handleImport}>✅ إضافة إلى المخزن</Button>
+            <Button onClick={handleImport} disabled={importing}>
+              {importing ? "⏳ جاري الحفظ..." : "✅ إضافة إلى المخزن مع الفاتورة"}
+            </Button>
             <Button variant="destructive" onClick={() => setProducts([])}>
               🗑 تفريغ الكل
             </Button>
