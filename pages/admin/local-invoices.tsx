@@ -1,6 +1,7 @@
+// ✅ صفحة قائمة الفواتير المحلية مع دعم إشعار داخلي عند حفظ فاتورة جديدة
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import toast from "react-hot-toast";
 import dbConnect from "@/lib/dbConnect";
@@ -38,9 +39,19 @@ interface LocalInvoiceType {
 export default function LocalInvoicesPage({ invoices }: { invoices: LocalInvoiceType[] }) {
   const [selectedInvoice, setSelectedInvoice] = useState<LocalInvoiceType | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [newInvoiceSaved, setNewInvoiceSaved] = useState<string | null>(null);
 
   const router = useRouter();
   const { type = "all", from = "", to = "" } = router.query;
+
+  useEffect(() => {
+    const handler = (e: any) => {
+      setNewInvoiceSaved(e.detail.invoiceNumber);
+      setTimeout(() => setNewInvoiceSaved(null), 4000);
+    };
+    window.addEventListener("invoice:saved", handler);
+    return () => window.removeEventListener("invoice:saved", handler);
+  }, []);
 
   const updateFilters = (newType: string, newFrom: string, newTo: string) => {
     const query: any = {};
@@ -57,7 +68,7 @@ export default function LocalInvoicesPage({ invoices }: { invoices: LocalInvoice
       const data = await res.json();
       if (data.success) {
         toast.success("✅ تم حذف الفاتورة");
-        router.replace(router.asPath); // أفضل من reload
+        router.replace(router.asPath);
       } else {
         toast.error("❌ فشل في الحذف");
       }
@@ -107,6 +118,12 @@ export default function LocalInvoicesPage({ invoices }: { invoices: LocalInvoice
   return (
     <div className="max-w-6xl mx-auto p-6">
       <h1 className="text-2xl font-bold mb-6 text-center">📋 قائمة الفواتير المحلية</h1>
+
+      {newInvoiceSaved && (
+        <div className="bg-green-600 text-white text-center py-2 mb-4 rounded shadow">
+          ✅ تم حفظ الفاتورة رقم <strong>{newInvoiceSaved}</strong> بنجاح
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-4 mb-6 justify-between items-center">
         <select
@@ -203,7 +220,6 @@ export default function LocalInvoicesPage({ invoices }: { invoices: LocalInvoice
   );
 }
 
-// ✅ جلب البيانات من السيرفر
 export const getServerSideProps: GetServerSideProps = async ({ query }) => {
   await dbConnect();
 

@@ -1,16 +1,16 @@
 import { Schema, model, models, Document, Model, Types } from "mongoose";
 
-// 🧩 واجهة TypeScript
+// 🧩 واجهة TypeScript لفاتورة الشراء
 export interface PurchaseInvoiceType extends Document {
   supplierName: string;
   invoiceNumber: string;
   date: Date;
-  products: Types.ObjectId[];
+  products: Types.ObjectId[]; // سيتم ربطها بـ InventoryProduct[]
   createdAt: Date;
   updatedAt: Date;
 }
 
-// 🧱 مخطط الفاتورة
+// 🧱 مخطط Mongoose
 const PurchaseInvoiceSchema = new Schema<PurchaseInvoiceType>(
   {
     supplierName: { type: String, required: true, trim: true },
@@ -19,11 +19,11 @@ const PurchaseInvoiceSchema = new Schema<PurchaseInvoiceType>(
     products: [{ type: Schema.Types.ObjectId, ref: "InventoryProduct" }],
   },
   {
-    timestamps: true, // ✅ يضيف createdAt و updatedAt تلقائيًا
+    timestamps: true, // ⏱️ يضيف createdAt و updatedAt تلقائيًا
   }
 );
 
-// 🏷️ الموديل
+// 🏷️ التصدير
 const PurchaseInvoice: Model<PurchaseInvoiceType> =
   models.PurchaseInvoice || model<PurchaseInvoiceType>("PurchaseInvoice", PurchaseInvoiceSchema);
 

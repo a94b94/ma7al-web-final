@@ -2,14 +2,15 @@ const withPWA = require("next-pwa")({
   dest: "public",
   register: true,
   skipWaiting: true,
-  disable: process.env.NODE_ENV === "development",
+  sw: "sw.js", // ✅ تحديد اسم ملف Service Worker المخصص
+  disable: process.env.NODE_ENV === "development", // 🔁 تعطيل PWA أثناء التطوير
   buildExcludes: [
     /app-build-manifest\.json$/,
     /middleware-manifest\.json$/,
     /dynamic-css-manifest\.json$/,
   ],
   fallbacks: {
-    document: "/offline.html",
+    document: "/offline.html", // 📄 صفحة تظهر عند فقدان الاتصال
   },
 });
 
@@ -17,13 +18,18 @@ const withPWA = require("next-pwa")({
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: ["ucarecdn.com", "images.app.goo.gl"],
+    domains: ["ucarecdn.com", "images.app.goo.gl", "res.cloudinary.com"], // ✅ دعم Cloudinary أيضًا
   },
   webpack(config, { isServer }) {
-    // 👇 دعم worker-loader لـ PDF.js
+    // 🧠 دعم تحميل ملفات PDF worker (مثلاً عند استخدام pdfjs-dist)
     config.module.rules.push({
       test: /pdf\.worker\.entry\.js$/,
-      use: { loader: "worker-loader" },
+      use: {
+        loader: "worker-loader",
+        options: {
+          filename: "static/chunks/pdf.worker.js",
+        },
+      },
     });
 
     return config;

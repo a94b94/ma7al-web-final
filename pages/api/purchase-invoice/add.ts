@@ -1,5 +1,4 @@
 // ✅ /api/purchase-invoice/add.ts
-
 import { NextApiRequest, NextApiResponse } from "next";
 import { connectDB } from "@/lib/mongoose";
 import PurchaseInvoice from "@/models/PurchaseInvoice";
@@ -12,35 +11,39 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   await connectDB();
 
-  const { invoiceNumber, supplierName, products } = req.body;
+  const { invoiceNumber, supplierName, products, date } = req.body;
 
-  if (!invoiceNumber || !supplierName || !Array.isArray(products)) {
-    return res.status(400).json({ error: "بيانات غير مكتملة" });
+  if (!invoiceNumber || !supplierName || !Array.isArray(products) || products.length === 0) {
+    return res.status(400).json({ error: "📛 بيانات غير مكتملة أو المنتجات فارغة" });
   }
 
   try {
-    // 🛒 حفظ المنتجات داخل InventoryProduct
-    const savedProducts = await Promise.all(
+    // ✅ 1. حفظ المنتجات داخل InventoryProduct
+    const savedProductIds = await Promise.all(
       products.map(async (product: any) => {
-        const newProduct = await InventoryProduct.create({
-          ...product,
-          createdAt: new Date(),
+        const saved = await InventoryProduct.create({
+          name: product.name,
+          barcode: product.barcode || "",
+          category: product.category || "غير مصنّف",
+          purchasePrice: product.purchasePrice,
+          quantity: product.quantity,
+          isPublished: false,
         });
-        return newProduct._id;
+        return saved._id;
       })
     );
 
-    // 🧾 إنشاء الفاتورة وربط المنتجات
+    // ✅ 2. حفظ الفاتورة وربط المنتجات
     const invoice = await PurchaseInvoice.create({
       invoiceNumber,
       supplierName,
-      date: new Date(),
-      products: savedProducts,
+      date: date ? new Date(date) : new Date(),
+      products: savedProductIds,
     });
 
     res.status(200).json({ success: true, invoice });
-  } catch (err: any) {
-    console.error("❌ Error saving invoice:", err);
-    res.status(500).json({ error: "فشل في حفظ الفاتورة" });
+  } catch (error: any) {
+    console.error("❌ Error saving purchase invoice:", error);
+    res.status(500).json({ error: "❌ فشل في حفظ الفاتورة" });
   }
 }

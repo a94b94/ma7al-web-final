@@ -7,6 +7,11 @@ import toast from "react-hot-toast";
 import axios from "axios";
 import Invoice from "@/components/Invoice";
 import { useUser } from "@/context/UserContext";
+import {
+  saveOfflineInvoice,
+  getAllOfflineInvoices,
+  clearOfflineInvoices,
+} from "@/lib/offlineDB";
 
 const InstallmentTable = dynamic(() => import("@/components/installments/InstallmentTable"), { ssr: false });
 
@@ -37,6 +42,7 @@ export default function LocalSalePage() {
   const [paid, setPaid] = useState(0);
   const [discount, setDiscount] = useState(0);
   const [invoiceNumber, setInvoiceNumber] = useState("");
+  const [isOnline, setIsOnline] = useState(true);
 
   const today = new Date().toLocaleDateString("ar-EG");
 
@@ -46,7 +52,30 @@ export default function LocalSalePage() {
     const randomId = Math.floor(100 + Math.random() * 900);
     const dateCode = new Date().toISOString().slice(0, 10).replace(/-/g, "");
     setInvoiceNumber(`INV-${dateCode}-${randomId}`);
+
+    if (typeof window !== "undefined") {
+      setIsOnline(navigator.onLine);
+      window.addEventListener("online", () => setIsOnline(true));
+      window.addEventListener("offline", () => setIsOnline(false));
+
+      if (navigator.onLine) syncOfflineInvoices();
+    }
   }, []);
+
+  const syncOfflineInvoices = async () => {
+    const invoices = await getAllOfflineInvoices();
+    for (const invoice of invoices) {
+      try {
+        await axios.post("/api/local-sale/create", invoice);
+      } catch (err) {
+        console.error("فشل إرسال فاتورة مؤقتة:", invoice);
+      }
+    }
+    if (invoices.length > 0) {
+      toast.success("✅ تمت مزامنة الفواتير المحفوظة محليًا");
+      await clearOfflineInvoices();
+    }
+  };
 
   const addToCart = (product: Product) => {
     const exists = cart.find((item) => item.productId === product._id);
@@ -62,21 +91,33 @@ export default function LocalSalePage() {
   const autoInstallmentsCount = Math.max(1, Math.round((totalAmount - downPayment) / 100000));
 
   const handleSaveInvoice = async () => {
+    const invoiceData = {
+      customerName,
+      phone: customerPhone,
+      cart,
+      total: totalAmount,
+      type: invoiceType,
+      downPayment,
+      installmentsCount: invoiceType === "installment" ? autoInstallmentsCount : 0,
+      dueDate,
+      paid,
+      discount,
+      invoiceNumber,
+    };
+
+    if (!isOnline) {
+      await saveOfflineInvoice(invoiceData);
+      toast.success("📴 تم حفظ الفاتورة مؤقتًا لعدم وجود اتصال بالإنترنت");
+      return;
+    }
+
     try {
-      const res = await axios.post("/api/local-sale/create", {
-        customerName,
-        phone: customerPhone,
-        cart,
-        total: totalAmount,
-        type: invoiceType,
-        downPayment,
-        installmentsCount: invoiceType === "installment" ? autoInstallmentsCount : 0,
-        dueDate,
-        paid,
-        discount,
-        invoiceNumber,
-      });
+      const res = await axios.post("/api/local-sale/create", invoiceData);
       toast.success("✅ تم حفظ الفاتورة بنجاح");
+      if (typeof window !== "undefined") {
+        const event = new CustomEvent("invoice:saved", { detail: { invoiceNumber } });
+        window.dispatchEvent(event);
+      }
       router.push(`/admin/invoices/${res.data.invoice._id}`);
     } catch (err) {
       toast.error("فشل في حفظ الفاتورة");
@@ -85,6 +126,12 @@ export default function LocalSalePage() {
 
   return (
     <div className="max-w-6xl mx-auto p-4 print:p-0">
+      {!isOnline && (
+        <div className="bg-red-600 text-white text-center py-2 mb-4">
+          🚫 لا يوجد اتصال بالإنترنت – سيتم حفظ الفاتورة مؤقتًا في جهازك
+        </div>
+      )}
+
       <h2 className="text-2xl font-bold mb-2 print:hidden">🧾 إنشاء فاتورة جديدة</h2>
       <p className="mb-2 text-sm text-gray-600 print:hidden">📅 التاريخ: {today}</p>
       <p className="mb-4 text-sm text-gray-600 print:hidden">رقم الفاتورة: <strong>{invoiceNumber}</strong></p>
@@ -92,25 +139,11 @@ export default function LocalSalePage() {
       {/* نوع الفاتورة */}
       <div className="mb-4 print:hidden">
         <label className="mr-4">
-          <input
-            type="radio"
-            name="invoiceType"
-            value="cash"
-            checked={invoiceType === "cash"}
-            onChange={() => setInvoiceType("cash")}
-            className="mr-1"
-          />
+          <input type="radio" name="invoiceType" value="cash" checked={invoiceType === "cash"} onChange={() => setInvoiceType("cash")} className="mr-1" />
           نقد
         </label>
         <label>
-          <input
-            type="radio"
-            name="invoiceType"
-            value="installment"
-            checked={invoiceType === "installment"}
-            onChange={() => setInvoiceType("installment")}
-            className="mr-1"
-          />
+          <input type="radio" name="invoiceType" value="installment" checked={invoiceType === "installment"} onChange={() => setInvoiceType("installment")} className="mr-1" />
           تقسيط
         </label>
       </div>
