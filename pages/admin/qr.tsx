@@ -9,15 +9,23 @@ type StatusRes = {
 };
 
 export default function WhatsAppQRPage() {
+  const [mounted, setMounted] = useState(false);
+
   const [qr, setQr] = useState<string | null>(null);
   const [isReady, setIsReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const [flyQrPage, setFlyQrPage] = useState<string | null>(null);
+
   // نستخدم ref حتى ما نعيد setQr لنفس الصورة
   const lastQrRef = useRef<string | null>(null);
+  const intervalRef = useRef<number | null>(null);
 
   const fetchStatus = async () => {
+    // لا تسوي fetch قبل ما نكون على العميل
+    if (typeof window === "undefined") return;
+
     setLoading(true);
     try {
       const res = await fetch("/api/whatsapp/status", { cache: "no-store" });
@@ -33,13 +41,19 @@ export default function WhatsAppQRPage() {
 
       const data = (await res.json()) as StatusRes;
 
-      setIsReady(Boolean(data.connected));
+      const connected = Boolean(data.connected);
+      setIsReady(connected);
 
-      // إذا متصل: نخفي QR
-      if (data.connected) {
+      // إذا متصل: نخفي QR ونوقف التحديث التلقائي
+      if (connected) {
         setQr(null);
         lastQrRef.current = null;
         setError("");
+
+        if (intervalRef.current) {
+          window.clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
         return;
       }
 
@@ -66,21 +80,44 @@ export default function WhatsAppQRPage() {
   };
 
   useEffect(() => {
-    fetchStatus(); // أول تحميل
+    // ✅ نثبت أنه صار mounted (للـ SSR hydration)
+    setMounted(true);
 
-    // تحديث تلقائي كل 5 ثواني إلى أن يصير connected
-    const t = setInterval(() => {
+    // ✅ نحسب رابط Fly على العميل فقط
+    const base = process.env.NEXT_PUBLIC_WHATSAPP_SERVER_URL;
+    if (base) {
+      setFlyQrPage(`${base.replace(/\/+$/, "")}/qr`);
+    } else {
+      setFlyQrPage(null);
+    }
+
+    // ✅ أول تحميل + تحديث دوري
+    fetchStatus();
+
+    intervalRef.current = window.setInterval(() => {
       fetchStatus();
     }, 5000);
 
-    return () => clearInterval(t);
+    return () => {
+      if (intervalRef.current) {
+        window.clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const flyQrPage =
-    process.env.NEXT_PUBLIC_WHATSAPP_SERVER_URL
-      ? `${process.env.NEXT_PUBLIC_WHATSAPP_SERVER_URL.replace(/\/+$/, "")}/qr`
-      : null;
+  // ✅ مهم: نخلي أول render ثابت لتجنب mismatch
+  if (!mounted) {
+    return (
+      <AdminLayout>
+        <div className="p-6 text-center">
+          <h1 className="text-2xl font-bold text-gray-700 mb-4">🔒 ربط WhatsApp</h1>
+          <p className="text-gray-500">🔄 جاري التحميل...</p>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>
@@ -124,7 +161,10 @@ export default function WhatsAppQRPage() {
         )}
 
         <div className="mt-6 flex items-center justify-center gap-3">
-          <Button onClick={fetchStatus} className="bg-blue-600 text-white hover:bg-blue-700">
+          <Button
+            onClick={fetchStatus}
+            className="bg-blue-600 text-white hover:bg-blue-700"
+          >
             🔄 إعادة التحميل
           </Button>
 

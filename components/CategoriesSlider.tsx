@@ -1,8 +1,9 @@
+// components/CategoriesSlider.tsx
 "use client";
 
+import Link from "next/link";
 import { useKeenSlider } from "keen-slider/react";
 import "keen-slider/keen-slider.min.css";
-import Link from "next/link";
 
 const categories = [
   { name: "📱 هواتف", slug: "phones" },
@@ -15,7 +16,11 @@ const categories = [
 
 export default function CategoriesSlider() {
   const [sliderRef] = useKeenSlider<HTMLDivElement>({
-    mode: "free",
+    rtl: true, // ✅ مهم للغة العربية
+    mode: "free-snap", // ✅ أفضل من free للّمس (يبقى قريب من snap)
+    drag: true,
+    rubberband: true,
+    renderMode: "performance",
     slides: {
       perView: "auto",
       spacing: 12,
@@ -23,20 +28,25 @@ export default function CategoriesSlider() {
   });
 
   return (
-    <div className="bg-slate-800 px-4 py-3 overflow-hidden">
+    <nav
+      aria-label="أقسام المنتجات"
+      className="bg-slate-800 px-4 py-3 overflow-hidden"
+      dir="rtl"
+    >
       <div ref={sliderRef} className="keen-slider">
         {categories.map((cat) => (
-          <Link
-            key={cat.slug}
-            href={`/category/${cat.slug}`}
-            aria-label={`اذهب إلى قسم ${cat.name}`}
-            className="keen-slider__slide bg-slate-700 hover:bg-blue-500 hover:text-white text-sm px-4 py-2 rounded-full whitespace-nowrap text-slate-100 transition-colors"
-            style={{ width: "auto" }}
-          >
-            {cat.name}
-          </Link>
+          <div key={cat.slug} className="keen-slider__slide !w-auto">
+            <Link
+              href={`/category/${cat.slug}`}
+              aria-label={`اذهب إلى قسم ${cat.name}`}
+              className="block bg-slate-700 hover:bg-blue-500 hover:text-white text-sm px-4 py-2 rounded-full whitespace-nowrap text-slate-100 transition-colors select-none"
+              prefetch={false}
+            >
+              {cat.name}
+            </Link>
+          </div>
         ))}
       </div>
-    </div>
+    </nav>
   );
 }
