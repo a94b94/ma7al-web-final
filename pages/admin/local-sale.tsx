@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import dynamic from "next/dynamic";
 import toast from "react-hot-toast";
@@ -31,30 +31,41 @@ interface CartItem {
   price: number;
 }
 
+function normalizeIraqiPhone(input: string) {
+  let v = (input || "").trim();
+  v = v.replace(/[\s\-().]/g, "");
+  if (v.startsWith("00964")) v = "+964" + v.slice(5);
+  if (v.startsWith("964")) v = "+964" + v.slice(3);
+  if (v.startsWith("+9640")) v = "+964" + v.slice(5);
+  return v;
+}
+
 export default function LocalSalePage() {
   const router = useRouter();
   const { user } = useUser();
 
   const [products, setProducts] = useState<Product[]>([]);
+  const [productsLoading, setProductsLoading] = useState(true);
+
   const [cart, setCart] = useState<CartItem[]>([]);
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [invoiceType, setInvoiceType] = useState<"cash" | "installment">("cash");
   const [downPayment, setDownPayment] = useState(0);
-  const [installmentsCount, setInstallmentsCount] = useState(0);
+  const [installmentsCount, setInstallmentsCount] = useState(0); // (موجودة عندك سابقًا، بس مو مستخدمة فعليًا)
   const [dueDate, setDueDate] = useState("");
   const [paid, setPaid] = useState(0);
   const [discount, setDiscount] = useState(0);
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [isOnline, setIsOnline] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  const today = new Date().toLocaleDateString("ar-EG");
+  const today = useMemo(() => new Date().toLocaleDateString("ar-EG"), []);
 
   // ✅ مزامنة الفواتير المحفوظة أوفلاين مع السيرفر
-  async function syncOfflineInvoices() {
+  const syncOfflineInvoices = useCallback(async () => {
     try {
       const invoices = await getAllOfflineInvoices();
-
       if (!invoices || invoices.length === 0) return;
 
       for (const invoice of invoices) {
@@ -68,30 +79,56 @@ export default function LocalSalePage() {
       toast.success("✅ تمت مزامنة الفواتير المحفوظة محليًا");
       await clearOfflineInvoices();
     } catch (err: any) {
-      // 👇 إصلاح خطأ NotFoundError من IndexedDB (object store غير موجود)
       if (err?.name === "NotFoundError") {
         console.warn(
-          "⚠️ Object store غير موجود في IndexedDB، سيتم تجاهل فواتير الأوفلاين القديمة وإعادة تهيئة القاعدة.",
+          "⚠️ Object store غير موجود في IndexedDB، تم تجاهل فواتير الأوفلاين القديمة.",
           err
         );
-        // ممكن هنا مستقبلًا تضيف منطق لإعادة إنشاء الـ DB من جديد لو حاب
         return;
       }
-
       console.error("❌ خطأ أثناء مزامنة فواتير الأوفلاين:", err);
     }
-  }
+  }, []);
+
+  // ✅ جلب المنتجات (مع دعم شكلين للـ API)
+  const fetchProducts = useCallback(async () => {
+    setProductsLoading(true);
+    try {
+      // إذا تريد تربطها بمتجر المشرف (مفيد للمتاجر المتعددة)
+      // عدّلها حسب شكل بيانات user عندك (user._id أو user.storeId)
+      const storeId = (user as any)?._id || (user as any)?.storeId || "";
+      const params: any = {};
+      if (storeId) params.storeId = storeId;
+
+      const res = await axios.get("/api/products", { params });
+
+      // ✅ دعم: res.data = [] أو { products: [] }
+      const list = Array.isArray(res.data)
+        ? res.data
+        : Array.isArray(res.data?.products)
+        ? res.data.products
+        : [];
+
+      // ✅ تنظيف الشكل الأدنى المطلوب للواجهة
+      const normalized: Product[] = list
+        .filter((p: any) => p && (p._id || p.id) && p.name)
+        .map((p: any) => ({
+          _id: String(p._id || p.id),
+          name: String(p.name),
+          price: Number(p.price || 0),
+        }));
+
+      setProducts(normalized);
+    } catch (err) {
+      console.error("خطأ في جلب المنتجات:", err);
+      toast.error("فشل في جلب قائمة المنتجات");
+      setProducts([]);
+    } finally {
+      setProductsLoading(false);
+    }
+  }, [user]);
 
   useEffect(() => {
-    // جلب المنتجات
-    axios
-      .get("/api/products")
-      .then((res) => setProducts(res.data))
-      .catch((err) => {
-        console.error("خطأ في جلب المنتجات:", err);
-        toast.error("فشل في جلب قائمة المنتجات");
-      });
-
     // تاريخ الاستحقاق الافتراضي = اليوم
     setDueDate(new Date().toISOString().slice(0, 10));
 
@@ -105,29 +142,27 @@ export default function LocalSalePage() {
 
       const handleOnline = () => {
         setIsOnline(true);
-        // عند العودة أونلاين، حاول مزامنة الفواتير
         syncOfflineInvoices();
       };
 
-      const handleOffline = () => {
-        setIsOnline(false);
-      };
+      const handleOffline = () => setIsOnline(false);
 
       window.addEventListener("online", handleOnline);
       window.addEventListener("offline", handleOffline);
 
-      // أول مرة لو كان أونلاين، جرّب المزامنة
-      if (navigator.onLine) {
-        syncOfflineInvoices();
-      }
+      if (navigator.onLine) syncOfflineInvoices();
 
-      // ✅ تنظيف الـ listeners عند الخروج من الصفحة
       return () => {
         window.removeEventListener("online", handleOnline);
         window.removeEventListener("offline", handleOffline);
       };
     }
-  }, []);
+  }, [syncOfflineInvoices]);
+
+  // ✅ جلب المنتجات بعد توفر user (حتى نحسب storeId لو لازم)
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
 
   const addToCart = (product: Product) => {
     const exists = cart.find((item) => item.productId === product._id);
@@ -135,8 +170,8 @@ export default function LocalSalePage() {
       toast.error("المنتج موجود بالفعل في السلة");
       return;
     }
-    setCart([
-      ...cart,
+    setCart((prev) => [
+      ...prev,
       {
         productId: product._id,
         name: product.name,
@@ -146,22 +181,32 @@ export default function LocalSalePage() {
     ]);
   };
 
-  const totalBeforeDiscount = cart.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
-  );
-  const totalAmount = Math.max(0, totalBeforeDiscount - discount);
-  const autoInstallmentsCount = Math.max(
-    1,
-    Math.round((totalAmount - downPayment) / 100000)
+  const totalBeforeDiscount = useMemo(
+    () => cart.reduce((sum, item) => sum + item.price * item.quantity, 0),
+    [cart]
   );
 
+  const totalAmount = useMemo(
+    () => Math.max(0, totalBeforeDiscount - discount),
+    [totalBeforeDiscount, discount]
+  );
+
+  const autoInstallmentsCount = useMemo(() => {
+    // نفس منطقك السابق
+    return Math.max(1, Math.round((totalAmount - downPayment) / 100000));
+  }, [totalAmount, downPayment]);
+
   const handleSaveInvoice = async () => {
-    if (!customerName.trim()) {
+    if (saving) return;
+
+    const name = customerName.trim();
+    const phone = normalizeIraqiPhone(customerPhone);
+
+    if (!name) {
       toast.error("يرجى إدخال اسم الزبون");
       return;
     }
-    if (!customerPhone.trim()) {
+    if (!phone) {
       toast.error("يرجى إدخال رقم الهاتف");
       return;
     }
@@ -171,26 +216,27 @@ export default function LocalSalePage() {
     }
 
     const invoiceData = {
-      customerName,
-      phone: customerPhone,
+      customerName: name,
+      phone,
       cart,
       total: totalAmount,
       type: invoiceType,
       downPayment,
-      installmentsCount:
-        invoiceType === "installment" ? autoInstallmentsCount : 0,
+      installmentsCount: invoiceType === "installment" ? autoInstallmentsCount : 0,
       dueDate,
       paid,
       discount,
       invoiceNumber,
+
+      // ✅ مهم للمتاجر المتعددة (لو API local-sale يحتاج storeId)
+      storeId: (user as any)?._id || (user as any)?.storeId || undefined,
+      storeName: (user as any)?.storeName || undefined,
     };
 
     if (!isOnline) {
       try {
         await saveOfflineInvoice(invoiceData);
-        toast.success(
-          "📴 تم حفظ الفاتورة مؤقتًا في جهازك لعدم وجود اتصال بالإنترنت"
-        );
+        toast.success("📴 تم حفظ الفاتورة مؤقتًا في جهازك لعدم وجود اتصال بالإنترنت");
       } catch (err) {
         console.error("فشل حفظ الفاتورة أوفلاين:", err);
         toast.error("فشل حفظ الفاتورة أوفلاين");
@@ -199,51 +245,51 @@ export default function LocalSalePage() {
     }
 
     try {
+      setSaving(true);
       const res = await axios.post("/api/local-sale/create", invoiceData);
       toast.success("✅ تم حفظ الفاتورة بنجاح");
 
       if (typeof window !== "undefined") {
-        const event = new CustomEvent("invoice:saved", {
-          detail: { invoiceNumber },
-        });
-        window.dispatchEvent(event);
+        window.dispatchEvent(
+          new CustomEvent("invoice:saved", { detail: { invoiceNumber } })
+        );
       }
 
-      router.push(`/admin/invoices/${res.data.invoice._id}`);
+      router.push(`/admin/invoices/${res.data?.invoice?._id}`);
     } catch (err) {
       console.error("فشل في حفظ الفاتورة:", err);
       toast.error("فشل في حفظ الفاتورة");
+    } finally {
+      setSaving(false);
     }
   };
 
+  const safeProducts = Array.isArray(products) ? products : [];
+
   return (
-    <div className="max-w-6xl mx-auto p-4 print:p-0">
+    <div className="max-w-6xl mx-auto p-4 print:p-0" dir="rtl">
       {!isOnline && (
         <div className="bg-red-600 text-white text-center py-2 mb-4">
           🚫 لا يوجد اتصال بالإنترنت – سيتم حفظ الفاتورة مؤقتًا في جهازك
         </div>
       )}
 
-      <h2 className="text-2xl font-bold mb-2 print:hidden">
-        🧾 إنشاء فاتورة جديدة
-      </h2>
-      <p className="mb-2 text-sm text-gray-600 print:hidden">
-        📅 التاريخ: {today}
-      </p>
+      <h2 className="text-2xl font-bold mb-2 print:hidden">🧾 إنشاء فاتورة جديدة</h2>
+      <p className="mb-2 text-sm text-gray-600 print:hidden">📅 التاريخ: {today}</p>
       <p className="mb-4 text-sm text-gray-600 print:hidden">
         رقم الفاتورة: <strong>{invoiceNumber}</strong>
       </p>
 
       {/* نوع الفاتورة */}
       <div className="mb-4 print:hidden">
-        <label className="mr-4">
+        <label className="ml-4">
           <input
             type="radio"
             name="invoiceType"
             value="cash"
             checked={invoiceType === "cash"}
             onChange={() => setInvoiceType("cash")}
-            className="mr-1"
+            className="ml-1"
           />
           نقد
         </label>
@@ -254,7 +300,7 @@ export default function LocalSalePage() {
             value="installment"
             checked={invoiceType === "installment"}
             onChange={() => setInvoiceType("installment")}
-            className="mr-1"
+            className="ml-1"
           />
           تقسيط
         </label>
@@ -271,6 +317,7 @@ export default function LocalSalePage() {
             onChange={(e) => setCustomerName(e.target.value)}
           />
         </div>
+
         <div>
           <label className="block text-sm mb-1">رقم الهاتف</label>
           <input
@@ -278,8 +325,10 @@ export default function LocalSalePage() {
             className="input"
             value={customerPhone}
             onChange={(e) => setCustomerPhone(e.target.value)}
+            onBlur={() => setCustomerPhone(normalizeIraqiPhone(customerPhone))}
           />
         </div>
+
         {invoiceType === "installment" && (
           <>
             <div>
@@ -289,21 +338,16 @@ export default function LocalSalePage() {
                 className="input"
                 value={downPayment}
                 onChange={(e) => setDownPayment(+e.target.value)}
+                min={0}
               />
             </div>
             <div>
-              <label className="block text-sm mb-1">
-                عدد الأقساط (محسوب تلقائيًا)
-              </label>
-              <input
-                type="number"
-                className="input"
-                value={autoInstallmentsCount}
-                readOnly
-              />
+              <label className="block text-sm mb-1">عدد الأقساط (محسوب تلقائيًا)</label>
+              <input type="number" className="input" value={autoInstallmentsCount} readOnly />
             </div>
           </>
         )}
+
         <div>
           <label className="block text-sm mb-1">المدفوع</label>
           <input
@@ -311,8 +355,10 @@ export default function LocalSalePage() {
             className="input"
             value={paid}
             onChange={(e) => setPaid(+e.target.value)}
+            min={0}
           />
         </div>
+
         <div>
           <label className="block text-sm mb-1">الخصم</label>
           <input
@@ -320,24 +366,46 @@ export default function LocalSalePage() {
             className="input"
             value={discount}
             onChange={(e) => setDiscount(+e.target.value)}
+            min={0}
           />
         </div>
       </div>
 
       {/* اختيار المنتجات */}
       <div className="mb-6 print:hidden">
-        <h3 className="font-semibold mb-2">📦 المنتجات المتاحة:</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          {products.map((product) => (
-            <button
-              key={product._id}
-              className="border rounded p-2 hover:bg-blue-100"
-              onClick={() => addToCart(product)}
-            >
-              {product.name} ({product.price.toLocaleString()} د.ع)
-            </button>
-          ))}
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="font-semibold">📦 المنتجات المتاحة:</h3>
+
+          <button
+            type="button"
+            onClick={fetchProducts}
+            className="text-sm px-3 py-1 rounded border hover:bg-gray-100"
+            disabled={productsLoading}
+          >
+            {productsLoading ? "تحميل..." : "تحديث"}
+          </button>
         </div>
+
+        {productsLoading ? (
+          <div className="text-sm text-gray-600">⏳ جاري تحميل المنتجات...</div>
+        ) : safeProducts.length === 0 ? (
+          <div className="text-sm text-gray-600">
+            لا توجد منتجات منشورة حاليًا.
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            {safeProducts.map((product) => (
+              <button
+                key={product._id}
+                className="border rounded p-2 hover:bg-blue-100"
+                onClick={() => addToCart(product)}
+                type="button"
+              >
+                {product.name} ({product.price.toLocaleString()} د.ع)
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ✅ عرض الفاتورة + الأقساط */}
@@ -345,9 +413,9 @@ export default function LocalSalePage() {
         <Invoice
           invoiceNumber={invoiceNumber}
           date={today}
-          companyName={user?.storeName || "المتجر"}
-          phone={customerPhone}
-          address={user?.storeAddress || ""}
+          companyName={(user as any)?.storeName || "المتجر"}
+          phone={normalizeIraqiPhone(customerPhone)}
+          address={(user as any)?.storeAddress || (user as any)?.address || ""}
           items={cart}
         />
 
@@ -359,7 +427,7 @@ export default function LocalSalePage() {
               count={autoInstallmentsCount}
               startDate={dueDate}
               orderId={invoiceNumber}
-              customerPhone={customerPhone}
+              customerPhone={normalizeIraqiPhone(customerPhone)}
             />
           </div>
         )}
@@ -369,13 +437,19 @@ export default function LocalSalePage() {
       <div className="flex gap-4 mt-4 print:hidden">
         <button
           onClick={handleSaveInvoice}
-          className="bg-green-600 text-white px-6 py-2 rounded"
+          className={`text-white px-6 py-2 rounded ${
+            saving ? "bg-gray-400 cursor-not-allowed" : "bg-green-600"
+          }`}
+          disabled={saving}
+          type="button"
         >
-          💾 حفظ الفاتورة
+          {saving ? "⏳ جاري الحفظ..." : "💾 حفظ الفاتورة"}
         </button>
+
         <button
           onClick={() => window.print()}
           className="bg-blue-600 text-white px-6 py-2 rounded"
+          type="button"
         >
           🖨️ طباعة
         </button>

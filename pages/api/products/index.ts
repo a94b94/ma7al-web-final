@@ -27,7 +27,6 @@ async function redisGetSafe(key: string) {
     const cached = await redis.get(key);
     return cached || null;
   } catch (e) {
-    // Redis اختياري: لا تكسر الطلب
     console.warn("⚠️ Redis GET failed:", (e as any)?.message || e);
     return null;
   }
@@ -49,25 +48,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const category = safeStr(req.query.category);
   const search = safeStr(req.query.search);
-  const storeId = safeStr(req.query.storeId); // ✅ جديد (اختياري)
+  const storeId = safeStr(req.query.storeId);
   const pageNumber = toInt(req.query.page, 1);
   const pageSize = Math.min(toInt(req.query.limit, 12), 100);
 
-  // ✅ فلتر أساسي
-  const filter: any = { isPublished: true };
+  // ✅ منشور (مع توافق خلفي إذا كان عندك isPublished)
+  const filter: any = {
+    $or: [{ published: true }, { isPublished: true }],
+  };
 
-  // ✅ category: لا تضيفها إذا فاضية أو all
   if (category && category.toLowerCase() !== "all") {
     filter.category = category;
   }
 
-  // ✅ search
   if (search) {
     filter.name = { $regex: search, $options: "i" };
   }
 
-  // ✅ storeId (متاجر متعددة)
-  // إذا Product.storeId ObjectId (وهو الغالب)، حوّله ObjectId
   if (storeId) {
     if (!mongoose.Types.ObjectId.isValid(storeId)) {
       return res.status(400).json({ error: "⚠️ storeId غير صالح" });
@@ -75,10 +72,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     filter.storeId = new mongoose.Types.ObjectId(storeId);
   }
 
-  const cacheKey = `products:v2:${storeId || "all"}:${category || "all"}:${search || "none"}:${pageNumber}:${pageSize}`;
+  const cacheKey = `products:v3:${storeId || "all"}:${category || "all"}:${search || "none"}:${pageNumber}:${pageSize}`;
 
   try {
-    // ✅ Redis cache (اختياري)
     const cached = await redisGetSafe(cacheKey);
     if (cached) {
       return res.status(200).json(JSON.parse(cached) as ProductsResponse);
@@ -89,15 +85,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const total = await Product.countDocuments(filter);
 
     const products = await Product.find(filter)
-      // ✅ مهم: storeId عندك مرتبط بـ User حسب آخر التعديلات
-      // عدّل الحقول حسب الموجود فعليًا في User model
-      .populate("storeId", "storeName address location storeLogo")
+      // ✅ storeId مرتبط بـ User
+      // عدّل الحقول حسب User عندك (الأكثر شيوعًا: storeName, storeLogo, address)
+      .populate("storeId", "storeName storeLogo address")
       .sort({ createdAt: -1 })
       .skip((pageNumber - 1) * pageSize)
       .limit(pageSize)
       .lean();
 
-    // ✅ تنظيف ObjectId إلى string لمنع مشاكل serialization بالفرونت
     const cleanProducts = products.map((p: any) => ({
       ...p,
       _id: p?._id?.toString?.() || String(p._id),
@@ -116,14 +111,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       products: cleanProducts,
     };
 
-    // ✅ خزّن 2 دقيقة (اختياري)
     await redisSetSafe(cacheKey, JSON.stringify(responseData), 120);
 
     return res.status(200).json(responseData);
   } catch (error: any) {
     console.error("❌ /api/products error:", error);
 
-    // ✅ في التطوير رجّع تفاصيل تساعدك بالتشخيص
     if (process.env.NODE_ENV !== "production") {
       return res.status(500).json({
         error: "⚠️ فشل في جلب المنتجات من السيرفر",
