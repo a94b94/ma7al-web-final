@@ -7,20 +7,30 @@ export interface IProduct extends Document {
   price: number;
   images: string[];
   category: string;
+
+  // ✅ توحيد الاسم
   isFeatured: boolean;
+
   discount?: number;
   stock?: number;
   location?: string;
-  storeId: Types.ObjectId; // ربط المنتج بصاحب المحل
-  published?: boolean;
+
+  // ✅ ربط المنتج بصاحب المحل (User)
+  storeId: Types.ObjectId;
+
+  // ✅ منشور
+  published: boolean;
+
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 const ProductSchema: Schema<IProduct> = new mongoose.Schema(
   {
     // 🏷️ اسم المنتج
-    name: { type: String, required: true, trim: true },
+    name: { type: String, required: true, trim: true, index: true },
 
-    // 🔖 رقم SKU مميز
+    // 🔖 SKU
     sku: {
       type: String,
       unique: true,
@@ -31,39 +41,57 @@ const ProductSchema: Schema<IProduct> = new mongoose.Schema(
     },
 
     // 💰 السعر
-    price: { type: Number, required: true, min: 0 },
+    price: { type: Number, required: true, min: 0, index: true },
 
-    // 🖼️ الصور (رابط صورة أو أكثر)
+    // 🖼️ الصور
     images: { type: [String], required: true },
 
-    // 🗂️ القسم (اختياري: يمكن جعله enum)
-    category: { type: String, required: true, trim: true },
+    // 🗂️ القسم
+    category: { type: String, required: true, trim: true, index: true },
 
     // ⭐ منتج مميز؟
-    isFeatured: { type: Boolean, default: false },
+    isFeatured: { type: Boolean, default: false, index: true },
 
-    // 🏷️ نسبة الخصم
-    discount: { type: Number, default: 0, min: 0 },
+    // 🏷️ الخصم (نسبة أو مبلغ حسب تصميمك—أنت حالياً نسبة غالبًا)
+    discount: { type: Number, default: 0, min: 0, index: true },
 
-    // 📦 الكمية في المخزون
+    // 📦 المخزون
     stock: { type: Number, default: 0, min: 0 },
 
-    // 📍 الموقع داخل المحل أو المخزن
+    // 📍 موقع داخل المخزن
     location: { type: String, default: "", trim: true },
 
-    // 🏪 ربط المنتج بصاحب المتجر
+    // 🏪 ربط المنتج بصاحب المتجر (User)
     storeId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User", // أو "Store" إذا تستخدم موديل منفصل للمحل
+      ref: "User",
       required: true,
       index: true,
     },
 
-    // ✅ منشور؟
-    published: { type: Boolean, default: true },
-  },
+    // ✅ منشور
+    published: { type: Boolean, default: true, index: true },
+
+    // ✅ توافق مع API القديم الذي يستخدم isPublished
+    // (مخزن بنفس القيمة تلقائيًا عند الحفظ)
+    isPublished: { type: Boolean, default: true, index: true },
+  } as any,
   { timestamps: true }
 );
+
+// ✅ حافظ على تزامن published و isPublished دائماً
+ProductSchema.pre("save", function (next) {
+  const doc = this as any;
+
+  // إذا واحد منهم تغيّر، خلي الاثنين نفس القيمة
+  if (typeof doc.published === "boolean") doc.isPublished = doc.published;
+  if (typeof doc.isPublished === "boolean") doc.published = doc.isPublished;
+
+  next();
+});
+
+// ✅ فهرس مركب مفيد للمتاجر المتعددة
+ProductSchema.index({ storeId: 1, createdAt: -1 });
 
 // 🧠 إنشاء أو استخدام الموديل
 const Product: Model<IProduct> =
