@@ -14,11 +14,12 @@ export interface IOrder extends Document {
     quantity: number;
     price: number;
     productId?: mongoose.Types.ObjectId;
-    storeId?: mongoose.Types.ObjectId;
+    storeId?: mongoose.Types.ObjectId; // مال المتجر الخاص بهذا المنتج
     storeName?: string;
   }[];
 
   total: number;
+  discount?: number; // ✅ جديد
   paid?: number;
   dueDate?: Date;
   seen?: boolean;
@@ -39,6 +40,8 @@ export interface IOrder extends Document {
   }[];
 
   email?: string;
+
+  // ✅ ربط الطلب بالمتجر (المتجر = User حسب store-info.ts)
   storeId: mongoose.Types.ObjectId;
   storeName: string;
 
@@ -58,21 +61,6 @@ const InstallmentSchema = new Schema(
   { _id: false }
 );
 
-InstallmentSchema.pre("save", function (next) {
-  const today = new Date();
-  const installment = this as any;
-
-  if (!installment.paid && new Date(installment.date) < today) {
-    installment.late = true;
-    installment.lateFee = 1000;
-  } else {
-    installment.late = false;
-    installment.lateFee = 0;
-  }
-
-  next();
-});
-
 const OrderSchema = new Schema<IOrder>(
   {
     phone: { type: String, required: true },
@@ -87,12 +75,15 @@ const OrderSchema = new Schema<IOrder>(
         quantity: { type: Number, required: true },
         price: { type: Number, required: true },
         productId: { type: ObjectId, ref: "Product" },
-        storeId: { type: ObjectId, ref: "Store" },
+
+        // ✅ المتجر عندك User (صاحب المحل)
+        storeId: { type: ObjectId, ref: "User" },
         storeName: { type: String },
       },
     ],
 
     total: { type: Number, required: true },
+    discount: { type: Number, default: 0 }, // ✅ جديد
     paid: { type: Number, default: 0 },
     dueDate: { type: Date },
     seen: { type: Boolean, default: false },
@@ -123,12 +114,44 @@ const OrderSchema = new Schema<IOrder>(
 
     email: { type: String },
 
-    // ✅ ربط الطلب بالمتجر فعليًا
-    storeId: { type: ObjectId, ref: "Store", required: true },
+    // ✅ ربط الطلب بالمتجر فعليًا (نفس storeId المستخدم في split.ts + store-info.ts)
+    storeId: { type: ObjectId, ref: "User", required: true },
     storeName: { type: String, required: true },
   },
   { timestamps: true }
 );
+
+// ✅ بديل صحيح لحساب التأخير/الغرامة للأقساط داخل array
+OrderSchema.pre("save", function (next) {
+  try {
+    const doc = this as any;
+
+    if (Array.isArray(doc.installments) && doc.installments.length) {
+      const today = new Date();
+      for (const inst of doc.installments) {
+        if (!inst.paid && inst.date && new Date(inst.date) < today) {
+          inst.late = true;
+          inst.lateFee = inst.lateFee ?? 1000; // تقدر تغيّرها لاحقًا
+        } else {
+          inst.late = false;
+          inst.lateFee = 0;
+        }
+      }
+    }
+
+    // ✅ remaining افتراضيًا إذا ما انحسب
+    if (typeof doc.remaining !== "number" || doc.remaining === 0) {
+      const total = typeof doc.total === "number" ? doc.total : 0;
+      const paid = typeof doc.paid === "number" ? doc.paid : 0;
+      const discount = typeof doc.discount === "number" ? doc.discount : 0;
+      doc.remaining = Math.max(total - discount - paid, 0);
+    }
+
+    next();
+  } catch {
+    next();
+  }
+});
 
 const Order: Model<IOrder> =
   mongoose.models.Order || mongoose.model<IOrder>("Order", OrderSchema);
